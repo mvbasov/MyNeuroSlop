@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markdown Viewer</title>
     <style>
-        /* Minimal styling – no headers, no extra UI, just markdown content */
         * {
             margin: 0;
             padding: 0;
@@ -20,7 +19,6 @@
             padding: 2rem 1rem;
         }
 
-        /* Markdown content container – clean, readable, no chrome */
         .markdown-body {
             max-width: 900px;
             margin: 0 auto;
@@ -30,7 +28,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
-        /* Standard markdown styling (GitHub-like) */
+        /* GitHub‑style markdown */
         .markdown-body h1, .markdown-body h2, .markdown-body h3 {
             margin-top: 1.5em;
             margin-bottom: 0.5em;
@@ -40,9 +38,7 @@
         .markdown-body h1 { font-size: 2rem; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
         .markdown-body h2 { font-size: 1.5rem; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
         .markdown-body h3 { font-size: 1.25rem; }
-        .markdown-body p, .markdown-body ul, .markdown-body ol {
-            margin-bottom: 1rem;
-        }
+        .markdown-body p, .markdown-body ul, .markdown-body ol { margin-bottom: 1rem; }
         .markdown-body code {
             font-family: 'SF Mono', 'Fira Code', monospace;
             background: #f6f8fa;
@@ -69,16 +65,9 @@
             padding-left: 1rem;
             color: #6a737d;
         }
-        .markdown-body a {
-            color: #0366d6;
-            text-decoration: none;
-        }
-        .markdown-body a:hover {
-            text-decoration: underline;
-        }
-        .markdown-body img {
-            max-width: 100%;
-        }
+        .markdown-body a { color: #0366d6; text-decoration: none; }
+        .markdown-body a:hover { text-decoration: underline; }
+        .markdown-body img { max-width: 100%; }
         .markdown-body table {
             border-collapse: collapse;
             width: 100%;
@@ -87,11 +76,8 @@
             border: 1px solid #dfe2e5;
             padding: 0.5rem;
         }
-        .markdown-body th {
-            background: #f6f8fa;
-        }
+        .markdown-body th { background: #f6f8fa; }
 
-        /* Loading / error states – minimal, just text */
         .loader, .error {
             text-align: center;
             padding: 3rem 1rem;
@@ -106,48 +92,61 @@
 </head>
 <body>
     <div id="content" class="markdown-body">
-        <div class="loader">Loading markdown...</div>
+        <div class="loader">Loading markdown…</div>
     </div>
 
     <script>
         // ------------------------------------------------------------------
-        // Hardcoded default markdown file (used if no URL parameter provided)
+        // Hardcoded default markdown (used if no valid URL parameter is given)
         // ------------------------------------------------------------------
-        const DEFAULT_MARKDOWN_URL = 'Prompts_collection/favicon.ico_for_provided_code_prompt.md';
-        
-        // Marked.js library sources (CDN + local fallback)
+        const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/Prompts_collection/favicon.ico_for_provided_code_prompt.md';
+
+        // Marked.js library – CDN + local fallback
         const CDN_URL = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
-        const LOCAL_FALLBACK = 'marked.min.js';   // local file (must exist for fallback)
+        const LOCAL_FALLBACK = 'marked.min.js';
 
         // ------------------------------------------------------------------
-        // Get markdown URL from query parameter
-        // Supports: ?md=url, ?file=url, ?markdown=url
-        // Also supports simple ?file.md (if the whole query string is a filename without '=')
-        // but that's ambiguous; we'll handle common patterns.
+        // Extract markdown URL from window.location.search
+        // Supports:
+        //   ?file.md               → "file.md" (relative path)
+        //   ?path/to/doc.md       → "path/to/doc.md"
+        //   ?md=example.md        → "example.md"
+        //   ?file=README.md       → "README.md"
+        //   ?markdown=notes.md    → "notes.md"
         // ------------------------------------------------------------------
-        function getMarkdownUrlFromParams() {
-            const params = new URLSearchParams(window.location.search);
-            // Standard parameter names
-            let url = params.get('md') || params.get('file') || params.get('markdown') || params.get('src');
-            if (url) return url;
-            
-            // Special case: if query string is exactly something like "?example.md" (no '=')
-            // then the entire query string (without '?') is treated as the filename.
-            // Example: ?README.md
-            const rawQuery = window.location.search.slice(1); // remove leading '?'
-            if (rawQuery && !rawQuery.includes('=') && rawQuery.trim().length > 0) {
-                // assume it's a relative or absolute path
-                return rawQuery;
+        function getMarkdownUrlFromQuery() {
+            const search = window.location.search;
+            if (!search || search === '?') return null;
+
+            // Remove leading '?'
+            const query = search.slice(1);
+
+            // Case 1: named parameters (md=, file=, markdown=)
+            const params = new URLSearchParams(search);
+            let named = params.get('md') || params.get('file') || params.get('markdown') || params.get('src');
+            if (named && named.trim() !== '') {
+                return named.trim();
             }
-            
+
+            // Case 2: no '=' at all → treat the whole query as a relative/absolute path
+            // Example: "README.md", "docs/guide.md", "/assets/page.md"
+            if (!query.includes('=')) {
+                // decodeURIComponent in case of %20 etc.
+                return decodeURIComponent(query);
+            }
+
+            // Fallback: nothing found
             return null;
         }
 
-        // Determine final markdown URL: use parameter if provided, else default
-        const MARKDOWN_URL = getMarkdownUrlFromParams() || DEFAULT_MARKDOWN_URL;
+        // Final markdown URL: from query parameter, or default if none
+        const markdownUrl = getMarkdownUrlFromQuery() || DEFAULT_MARKDOWN_URL;
+
+        // Optional: log the resolved URL to console for debugging (no visible UI)
+        console.log('[Markdown Viewer] Loading from:', markdownUrl);
 
         // ------------------------------------------------------------------
-        // Helper: load external script dynamically with timeout
+        // Dynamic script loader with timeout
         // ------------------------------------------------------------------
         function loadScript(src, timeout = 8000) {
             return new Promise((resolve, reject) => {
@@ -158,7 +157,7 @@
                 const timer = setTimeout(() => {
                     if (!resolved) {
                         resolved = true;
-                        reject(new Error(`Timeout loading ${src}`));
+                        reject(new Error(`Timeout: ${src}`));
                     }
                 }, timeout);
                 script.onload = () => {
@@ -171,7 +170,7 @@
                     if (resolved) return;
                     clearTimeout(timer);
                     resolved = true;
-                    reject(new Error(`Failed to load ${src}`));
+                    reject(new Error(`Failed to load: ${src}`));
                 };
                 document.head.appendChild(script);
             });
@@ -188,7 +187,7 @@
             try {
                 await loadScript(CDN_URL);
                 if (window.marked && typeof window.marked.parse === 'function') {
-                    console.log('Marked loaded from CDN');
+                    console.log('✓ marked loaded from CDN');
                     return window.marked;
                 }
                 throw new Error('Marked not available after CDN load');
@@ -197,32 +196,34 @@
                 try {
                     await loadScript(LOCAL_FALLBACK);
                     if (window.marked && typeof window.marked.parse === 'function') {
-                        console.log('Marked loaded from local fallback');
+                        console.log('✓ marked loaded from local fallback');
                         return window.marked;
                     }
                     throw new Error('Marked not available after local fallback');
                 } catch (localErr) {
-                    throw new Error(`Failed to load marked.js: ${localErr.message}`);
+                    throw new Error(`Cannot load marked.js: ${localErr.message}`);
                 }
             }
         }
 
         // ------------------------------------------------------------------
-        // Fetch markdown content from given URL
+        // Fetch markdown content from given URL (supports relative paths)
         // ------------------------------------------------------------------
         async function fetchMarkdown(url) {
+            // Resolve relative URL to absolute (just for clarity; fetch handles it)
+            const resolvedUrl = new URL(url, window.location.href).href;
+            console.log('Fetching:', resolvedUrl);
             const response = await fetch(url);
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error(`HTTP ${response.status} ${response.statusText} — ${resolvedUrl}`);
             }
             return await response.text();
         }
 
         // ------------------------------------------------------------------
-        // Render markdown string into container using marked
+        // Render markdown to container using marked
         // ------------------------------------------------------------------
         async function renderMarkdown(markdownText, markedLib, container) {
-            // Configure for GitHub Flavored Markdown
             markedLib.setOptions({
                 gfm: true,
                 breaks: true,
@@ -234,26 +235,20 @@
         }
 
         // ------------------------------------------------------------------
-        // Main application entry point
+        // Main entry point
         // ------------------------------------------------------------------
         async function init() {
             const container = document.getElementById('content');
             try {
-                // 1. Load marked library (with fallback)
                 const markedLib = await loadMarked();
-                
-                // 2. Fetch markdown from the determined URL
-                const markdownText = await fetchMarkdown(MARKDOWN_URL);
-                
-                // 3. Render to the page
+                const markdownText = await fetchMarkdown(markdownUrl);
                 await renderMarkdown(markdownText, markedLib, container);
-            } catch (error) {
-                console.error('Rendering failed:', error);
-                container.innerHTML = `<div class="error">❌ Error: ${escapeHtml(error.message)}</div>`;
+            } catch (err) {
+                console.error('Rendering failed:', err);
+                container.innerHTML = `<div class="error">❌ ${escapeHtml(err.message)}</div>`;
             }
         }
 
-        // Simple escape for error messages
         function escapeHtml(str) {
             return str.replace(/[&<>]/g, function(m) {
                 if (m === '&') return '&amp;';
@@ -263,7 +258,6 @@
             });
         }
 
-        // Start when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', init);
         } else {
