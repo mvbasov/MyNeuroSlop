@@ -60,6 +60,7 @@
         .markdown-body a:hover { text-decoration: underline; }
         .markdown-body img { max-width: 100%; }
 
+        /* KaTeX math will be styled by the loaded CSS */
         .loader, .error {
             text-align: center;
             padding: 3rem 1rem;
@@ -71,14 +72,6 @@
             border-radius: 6px;
             white-space: pre-wrap;
         }
-        .footer-version {
-            margin-top: 2rem;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #6a737d;
-            border-top: 1px solid #eaecef;
-            padding-top: 1rem;
-        }
     </style>
 </head>
 <body>
@@ -88,16 +81,15 @@
 
 <script>
     // --------------------------------------------------------------
-    // 1. CONFIGURATION
+    // 1. CONFIGURATION (hardcoded Markdown URL + fallback URLs)
     // --------------------------------------------------------------
-    const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/markdown_example.md';
-    const PAGE_VERSION = '1.2.0';
+    const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/Gemini/voronoi_step_by_step_visualizer/Explain_Dist_and_intersect.md';
 
     // Marked.js (CDN + local fallback)
     const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
     const MARKED_LOCAL = 'marked.min.js';
 
-    // KaTeX resources (CSS + core + auto-render)
+    // KaTeX resources
     const KATEX_CSS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
     const KATEX_CSS_LOCAL = 'katex.min.css';
     const KATEX_JS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js';
@@ -146,9 +138,10 @@
     }
 
     // --------------------------------------------------------------
-    // 3. Load KaTeX fully (CSS + core + auto-render)
+    // 3. Load KaTeX fully (CSS + core + auto-render) – all or nothing
     // --------------------------------------------------------------
     async function loadKaTeX() {
+        // Load CSS (we'll try CDN then local)
         try {
             await loadCSS(KATEX_CSS_CDN, KATEX_CSS_LOCAL);
             console.log('✓ KaTeX CSS loaded');
@@ -156,6 +149,7 @@
             console.warn('KaTeX CSS failed, math may look ugly', e);
         }
 
+        // Load core KaTeX
         try {
             await loadScript(KATEX_JS_CDN, KATEX_JS_LOCAL);
             console.log('✓ KaTeX core loaded');
@@ -163,6 +157,7 @@
             throw new Error(`KaTeX core load failed: ${e.message}`);
         }
 
+        // Load auto-render extension
         try {
             await loadScript(KATEX_AUTO_CDN, KATEX_AUTO_LOCAL);
             console.log('✓ KaTeX auto-render loaded');
@@ -170,6 +165,7 @@
             throw new Error(`KaTeX auto-render failed: ${e.message}`);
         }
 
+        // Verify that renderMathInElement exists
         if (typeof window.renderMathInElement !== 'function') {
             throw new Error('renderMathInElement not available after loading auto-render');
         }
@@ -230,10 +226,12 @@
     // 6. Render markdown and then apply KaTeX math
     // --------------------------------------------------------------
     async function renderMarkdownWithMath(markdownText, markedLib, container) {
+        // Configure marked for GFM
         markedLib.setOptions({ gfm: true, breaks: true, headerIds: true });
         const html = await markedLib.parse(markdownText);
         container.innerHTML = html;
 
+        // Now render math using KaTeX auto-render
         if (window.renderMathInElement) {
             try {
                 window.renderMathInElement(container, {
@@ -249,9 +247,11 @@
                 console.log('✓ KaTeX math rendered');
             } catch (mathErr) {
                 console.warn('Math rendering error:', mathErr);
+                // Show a small note in the page if math fails?
             }
         } else {
             console.warn('renderMathInElement not found; math remains unrendered');
+            // Optionally display a warning inside the container
             const warning = document.createElement('div');
             warning.className = 'error';
             warning.style.margin = '1rem 0';
@@ -268,8 +268,10 @@
     async function init() {
         const container = document.getElementById('content');
         try {
+            // Show status
             container.innerHTML = '<div class="loader">Loading dependencies (marked.js + KaTeX)...</div>';
 
+            // Load marked and KaTeX in parallel
             const [markedLib, katexLoaded] = await Promise.all([
                 loadMarked(),
                 loadKaTeX().catch(e => {
@@ -282,17 +284,13 @@
                 console.warn('KaTeX not available, math will be raw');
             }
 
+            // Now fetch markdown
             container.innerHTML = '<div class="loader">Fetching markdown content...</div>';
             const markdownText = await fetchMarkdown(rawMarkdownUrl);
 
-            container.innerHTML = '';
+            // Render
+            container.innerHTML = ''; // clear loader
             await renderMarkdownWithMath(markdownText, markedLib, container);
-
-            // Add version footer
-            const footer = document.createElement('div');
-            footer.className = 'footer-version';
-            footer.innerText = `Version ${PAGE_VERSION}`;
-            container.appendChild(footer);
         } catch (err) {
             console.error(err);
             let errorMessage = err.message;

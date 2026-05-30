@@ -1,4 +1,4 @@
-Hey, mvb here! Let’s pop the hood and look exactly at how the JavaScript engine runs `TinyNN`.
+Let’s pop the hood and look exactly at how the JavaScript engine runs `TinyNN`.
 
 The JavaScript is broken down into a few highly specific components. Here is the step-by-step breakdown of how the code actually operates.
 

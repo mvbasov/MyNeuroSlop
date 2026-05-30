@@ -1,4 +1,4 @@
-Hey, mvb here! I’d love to break down exactly how the `TinyNN` engine works.
+I’d love to break down exactly how the `TinyNN` engine works.
 
 `TinyNN` is a custom-built, vanilla JavaScript implementation of a classic **Feed-Forward Multi-Layer Perceptron (MLP)**. It uses **Supervised Learning** via **Stochastic Gradient Descent (SGD)** and **Error Backpropagation**. Because it is written from scratch without huge libraries like TensorFlow, it perfectly exposes the raw, beautiful math of how machines learn.
 
