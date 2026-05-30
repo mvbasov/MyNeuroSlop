@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Embed Preparer</title>
+    <style>
+        :root {
+            /* Color Palette */
+            --bg-body: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --bg-card: #ffffff;
+            
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --primary-border: #bfdbfe;
+            
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --danger-light: #fef2f2;
+            
+            --dark-bg: #1e293b;
+            --dark-border: #334155;
+            --dark-text: #f1f5f9;
+        }
+
+        /* Reset & Base Styles */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        svg { display: block; }
+        code { 
+            font-family: ui-monospace, SFMono-Regular, monospace; 
+            background: #f1f5f9; 
+            color: #db2777; 
+            padding: 0.125rem 0.375rem; 
+            border-radius: 0.25rem; 
+            font-size: 0.85em; 
+        }
+
+        /* Layout */
+        .app-header { 
+            background: var(--bg-card); 
+            border-bottom: 1px solid var(--border-color); 
+            padding: 1rem 1.5rem; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            position: sticky; 
+            top: 0; 
+            z-index: 10; 
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); 
+        }
+        .header-title { 
+            font-size: 1.25rem; 
+            font-weight: 700; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.5rem; 
+        }
+        .header-title svg { color: var(--primary); }
+        .header-actions { display: flex; align-items: center; gap: 1rem; }
+        
+        .main-container { 
+            flex: 1; 
+            width: 100%; 
+            max-width: 80rem; 
+            margin: 0 auto; 
+            padding: 1.5rem; 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 1.5rem; 
+        }
+        @media (min-width: 1024px) { 
+            .main-container { grid-template-columns: 1fr 1fr; } 
+        }
+        .panel-col { display: flex; flex-direction: column; gap: 1rem; }
+        
+        /* Cards */
+        .card { 
+            background: var(--bg-card); 
+            padding: 1.25rem; 
+            border-radius: 0.75rem; 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); 
+            display: flex; 
+            flex-direction: column; 
+            gap: 1rem; 
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: center; }
+        .card-title { 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            color: var(--text-muted); 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em; 
+        }
+        .editor-card { flex: 1; min-height: 400px; }
+        
+        /* Textareas */
+        .editor-textarea { 
+            width: 100%; 
+            flex: 1; 
+            padding: 1rem; 
+            border-radius: 0.5rem; 
+            font-family: ui-monospace, SFMono-Regular, monospace; 
+            font-size: 0.875rem; 
+            outline: none; 
+            resize: none; 
+            white-space: pre; 
+            overflow: auto; 
+            line-height: 1.5; 
+        }
+        .textarea-input { 
+            background: var(--bg-body); 
+            border: 1px solid #cbd5e1; 
+            color: var(--text-main); 
+            transition: border-color 0.2s, box-shadow 0.2s; 
+        }
+        .textarea-input:focus { 
+            border-color: var(--primary); 
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); 
+            background: #fff; 
+        }
+        .textarea-output { 
+            background: #0f172a; 
+            color: var(--dark-text); 
+            border: 1px solid var(--dark-border); 
+            box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.2); 
+        }
+        
+        /* Buttons */
+        .btn { 
+            cursor: pointer; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 0.5rem; 
+            font-size: 0.875rem; 
+            font-weight: 600; 
+            border: none; 
+            border-radius: 0.5rem; 
+            transition: all 0.2s; 
+        }
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; border-radius: 0.25rem; }
+        .btn-md { padding: 0.375rem 0.75rem; }
+        .btn-lg { padding: 0.5rem 1rem; }
+
+        .btn-load { background: var(--primary-light); color: var(--primary-hover); border: 1px solid var(--primary-border); }
+        .btn-load:hover { background: #dbeafe; }
+        
+        .btn-clear { background: var(--danger-light); color: var(--danger); }
+        .btn-clear:hover { background: #fee2e2; color: var(--danger-hover); }
+        
+        .btn-copy { background: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-copy:hover { background: #e2e8f0; }
+        
+        .btn-save { background: var(--primary); color: #fff; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+        .btn-save:hover { background: var(--primary-hover); }
+        
+        .hidden { display: none; }
+
+        /* Checkboxes */
+        .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; }
+        .checkbox-label { display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; color: var(--text-main); }
+        .checkbox-label:hover { color: #000; }
+        .checkbox-label input { margin-top: 0.25rem; width: 1.25rem; height: 1.25rem; cursor: pointer; accent-color: var(--primary); }
+        .checkbox-text { display: flex; flex-direction: column; }
+        .checkbox-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.125rem; font-weight: 500; }
+        
+        /* Toasts */
+        #toast-container { 
+            position: fixed; 
+            bottom: 1rem; 
+            right: 1rem; 
+            z-index: 50; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 0.5rem; 
+        }
+        .toast { 
+            padding: 0.75rem 1rem; 
+            border-radius: 0.5rem; 
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); 
+            color: #fff; 
+            font-weight: 500; 
+            font-size: 0.875rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.75rem; 
+            transform: translateY(2.5rem); 
+            opacity: 0; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast-success { background: var(--dark-bg); }
+        .toast-error { background: var(--danger-hover); }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .textarea-output::-webkit-scrollbar-track { background: #1e293b; }
+        .textarea-output::-webkit-scrollbar-thumb { background: #475569; }
+        .textarea-output::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <header class="app-header">
+        <h1 class="header-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            HTML Embed Preparer
+        </h1>
+        <div class="header-actions">
+            <input type="file" id="file-upload" class="hidden" accept=".html,.htm,.txt,.md">
+            <label for="file-upload" class="btn btn-md btn-load">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Load File
+            </label>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Left Panel: Controls & Input -->
+        <div class="panel-col">
+            
+            <!-- Options Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Processing Options</h2>
+                </div>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="opt-remove-tags" checked>
+                        <div class="checkbox-text">
+                            <span>Remove structural tags (<code>&lt;html&gt;</code>, <code>&lt;head&gt;</code>, <code>&lt;body&gt;</code>, etc.)</span>
+                            <span class="checkbox-desc">Automatically fixes internal indentation</span>
+                        </div>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="opt-remove-empty" checked>
+                        <div class="checkbox-text">
+                            <span>Remove empty lines</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Input Card -->
+            <div class="card editor-card">
+                <div class="card-header">
+                    <h2 class="card-title">Input Source</h2>
+                    <button id="clear-btn" class="btn btn-sm btn-clear">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        Clear
+                    </button>
+                </div>
+                <textarea id="input-text" class="editor-textarea textarea-input" placeholder="Paste your HTML document here..."></textarea>
+            </div>
+        </div>
+
+        <!-- Right Panel: Output -->
+        <div class="card editor-card">
+            <div class="card-header">
+                <h2 class="card-title">Prepared Output</h2>
+                <div class="header-actions" style="gap: 0.5rem;">
+                    <button id="copy-btn" class="btn btn-md btn-copy">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Copy
+                    </button>
+                    <button id="save-btn" class="btn btn-md btn-save">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        Save
+                    </button>
+                </div>
+            </div>
+            <textarea id="output-text" readonly class="editor-textarea textarea-output" placeholder="Prepared code will automatically appear here..."></textarea>
+        </div>
+    </main>
+
+    <script>
+        // DOM Elements
+        const inputTextArea = document.getElementById('input-text');
+        const outputTextArea = document.getElementById('output-text');
+        const optRemoveTags = document.getElementById('opt-remove-tags');
+        const optRemoveEmpty = document.getElementById('opt-remove-empty');
+        const fileUpload = document.getElementById('file-upload');
+        const clearBtn = document.getElementById('clear-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const saveBtn = document.getElementById('save-btn');
+
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const icon = type === 'success' 
+                ? `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`
+                : `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            
+            container.appendChild(toast);
+
+            // Animate In
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Animate Out and Destroy
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Core Processing Engine
+        function processContent() {
+            const text = inputTextArea.value;
+            const removeTags = optRemoveTags.checked;
+            const removeEmpty = optRemoveEmpty.checked;
+
+            if (!text) {
+                outputTextArea.value = '';
+                return;
+            }
+
+            // Normalize newlines to prevent \r matching issues
+            let resultText = text.replace(/\r\n/g, '\n');
+
+            // 0. Protect <script> and <style> blocks from internal modification
+            // We only protect angled brackets. Empty lines will now be processed normally.
+            resultText = resultText.replace(/(<(script|style)\b[^>]*>)([\s\S]*?)(<\/\2>)/gi, (match, open, type, content, close) => {
+                let protectedContent = content.replace(/</g, '__PRTCT_LT__').replace(/>/g, '__PRTCT_GT__');
+                return open + protectedContent + close;
+            });
+
+            if (removeTags) {
+                // 1. Globally remove DOCTYPE and meta tags (handles multiline edge-cases cleanly)
+                resultText = resultText.replace(/<!DOCTYPE[\s\S]*?>/gi, '');
+                resultText = resultText.replace(/<meta[\s\S]*?>/gi, '');
+
+                const lines = resultText.split('\n');
+                const resultLines = [];
+                const indentStack = [];
+
+                // 2. Process Line by Line for smart indentation
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i];
+
+                    // Calculate current total outdent amount needed
+                    let currentOutdent = indentStack.reduce((a, b) => a + b, 0);
+
+                    // Outdent the current line
+                    let matchSpace = line.match(/^(\s*)/);
+                    let space = matchSpace ? matchSpace[1] : '';
+                    let dropCount = Math.min(space.length, currentOutdent);
+                    line = line.substring(dropCount);
+
+                    // Scan left-to-right for structural tags to update the stack
+                    // Matches closing tags OR opening tags for html/head/body
+                    const structuralTagRegex = /(<\/(html|head|body)\s*>|<(html|head|body)\b[^>]*>)/i;
+                    
+                    while (true) {
+                        let match = line.match(structuralTagRegex);
+                        if (!match) break;
+
+                        let tag = match[0];
+                        let isClosingTag = tag.startsWith('</');
+
+                        if (isClosingTag) {
+                            if (indentStack.length > 0) {
+                                indentStack.pop();
+                            }
+                        } else {
+                            // Opening Tag detected. Check its leading whitespace.
+                            let prefix = line.substring(0, match.index);
+                            if (prefix.trim() === '') {
+                                // If it's preceded only by space, record that space amount
+                                indentStack.push(prefix.length);
+                            } else {
+                                // If it's inline with other text, it contributes 0 to structural outdent
+                                indentStack.push(0);
+                            }
+                        }
+
+                        // Erase the tag from the line and continue scanning
+                        line = line.substring(0, match.index) + line.substring(match.index + tag.length);
+                    }
+
+                    resultLines.push(line);
+                }
+
+                resultText = resultLines.join('\n');
+            }
+
+            if (removeEmpty) {
+                // Filter out lines that consist entirely of whitespace or are empty
+                resultText = resultText.split('\n').filter(line => line.trim().length > 0).join('\n');
+            }
+
+            // 1. Convert <title> tag content to a Markdown header
+            // Doing this before restoring protections ensures <title> tags inside <script> aren't affected
+            resultText = resultText.replace(/<title\b[^>]*>([\s\S]*?)<\/title>/gi, (match, titleContent) => {
+                return '# ' + titleContent.trim();
+            });
+
+            // 2. Restore protected characters inside scripts/styles BEFORE global outdent
+            resultText = resultText.replace(/__PRTCT_LT__/g, '<').replace(/__PRTCT_GT__/g, '>');
+
+            // 3. Remove common minimal indent from all lines
+            let processedLines = resultText.split('\n');
+            let minIndent = Infinity;
+
+            for (const line of processedLines) {
+                if (line.trim().length > 0) {
+                    const indentMatch = line.match(/^(\s*)/);
+                    const indentLen = indentMatch ? indentMatch[1].length : 0;
+                    if (indentLen < minIndent) {
+                        minIndent = indentLen;
+                    }
+                }
+            }
+
+            if (minIndent > 0 && minIndent !== Infinity) {
+                processedLines = processedLines.map(line => {
+                    // Skip completely empty lines, outdent the rest
+                    if (line.trim().length === 0) return '';
+                    return line.length >= minIndent ? line.substring(minIndent) : line;
+                });
+            }
+            
+            resultText = processedLines.join('\n');
+
+            outputTextArea.value = resultText;
+        }
+
+        // Event Listeners for real-time processing
+        inputTextArea.addEventListener('input', processContent);
+        optRemoveTags.addEventListener('change', processContent);
+        optRemoveEmpty.addEventListener('change', processContent);
+
+        // Clear button logic
+        clearBtn.addEventListener('click', () => {
+            inputTextArea.value = '';
+            processContent();
+        });
+
+        // File upload logic
+        fileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                inputTextArea.value = event.target.result;
+                processContent();
+                showToast(`Loaded ${file.name} successfully.`);
+                fileUpload.value = ''; // Reset input so same file can be loaded again if needed
+            };
+            reader.onerror = () => {
+                showToast('Failed to read file.', 'error');
+            };
+            reader.readAsText(file);
+        });
+
+        // Copy to clipboard logic
+        copyBtn.addEventListener('click', () => {
+            const textToCopy = outputTextArea.value;
+            if (!textToCopy) {
+                showToast('Nothing to copy.', 'error');
+                return;
+            }
+
+            // Fallback strategy for iframe environments (document.execCommand)
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            // Avoid scrolling to bottom
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('Prepared code copied to clipboard!');
+                } else {
+                    throw new Error('execCommand failed');
+                }
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+                showToast('Failed to copy to clipboard.', 'error');
+            }
+            document.body.removeChild(textArea);
+        });
+
+        // Save to file logic
+        saveBtn.addEventListener('click', () => {
+            const textToSave = outputTextArea.value;
+            if (!textToSave) {
+                showToast('Nothing to save.', 'error');
+                return;
+            }
+
+            const blob = new Blob([textToSave], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            a.href = url;
+            a.download = 'prepared_embed.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('File downloaded successfully!');
+        });
+
+        // Initial trigger in case browser autofills
+        processContent();
+    </script>
+</body>
+</html>

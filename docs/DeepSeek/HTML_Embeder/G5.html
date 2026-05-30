@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Embed Prepper</title>
+    <style>
+        :root {
+            --bg: #1e1e1e;
+            --surface: #252526;
+            --primary: #4f46e5;
+            --text: #d4d4d4;
+            --border: #3e3e42;
+            --input-bg: #1e1e1e;
+            --header-text: #ffffff;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        header {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--header-text);
+            margin-bottom: 0.5rem;
+        }
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            background: var(--surface);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            flex-wrap: wrap;
+            border: 1px solid var(--border);
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        input[type="checkbox"] {
+            accent-color: var(--primary);
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        
+        .btn-secondary {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        .actions {
+            margin-left: auto;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            flex: 1;
+            min-height: 0;
+        }
+        .pane {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .pane-header {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        textarea {
+            flex: 1;
+            padding: 1rem;
+            background: var(--input-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: none;
+        }
+        textarea:focus { outline: 2px solid var(--primary); border-color: transparent; }
+        
+        /* File Input Styling */
+        input[type="file"]::file-selector-button {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background: var(--border);
+        }
+    </style>
+</head>
+<body>
+
+    <header>HTML Embed Prepper</header>
+
+    <div class="controls">
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="optStructure" checked> Remove html/head/body</label>
+            <label><input type="checkbox" id="optDoctype" checked> Remove Doctype</label>
+            <label><input type="checkbox" id="optTitle" checked> Convert Title</label>
+            <label><input type="checkbox" id="optIndent" checked> Smart Dedent</label>
+        </div>
+        
+        <div class="actions">
+            <button id="processBtn">Process Output</button>
+            <button id="copyBtn" class="btn-secondary">Copy</button>
+            <button id="saveBtn" class="btn-secondary">Save</button>
+        </div>
+    </div>
+
+    <div class="editor-container">
+        <div class="pane">
+            <div class="pane-header">
+                <span>Input Source</span>
+                <input type="file" id="fileInput" style="font-size: 0.8rem;">
+            </div>
+            <textarea id="input" placeholder="Paste your HTML here..."></textarea>
+        </div>
+        <div class="pane">
+            <div class="pane-header">
+                <span>Cleaned Output</span>
+            </div>
+            <textarea id="output" readonly placeholder="Result will appear here..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        const inputEl = document.getElementById('input');
+        const outputEl = document.getElementById('output');
+        const fileInput = document.getElementById('fileInput');
+
+        // File Upload Handler
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => inputEl.value = e.target.result;
+            reader.readAsText(file);
+        });
+
+        // Copy Handler
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            outputEl.select();
+            document.execCommand('copy');
+        });
+
+        // Save to File Handler (NEW)
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const content = outputEl.value;
+            if (!content) return;
+
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'prepared-embed.html';
+            document.body.appendChild(a);
+            a.click();
+            
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Main Processing Logic
+        document.getElementById('processBtn').addEventListener('click', () => {
+            const source = inputEl.value;
+            const lines = source.split(/\r?\n/);
+            
+            // Options
+            const removeStructure = document.getElementById('optStructure').checked;
+            const removeDoctype = document.getElementById('optDoctype').checked;
+            const convertTitle = document.getElementById('optTitle').checked;
+            const smartIndent = document.getElementById('optIndent').checked;
+
+            let processedLines = [];
+            let extractedTitle = null;
+            
+            // Indentation State
+            let indentStack = [];
+            let currentDedent = 0;
+            let inScript = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const trimmed = line.trim();
+
+                // 1. Always remove empty lines (Main Mode)
+                if (trimmed.length === 0 && !inScript) continue;
+
+                // Script Block Protection
+                if (trimmed.toLowerCase().startsWith('<script')) inScript = true;
+                // Split string to avoid browser parser error
+                if (trimmed.toLowerCase().includes('</' + 'script>')) inScript = false;
+
+                if (inScript) {
+                    if (smartIndent && currentDedent > 0) {
+                        const match = line.match(/^(\s*)/);
+                        const currentLineIndent = match ? match[1].length : 0;
+                        const removeCount = Math.min(currentLineIndent, currentDedent);
+                        processedLines.push(line.substring(removeCount));
+                    } else {
+                        processedLines.push(line);
+                    }
+                    continue; 
+                } 
+
+                // 2. Remove Doctype
+                if (removeDoctype && trimmed.toLowerCase().startsWith('<!doctype')) continue;
+
+                // 2. Remove Meta
+                if (removeStructure && trimmed.toLowerCase().startsWith('<meta')) continue;
+
+                // 4. Convert Title
+                if (convertTitle) {
+                    const titleMatch = line.match(/<title>(.*?)<\/title>/i);
+                    if (titleMatch) {
+                        extractedTitle = "# " + titleMatch[1];
+                        continue;
+                    }
+                }
+
+                // 5. Smart Structure Removal
+                if (removeStructure) {
+                    const openMatch = line.match(/^(\s*)<(html|head|body).*?>/i);
+                    if (openMatch) {
+                        const indentLen = openMatch[1].length;
+                        indentStack.push(indentLen);
+                        currentDedent += indentLen;
+                        continue; 
+                    }
+
+                    const closeMatch = line.match(/^(\s*)<\/(html|head|body)>/i);
+                    if (closeMatch) {
+                        const removedIndent = indentStack.pop() || 0;
+                        currentDedent -= removedIndent;
+                        continue; 
+                    }
+                }
+
+                // 6. Apply Indentation Removal
+                let finalLine = line;
+                if (smartIndent && currentDedent > 0) {
+                    const match = line.match(/^(\s*)/);
+                    const currentLineIndent = match ? match[1].length : 0;
+                    const removeCount = Math.min(currentLineIndent, currentDedent);
+                    finalLine = line.substring(removeCount);
+                }
+
+                processedLines.push(finalLine);
+            }
+
+            // 7. GLOBAL DEDENT (Remove common indentation from all remaining lines)
+            if (processedLines.length > 0) {
+                let globalMinIndent = Infinity;
+                let hasContent = false;
+
+                processedLines.forEach(line => {
+                    if (line.trim().length > 0) {
+                        const indent = line.match(/^\s*/)[0].length;
+                        if (indent < globalMinIndent) globalMinIndent = indent;
+                        hasContent = true;
+                    }
+                });
+
+                if (hasContent && globalMinIndent > 0 && globalMinIndent !== Infinity) {
+                    processedLines = processedLines.map(line => {
+                        if (line.length >= globalMinIndent) {
+                            return line.substring(globalMinIndent);
+                        }
+                        return line;
+                    });
+                }
+            }
+
+            // Prepend Title if found
+            if (extractedTitle) {
+                processedLines.unshift(extractedTitle);
+            }
+
+            outputEl.value = processedLines.join('\n');
+        });
+    </script>
+</body>
+</html>
+

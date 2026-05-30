@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+          <!-- RS Flip-Flop (Now with inversion bubble) -->
+          <symbol id="rs-flipflop" viewBox="0 0 200 200">
+            <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="50" y="25" width="100" height="150" rx="4" />
+              <!-- Inputs -->
+              <line x1="0" y1="50" x2="50" y2="50" />
+              <line x1="0" y1="150" x2="50" y2="150" />
+              <line x1="100" y1="0" x2="100" y2="12" />
+              <circle cx="100" cy="18" r="5" />
+              <!-- Output Q -->
+              <line x1="150" y1="50" x2="200" y2="50" />
+              <!-- Output Q̅ -->
+              <circle cx="157" cy="150" r="5" />
+              <line x1="163" y1="150" x2="200" y2="150" />
+              <!-- Labels -->
+              <text x="65" y="55" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="start" dominant-baseline="middle">R</text>
+              <text x="65" y="155" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="start" dominant-baseline="middle">S</text>
+              <text x="135" y="55" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="end" dominant-baseline="middle">Q</text>
+              <text x="135" y="155" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="end" dominant-baseline="middle">Q̅</text>
+              <text x="100" y="45" font-family="monospace" font-size="14" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle">RST</text>
+            </g>
+          </symbol>
+  </defs>
+  <use href="#rs-flipflop" />
+</svg>

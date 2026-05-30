@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <defs>
+    <symbol id="resistor" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="50" x2="30" y2="50"></line>
+          <rect x="30" y="40" width="40" height="20"></rect>
+          <line x1="70" y1="50" x2="100" y2="50"></line>
+        </g>
+      </symbol>
+    <symbol id="diode" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="50" x2="40" y2="50"></line>
+          <polygon points="40,35 40,65 60,50"></polygon>
+          <line x1="60" y1="35" x2="60" y2="65"></line>
+          <line x1="60" y1="50" x2="100" y2="50"></line>
+        </g>
+      </symbol>
+    <symbol id="npn" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="40" cy="50" r="30" stroke-width="2"></circle>
+          <line x1="0" y1="50" x2="35" y2="50"></line>
+          <line x1="35" y1="35" x2="35" y2="65" stroke-width="4.5"></line>
+          <path d="M 35 45 L 50 25 L 50 0"></path>
+          <path d="M 35 55 L 50 75 L 50 100"></path>
+          <!-- Arrow on Emitter pointing outwards -->
+          <polygon points="49,72 41,67 46,63" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"></polygon>
+        </g>
+      </symbol>
+  </defs>
+</svg>

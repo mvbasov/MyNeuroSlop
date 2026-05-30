@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Schematic Editor</title>
+    <style>
+        :root { --bg: #f8fafc; --panel: #ffffff; --border: #e2e8f0; }
+        body { margin: 0; font-family: sans-serif; background: var(--bg); display: flex; flex-direction: column; height: 100vh; }
+        header { background: #1e293b; color: white; padding: 0.5rem 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .version { font-size: 12px; color: #94a3b8; }
+        #main { display: flex; flex: 1; overflow: hidden; }
+        #preview-panel { flex: 1; padding: 20px; background: #fff; overflow: auto; }
+        #editor-wrapper { width: 400px; border-left: 1px solid var(--border); position: relative; overflow: hidden; }
+        #code-editor, #backdrop { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 1rem; margin: 0; font-family: monospace; border: none; box-sizing: border-box; overflow: auto; white-space: pre-wrap; font-size: 14px; line-height: 1.5; }
+        #code-editor { background: transparent; z-index: 2; color: #333; caret-color: black; resize: none; outline: none; }
+        #backdrop { z-index: 1; color: transparent; pointer-events: none; }
+        mark { background: #bfdbfe; color: black; border-radius: 2px; }
+        .highlight-preview { stroke: #3b82f6 !important; }
+        .toolbar { padding: 0.5rem; display: flex; gap: 5px; flex-wrap: wrap; background: #f1f5f9; border-bottom: 1px solid var(--border); align-items: center; }
+        button, select, label { padding: 4px 8px; cursor: pointer; border: 1px solid #cbd5e1; border-radius: 4px; background: white; font-size: 12px; display: flex; align-items: center; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>SVG Schematic Editor</div>
+    <div class="version">v1.0.2</div>
+</header>
+
+<div class="toolbar">
+    <button onclick="undo()">Undo</button> <button onclick="redo()">Redo</button>
+    <button onclick="move('up')">↑</button><button onclick="move('down')">↓</button>
+    <button onclick="move('left')">←</button><button onclick="move('right')">→</button>
+    <label><input type="checkbox" id="grid-toggle" checked onchange="toggleGrid()"> Grid</label>
+    <select id="shape-select">
+        <option value="circle">Circle</option>
+        <option value="line">Line</option>
+        <option value="polygon">Polygon</option>
+        <option value="path">Path</option>
+    </select>
+    <button onclick="insertElement()">Add</button>
+    <button onclick="deleteElement()">Delete</button>
+</div>
+
+<div id="main">
+    <div id="preview-panel">
+        <svg id="svg-stage" width="100%" height="100%" viewBox="-10 -10 120 120" style="border:1px solid #ccc">
+            <defs>
+                <pattern id="gridPattern" width="10" height="10" patternUnits="userSpaceOnUse">
+                    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#e2e8f0" stroke-width="0.5"/>
+                </pattern>
+            </defs>
+            <g id="grid-group">
+                <rect id="grid-rect" x="-10" y="-10" width="120" height="120" fill="url(#gridPattern)" />
+                <g id="grid-labels"></g>
+            </g>
+            <g id="render-target"></g>
+        </svg>
+    </div>
+    <div id="editor-wrapper">
+        <div id="backdrop"></div>
+        <textarea id="code-editor" spellcheck="false"></textarea>
+    </div>
+</div>
+
+<script>
+    const editor = document.getElementById('code-editor');
+    const backdrop = document.getElementById('backdrop');
+    const target = document.getElementById('render-target');
+    const shapeSelect = document.getElementById('shape-select');
+    const gridGroup = document.getElementById('grid-group');
+    const gridLabels = document.getElementById('grid-labels');
+    let history = [], step = -1;
+
+    const initialCode = `<symbol id="npn" viewBox="0 0 100 100">
+  <g stroke="black" stroke-width="2" fill="none">
+    <circle cx="50" cy="50" r="40" />
+    <line x1="10" y1="50" x2="40" y2="50" />
+    <polygon points="60,60 40,50 60,40" />
+  </g>
+</symbol>
+<use href="#npn" x="0" y="0" />`;
+
+    function refreshGrid() {
+        const stage = document.getElementById('svg-stage');
+        const vb = stage.getAttribute('viewBox').split(' ').map(Number);
+        const [minX, minY, width, height] = vb;
+        gridLabels.innerHTML = '';
+        const gridRect = document.getElementById('grid-rect');
+        gridRect.setAttribute('x', minX); gridRect.setAttribute('y', minY);
+        gridRect.setAttribute('width', width); gridRect.setAttribute('height', height);
+        for (let i = minX; i <= minX + width; i += 20) {
+            const textX = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textX.setAttribute("x", i); textX.setAttribute("y", minY + 5); textX.setAttribute("font-size", "4"); textX.textContent = i;
+            gridLabels.appendChild(textX);
+        }
+        for (let j = minY; j <= minY + height; j += 20) {
+            const textY = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textY.setAttribute("x", minX + 2); textY.setAttribute("y", j + 2); textY.setAttribute("font-size", "4"); textY.textContent = j;
+            gridLabels.appendChild(textY);
+        }
+    }
+
+    function toggleGrid() { gridGroup.style.display = document.getElementById('grid-toggle').checked ? 'block' : 'none'; }
+
+    function highlight() {
+        const pos = editor.selectionStart;
+        const text = editor.value;
+        const start = text.lastIndexOf('<', pos);
+        const end = text.indexOf('>', pos);
+        
+        target.querySelectorAll('.highlight-preview').forEach(el => el.classList.remove('highlight-preview'));
+        
+        if (start !== -1 && end !== -1 && pos >= start && pos <= end + 1) {
+            const tagStr = text.substring(start, end + 1);
+            backdrop.innerHTML = text.substring(0, start) + '<mark>' + tagStr + '</mark>' + text.substring(end + 1);
+            
+            const els = Array.from(target.querySelectorAll('circle, line, polygon, path, use'));
+            const match = els.find(el => {
+                const tag = el.tagName.toLowerCase();
+                if (!tagStr.includes(tag)) return false;
+                const attrs = tagStr.match(/(\w+)="([^"]*)"/g);
+                if (!attrs) return false;
+                return attrs.every(attrMatch => {
+                    const [_, key, val] = attrMatch.match(/(\w+)="([^"]*)"/);
+                    return el.getAttribute(key) === val;
+                });
+            });
+            if (match) match.classList.add('highlight-preview');
+        } else {
+            backdrop.innerHTML = text;
+        }
+        backdrop.scrollTop = editor.scrollTop;
+    }
+
+    function update() {
+        saveState();
+        target.innerHTML = editor.value;
+        highlight();
+        refreshGrid();
+    }
+
+    function saveState() {
+        if (editor.value === history[step]) return;
+        history = history.slice(0, step + 1);
+        history.push(editor.value);
+        step++;
+    }
+
+    function undo() { if (step > 0) { editor.value = history[--step]; update(); } }
+    function redo() { if (step < history.length - 1) { editor.value = history[++step]; update(); } }
+
+    function getTagAtCursor() {
+        const text = editor.value;
+        const pos = editor.selectionStart;
+        const start = text.lastIndexOf('<', pos);
+        const end = text.indexOf('>', pos);
+        if (start === -1 || end === -1 || pos < start || pos > end + 1) return null;
+        return { start, end, full: text.substring(start, end + 1) };
+    }
+
+    function move(dir) {
+        const tag = getTagAtCursor();
+        if (!tag) return;
+        const pos = editor.selectionStart;
+        const delta = { up: [0,-1], down: [0,1], left: [-1,0], right: [1,0] }[dir];
+        let newTag = tag.full.replace(/(cx|x|x1|x2|cy|y|y1|y2)=["']?(-?\d+)["']?/g, (m, attr, val) => {
+            const shift = (attr.includes('x') || attr === 'cx') ? delta[0] : delta[1];
+            return `${attr}="${parseInt(val) + shift}"`;
+        }).replace(/points=["']?([\d\s,]+)["']?/g, (m, points) => {
+            const updated = points.trim().split(/\s+/).map(p => {
+                const [x, y] = p.split(',').map(Number);
+                return `${x + delta[0]},${y + delta[1]}`;
+            }).join(' ');
+            return `points="${updated}"`;
+        }).replace(/d=["']?([^"']+)["']?/g, (m, d) => {
+            let isX = true;
+            const updated = d.replace(/-?\d+\.?\d*/g, (num) => {
+                const res = parseFloat(num) + (isX ? delta[0] : delta[1]);
+                isX = !isX;
+                return res;
+            });
+            return `d="${updated}"`;
+        });
+        const offset = pos - tag.start;
+        editor.value = editor.value.substring(0, tag.start) + newTag + editor.value.substring(tag.end + 1);
+        const newPos = tag.start + Math.min(offset, newTag.length);
+        editor.focus();
+        editor.setSelectionRange(newPos, newPos);
+        update();
+    }
+
+    function deleteElement() {
+        const tag = getTagAtCursor();
+        if (!tag) return;
+        editor.value = editor.value.substring(0, tag.start) + editor.value.substring(tag.end + 1);
+        update();
+    }
+
+    function insertElement() {
+        const shapes = { circle: '<circle cx="50" cy="50" r="10" stroke="black" fill="none" />', line: '<line x1="10" y1="10" x2="40" y2="40" stroke="black" />', polygon: '<polygon points="50,10 60,40 40,40" stroke="black" fill="none" />', path: '<path d="M 10 10 L 40 40" stroke="black" fill="none" />' };
+        const text = editor.value, pos = editor.selectionStart;
+        const lineStart = text.lastIndexOf('\n', pos - 1) + 1;
+        const indent = (text.substring(lineStart, pos).match(/^\s*/) || [''])[0];
+        const tag = getTagAtCursor();
+        const insertAt = tag ? tag.end + 1 : pos;
+        const newSnippet = '\n' + indent + shapes[shapeSelect.value];
+        editor.value = editor.value.substring(0, insertAt) + newSnippet + editor.value.substring(insertAt);
+        const finalPos = insertAt + newSnippet.length;
+        editor.focus();
+        editor.setSelectionRange(finalPos, finalPos);
+        update();
+    }
+
+    editor.addEventListener('input', update);
+    editor.addEventListener('scroll', () => { backdrop.scrollTop = editor.scrollTop; backdrop.scrollLeft = editor.scrollLeft; });
+    editor.addEventListener('click', highlight);
+    editor.addEventListener('keyup', highlight);
+    editor.addEventListener('focus', highlight);
+    
+    editor.value = initialCode;
+    refreshGrid();
+    update();
+    highlight(); 
+</script>
+</body>
+</html>

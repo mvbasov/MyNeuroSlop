@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Component Editor</title>
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --panel-bg: #282a36;
+            --text-color: #f8f8f2;
+            --primary: #bd93f9;
+            --primary-hover: #caa9fa;
+            --danger: #ff5555;
+            --success: #50fa7b;
+            --border: #44475a;
+            --toolbar-bg: #21222c;
+            --preview-bg: #f8f9fa;
+            --grid-line: #dee2e6;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Header & Toolbar --- */
+        header {
+            background-color: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .title-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .badge {
+            background-color: var(--danger);
+            color: white;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: var(--panel-bg);
+            padding: 5px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        button {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid transparent;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: var(--border);
+        }
+
+        button.primary {
+            background: var(--primary);
+            color: #282a36;
+            font-weight: 600;
+        }
+
+        button.primary:hover {
+            background: var(--primary-hover);
+        }
+
+        button.danger {
+            color: var(--danger);
+        }
+        button.danger:hover {
+            background: rgba(255, 85, 85, 0.1);
+        }
+
+        label.toggle {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* --- Main Layout --- */
+        main {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 60px);
+            overflow: hidden;
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            height: 100%;
+        }
+
+        .panel:last-child {
+            border-right: none;
+        }
+
+        /* --- Preview Area --- */
+        #preview-container {
+            flex: 1;
+            background-color: var(--preview-bg);
+            color: black; /* Set default color for currentColor to resolve to black */
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #main-svg {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* --- Editor Area --- */
+        .editor-wrapper {
+            flex: 1;
+            position: relative;
+            background-color: var(--panel-bg);
+            overflow: hidden;
+        }
+
+        textarea, .backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 15px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.5;
+            border: none;
+            outline: none;
+            resize: none;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            box-sizing: border-box;
+            tab-size: 2;
+        }
+
+        textarea {
+            color: transparent;
+            background: transparent;
+            caret-color: var(--primary);
+            z-index: 2;
+        }
+
+        .backdrop {
+            z-index: 1;
+            color: var(--text-color);
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        mark {
+            background-color: rgba(189, 147, 249, 0.3);
+            color: inherit;
+            border-radius: 2px;
+            outline: 1px solid rgba(189, 147, 249, 0.6);
+        }
+
+        /* Responsive */
+        @media (max-width: 800px) {
+            main {
+                flex-direction: column;
+            }
+            .panel {
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="title-area">
+            <h1>SVG Component Editor</h1>
+            <span id="error-badge" class="badge">Syntax Error</span>
+        </div>
+
+        <div class="toolbar-group">
+            <label class="toggle">
+                <input type="checkbox" id="toggle-grid" checked> Grid
+            </label>
+            <label class="toggle">
+                <input type="checkbox" id="toggle-highlight" checked> Highlight
+            </label>
+        </div>
+
+        <div class="toolbar-group">
+            <button onclick="moveShape(0, -1)" title="Move Up (↑)">▲</button>
+            <button onclick="moveShape(0, 1)" title="Move Down (↓)">▼</button>
+            <button onclick="moveShape(-1, 0)" title="Move Left (←)">◀</button>
+            <button onclick="moveShape(1, 0)" title="Move Right (→)">▶</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button onclick="rotateShape(90)" title="Rotate 90°">↻ 90°</button>
+            <button onclick="rotateShape(-90)" title="Rotate -90°">↺ -90°</button>
+            <button onclick="rotateShape(180)" title="Rotate 180°">↻ 180°</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button onclick="insertShape('circle')">➕ Circle</button>
+            <button onclick="insertShape('line')">➕ Line</button>
+            <button onclick="insertShape('path')">➕ Path</button>
+            <button onclick="insertShape('polygon')">➕ Polygon</button>
+            <div class="toolbar-divider"></div>
+            <button class="danger" onclick="deleteActiveShape()">🗑️ Delete</button>
+        </div>
+
+        <div class="toolbar-group">
+            <button onclick="undo()" title="Undo (Ctrl+Z)">↶</button>
+            <button onclick="redo()" title="Redo (Ctrl+Y)">↷</button>
+            <button class="primary" id="copy-btn" onclick="copyToClipboard()">📋 Copy</button>
+            <button class="primary" onclick="downloadSVG()">💾 Save</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="panel">
+            <div id="preview-container">
+                <svg id="main-svg" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <pattern id="gridPattern" patternUnits="userSpaceOnUse" width="10" height="10">
+                            <rect width="100%" height="100%" fill="none" />
+                            <path id="gridPatternLine" d="M 10 0 L 0 0 0 10" fill="none" stroke="var(--grid-line)" stroke-width="0.5" />
+                        </pattern>
+                    </defs>
+                    <g id="grid-group">
+                        <rect id="grid-rect" fill="url(#gridPattern)" />
+                        <g id="grid-labels"></g>
+                    </g>
+                    <svg id="user-svg-container"></svg>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <div class="editor-wrapper">
+                <div class="backdrop" id="backdrop"></div>
+                <textarea id="code" spellcheck="false"></textarea>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const defaultCode = `<!-- NPN Transistor -->
+<symbol id="npn" viewBox="0 0 100 100">
+  <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="50" cy="50" r="42" stroke-width="2" />
+    <line x1="0" y1="50" x2="35" y2="50" />
+    <line x1="35" y1="28" x2="35" y2="72" stroke-width="4.5" />
+    <path d="M 35 40 L 60 20 L 60 0" />
+    <path d="M 35 60 L 60 80 L 60 100" />
+    <polygon points="58,78 46,76 54,67" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"/>
+  </g>
+</symbol>`;
+
+        // DOM Elements
+        const textarea = document.getElementById('code');
+        const backdrop = document.getElementById('backdrop');
+        const userSvgContainer = document.getElementById('user-svg-container');
+        const mainSvg = document.getElementById('main-svg');
+        const gridGroup = document.getElementById('grid-group');
+        const gridRect = document.getElementById('grid-rect');
+        const gridPattern = document.getElementById('gridPattern');
+        const gridPatternLine = document.getElementById('gridPatternLine');
+        const gridLabels = document.getElementById('grid-labels');
+        const errorBadge = document.getElementById('error-badge');
+        
+        const toggleGrid = document.getElementById('toggle-grid');
+        const toggleHighlight = document.getElementById('toggle-highlight');
+
+        // State
+        let history = [];
+        let historyIndex = -1;
+        let lastValidRender = "";
+        let activeTagInfo = null;
+        let debounceTimeout;
+        // Track previously highlighted node to restore its state
+        let previouslyHighlightedNode = { node: null, originalStroke: null };
+
+        // Initialization
+        window.onload = () => {
+            textarea.value = defaultCode;
+            saveHistory(defaultCode);
+            processInput(true);
+        };
+
+        // --- Event Listeners ---
+        textarea.addEventListener('input', (e) => {
+            processInput(false);
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(() => saveHistory(e.target.value), 600);
+        });
+
+        const selectionEvents = ['keyup', 'click', 'focus', 'touchend'];
+        selectionEvents.forEach(evt => textarea.addEventListener(evt, () => updateSelection()));
+
+        textarea.addEventListener('scroll', () => {
+            backdrop.scrollTop = textarea.scrollTop;
+            backdrop.scrollLeft = textarea.scrollLeft;
+        });
+
+        toggleGrid.addEventListener('change', () => {
+            gridGroup.style.display = toggleGrid.checked ? 'block' : 'none';
+        });
+
+        toggleHighlight.addEventListener('change', () => {
+            updateSelection();
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'z') { e.preventDefault(); undo(); }
+                if (e.key === 'y') { e.preventDefault(); redo(); }
+            }
+        });
+
+        // --- Core Processing ---
+        function processInput(forceUpdate = false) {
+            const code = textarea.value;
+            
+            // Check for parsing errors by mocking the parse process
+            const parser = new DOMParser();
+            // Convert symbol to svg so it can be parsed natively for BBoxes
+            const previewCode = code.replace(/<symbol/gi, '<svg').replace(/<\/symbol>/gi, '</svg>');
+            const doc = parser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${previewCode}</svg>`, "image/svg+xml");
+            const isError = doc.querySelector("parsererror");
+
+            if (isError) {
+                errorBadge.style.display = 'block';
+                // Update highlight but do not update preview
+                updateSelection();
+                return;
+            }
+            
+            errorBadge.style.display = 'none';
+            lastValidRender = previewCode;
+            userSvgContainer.innerHTML = previewCode;
+            
+            updateGrid(code);
+            updateSelection();
+        }
+
+        // --- History System ---
+        function saveHistory(code) {
+            if (historyIndex >= 0 && history[historyIndex] === code) return;
+            history = history.slice(0, historyIndex + 1);
+            history.push(code);
+            historyIndex++;
+        }
+
+        function applyState() {
+            textarea.value = history[historyIndex];
+            processInput(true);
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                applyState();
+            }
+        }
+
+        function redo() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                applyState();
+            }
+        }
+
+        function updateCode(newCode, save = true) {
+            textarea.value = newCode;
+            processInput(true);
+            if (save) saveHistory(newCode);
+        }
+
+        // --- Tracking & Highlighting ---
+        function updateSelection() {
+            const code = textarea.value;
+            const cursor = textarea.selectionStart;
+            
+            activeTagInfo = getActiveTag(code, cursor);
+            
+            // 1. Update text backdrop
+            if (toggleHighlight.checked && activeTagInfo) {
+                const before = escapeHTML(code.substring(0, activeTagInfo.start));
+                const highlight = escapeHTML(code.substring(activeTagInfo.start, activeTagInfo.tagEnd));
+                const after = escapeHTML(code.substring(activeTagInfo.tagEnd));
+                backdrop.innerHTML = before + `<mark>${highlight}</mark>` + after;
+            } else {
+                backdrop.innerHTML = escapeHTML(code);
+            }
+
+            // 2. Update visual preview highlight
+            
+            // First, restore the previously highlighted node if it exists
+            if (previouslyHighlightedNode.node) {
+                const { node, originalStroke } = previouslyHighlightedNode;
+                if (originalStroke === null) {
+                    // Attribute didn't exist before, so remove it
+                    node.removeAttribute('stroke');
+                } else {
+                    // Restore original value
+                    node.setAttribute('stroke', originalStroke);
+                }
+                // Reset tracker
+                previouslyHighlightedNode.node = null;
+                previouslyHighlightedNode.originalStroke = null;
+            }
+
+            // Remove old bounding box highlight if it somehow exists (cleanup)
+            const existingHl = document.getElementById('inner-highlight');
+            if (existingHl) existingHl.remove();
+
+            if (toggleHighlight.checked && activeTagInfo && activeTagInfo.domIndex >= 0) {
+                // Find element in live DOM. First child is our injected wrapper, so search inside it.
+                // Note: userSvgContainer contains the replacement <svg> root. 
+                const liveElements = Array.from(userSvgContainer.querySelectorAll('*')).filter(node => node.nodeType === 1);
+                
+                // domIndex corresponds directly to the appearance order of opening tags
+                const activeNode = liveElements[activeTagInfo.domIndex];
+                
+                if (activeNode) {
+                    // Save current state and apply highlight stroke
+                    previouslyHighlightedNode.node = activeNode;
+                    // getAttribute returns null if attribute doesn't exist
+                    previouslyHighlightedNode.originalStroke = activeNode.getAttribute('stroke');
+                    
+                    // Apply highlight color (using the primary theme color)
+                    activeNode.setAttribute('stroke', '#bd93f9');
+                }
+            }
+        }
+
+        // Custom HTML/XML parser to map cursor positions to DOM hierarchy
+        function getActiveTag(html, cursor) {
+            const regex = /(<!--[\s\S]*?-->|<\/?([a-z0-9:-]+)[^>]*>)/gi;
+            let match;
+            let stack = [];
+            let domIndex = 0;
+            let elements = [];
+
+            while ((match = regex.exec(html)) !== null) {
+                const text = match[0];
+                const start = match.index;
+                const end = start + text.length;
+
+                if (text.startsWith('<!--')) continue;
+
+                if (text.startsWith('</')) {
+                    if (stack.length > 0) {
+                        let top = stack.pop();
+                        top.fullEnd = end;
+                    }
+                    continue;
+                }
+
+                const isSelfClosing = text.endsWith('/>');
+                const tagNameMatch = text.match(/<([a-z0-9:-]+)/i);
+                const tagName = tagNameMatch ? tagNameMatch[1] : '';
+
+                const el = { domIndex: domIndex++, start: start, tagEnd: end, fullEnd: end, tagName: tagName };
+                elements.push(el);
+
+                if (!isSelfClosing && tagName.toLowerCase() !== 'br' && tagName.toLowerCase() !== 'hr') {
+                    stack.push(el);
+                }
+            }
+
+            for (let s of stack) s.fullEnd = html.length;
+
+            let active = null;
+            let minSize = Infinity;
+            for (let el of elements) {
+                // Determine if cursor is enclosed by the full tag scope
+                if (cursor >= el.start && cursor <= el.fullEnd) {
+                    let size = el.fullEnd - el.start;
+                    if (size < minSize) {
+                        minSize = size;
+                        active = el;
+                    }
+                }
+            }
+            return active;
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // --- Grid & Viewport Management ---
+        function updateGrid(code) {
+            // Extract viewBox from user code or use default
+            let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
+            let vb = viewBoxMatch ? viewBoxMatch[1].trim().split(/[\s,]+/).map(Number) : [0, 0, 100, 100];
+            
+            // Fallback for invalid parsing or zero/negative dimensions which cause infinite loops
+            if (vb.length < 4 || vb.some(isNaN) || vb[2] <= 0 || vb[3] <= 0) {
+                vb = [0, 0, 100, 100];
+            }
+            
+            const vx = vb[0], vy = vb[1], vw = vb[2], vh = vb[3];
+            const step = vw / 10;
+            const pad = step * 2.5; // Padding to fit coordinate labels safely
+
+            // Configure Master Viewbox
+            mainSvg.setAttribute('viewBox', `${vx - pad} ${vy - pad} ${vw + 2*pad} ${vh + 2*pad}`);
+            
+            // Set User Container explicitly
+            userSvgContainer.setAttribute('x', vx);
+            userSvgContainer.setAttribute('y', vy);
+            userSvgContainer.setAttribute('width', vw);
+            userSvgContainer.setAttribute('height', vh);
+
+            // Configure Grid Pattern
+            gridPattern.setAttribute('width', step);
+            gridPattern.setAttribute('height', step);
+            gridPatternLine.setAttribute('d', `M ${step} 0 L 0 0 0 ${step}`);
+            
+            // Configure Grid Area
+            gridRect.setAttribute('x', vx);
+            gridRect.setAttribute('y', vy);
+            gridRect.setAttribute('width', vw);
+            gridRect.setAttribute('height', vh);
+
+            // Generate Labels (first, last, and every 2nd interval)
+            let labelsHTML = '';
+            
+            // Add upper bounds to maxSteps to prevent infinite loops / Memory errors on extreme aspect ratios
+            const maxStepsX = Math.min(Math.floor(vw / step), 500);
+            const maxStepsY = Math.min(Math.floor(vh / step), 500);
+
+            // X-axis labels
+            for (let i = 0; i <= maxStepsX; i++) {
+                if (i === 0 || i === maxStepsX || i % 2 === 0) {
+                    let valX = vx + i * step;
+                    let textX = parseFloat(valX.toFixed(2));
+                    labelsHTML += `<text x="${valX}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`;
+                }
+            }
+            
+            // Ensure exact rightmost boundary is labeled if it didn't align perfectly with a step
+            if (vw - maxStepsX * step > 0.001 && maxStepsX < 500) {
+                let textX = parseFloat((vx + vw).toFixed(2));
+                labelsHTML += `<text x="${vx + vw}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`;
+            }
+
+            // Y-axis labels
+            for (let i = 0; i <= maxStepsY; i++) {
+                if (i === 0 || i === maxStepsY || i % 2 === 0) {
+                    let valY = vy + i * step;
+                    let textY = parseFloat(valY.toFixed(2));
+                    labelsHTML += `<text x="${vx - step*0.3}" y="${valY + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`;
+                }
+            }
+            
+            // Ensure exact bottom boundary is labeled if it didn't align perfectly with a step
+            if (vh - maxStepsY * step > 0.001 && maxStepsY < 500) {
+                let textY = parseFloat((vy + vh).toFixed(2));
+                labelsHTML += `<text x="${vx - step*0.3}" y="${vy + vh + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`;
+            }
+
+            gridLabels.innerHTML = labelsHTML;
+        }
+
+        // --- Tools (Move, Insert, Delete) ---
+        function moveShape(dx, dy) {
+            if (!activeTagInfo) return;
+            const code = textarea.value;
+            let tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+            const tagName = activeTagInfo.tagName.toLowerCase();
+
+            function adjustAttr(str, attr, delta) {
+                const regex = new RegExp(`\\b${attr}=["']([^"']+)["']`, 'i');
+                return str.replace(regex, (match, val) => {
+                    let num = parseFloat(val);
+                    return isNaN(num) ? match : `${attr}="${num + delta}"`;
+                });
+            }
+
+            function adjustPoints(str, deltaX, deltaY) {
+                const regex = /\bpoints=["']([^"']+)["']/i;
+                return str.replace(regex, (match, val) => {
+                    const newVals = val.split(/[\s,]+/).map(Number);
+                    let out = [];
+                    for (let i = 0; i < newVals.length; i += 2) {
+                        if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+                            out.push(`${newVals[i] + deltaX},${newVals[i+1] + deltaY}`);
+                        }
+                    }
+                    return `points="${out.join(' ')}"`;
+                });
+            }
+
+            // Path manipulation engine
+            function shiftPathD(dStr, deltaX, deltaY) {
+                const commands = dStr.match(/[a-df-zA-DF-Z][^a-df-zA-DF-Z]*/g);
+                if (!commands) return dStr;
+                let firstCmd = true;
+                const res = commands.map(cmdChunk => {
+                    const letter = cmdChunk.trim()[0];
+                    const nums = cmdChunk.substring(1).trim().split(/[\s,]+/).filter(n => n !== "").map(Number);
+                    const upper = letter.toUpperCase();
+                    const isRel = letter === letter.toLowerCase();
+
+                    if (upper === 'Z') return cmdChunk;
+
+                    // Do not shift relative coordinates, except the absolute start (first 'm')
+                    if (isRel && !(firstCmd && letter === 'm')) {
+                        firstCmd = false;
+                        return cmdChunk; 
+                    }
+
+                    firstCmd = false;
+                    let outNums = [];
+                    if (upper === 'H') {
+                        for(let n of nums) outNums.push(n + deltaX);
+                    } else if (upper === 'V') {
+                        for(let n of nums) outNums.push(n + deltaY);
+                    } else if (upper === 'A') {
+                        for (let i = 0; i < nums.length; i += 7) {
+                            outNums.push(nums[i], nums[i+1], nums[i+2], nums[i+3], nums[i+4]); // rx, ry, rot, flags
+                            if (i+5 < nums.length) outNums.push(nums[i+5] + deltaX);
+                            if (i+6 < nums.length) outNums.push(nums[i+6] + deltaY);
+                        }
+                    } else {
+                        // Standard x,y pairs (M, L, C, S, Q, T)
+                        for (let i = 0; i < nums.length; i += 2) {
+                            outNums.push(nums[i] + deltaX);
+                            if (i+1 < nums.length) outNums.push(nums[i+1] + deltaY);
+                        }
+                    }
+                    return letter + ' ' + outNums.join(' ');
+                });
+                return res.join(' ');
+            }
+
+            if (tagName === 'circle' || tagName === 'ellipse') {
+                tagStr = adjustAttr(tagStr, 'cx', dx);
+                tagStr = adjustAttr(tagStr, 'cy', dy);
+            } else if (['rect', 'image', 'use', 'text'].includes(tagName)) {
+                tagStr = adjustAttr(tagStr, 'x', dx);
+                tagStr = adjustAttr(tagStr, 'y', dy);
+            } else if (tagName === 'line') {
+                tagStr = adjustAttr(tagStr, 'x1', dx);
+                tagStr = adjustAttr(tagStr, 'x2', dx);
+                tagStr = adjustAttr(tagStr, 'y1', dy);
+                tagStr = adjustAttr(tagStr, 'y2', dy);
+            } else if (tagName === 'polygon' || tagName === 'polyline') {
+                tagStr = adjustPoints(tagStr, dx, dy);
+            } else if (tagName === 'path') {
+                tagStr = tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => `d="${shiftPathD(val, dx, dy)}"`);
+            } else {
+                return; // Unsupported shape for direct coordinate shifting
+            }
+
+            const newCode = code.substring(0, activeTagInfo.start) + tagStr + code.substring(activeTagInfo.tagEnd);
+            
+            // Adjust cursor mapping logic post-replacement to keep selection active
+            const offset = tagStr.length - (activeTagInfo.tagEnd - activeTagInfo.start);
+            let newCursor = textarea.selectionStart;
+            
+            // Shift cursor by offset if it's inside or after the modified tag
+            if (newCursor > activeTagInfo.start) {
+                newCursor += offset;
+            }
+
+            updateCode(newCode, true);
+            
+            // Restore selection gently and ensure textarea keeps focus
+            textarea.focus();
+            textarea.setSelectionRange(newCursor, newCursor);
+            
+            updateSelection();
+            setTimeout(() => updateSelection(), 10);
+        }
+
+        function rotateShape(angle) {
+            if (!activeTagInfo) return;
+            const code = textarea.value;
+            const liveElements = Array.from(userSvgContainer.querySelectorAll('*')).filter(node => node.nodeType === 1);
+            const activeNode = liveElements[activeTagInfo.domIndex];
+            
+            if (!activeNode) return;
+
+            let bbox;
+            try {
+                bbox = activeNode.getBBox();
+                // Prevent rotating invisible or invalid elements
+                if (bbox.width === 0 && bbox.height === 0 && bbox.x === 0 && bbox.y === 0) return;
+            } catch (e) {
+                return;
+            }
+
+            // Calculate pivot as the exact center of the shape
+            const cx = bbox.x + bbox.width / 2;
+            const cy = bbox.y + bbox.height / 2;
+            const f = n => parseFloat(n.toFixed(3));
+
+            let tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+            const tagName = activeTagInfo.tagName.toLowerCase();
+
+            // Mathematical 2D rotation matrix around (cx, cy)
+            const rotPoint = (px, py) => {
+                if (angle === 90) return [cx - (py - cy), cy + (px - cx)];
+                if (angle === -90) return [cx + (py - cy), cy - (px - cx)];
+                if (angle === 180) return [cx - (px - cx), cy - (py - cy)];
+                return [px, py];
+            };
+
+            function setOrReplace(str, attr, val) {
+                const regex = new RegExp(`\\b${attr}=["'][^"']*["']`, 'i');
+                if (regex.test(str)) {
+                    return str.replace(regex, `${attr}="${val}"`);
+                } else {
+                    return str.replace(/(<[a-zA-Z0-9:-]+)/, `$1 ${attr}="${val}"`);
+                }
+            }
+
+            let modified = false;
+
+            if (tagName === 'line') {
+                let x1 = parseFloat(activeNode.getAttribute('x1') || 0);
+                let y1 = parseFloat(activeNode.getAttribute('y1') || 0);
+                let x2 = parseFloat(activeNode.getAttribute('x2') || 0);
+                let y2 = parseFloat(activeNode.getAttribute('y2') || 0);
+                
+                let [nx1, ny1] = rotPoint(x1, y1);
+                let [nx2, ny2] = rotPoint(x2, y2);
+                
+                tagStr = setOrReplace(tagStr, 'x1', f(nx1));
+                tagStr = setOrReplace(tagStr, 'y1', f(ny1));
+                tagStr = setOrReplace(tagStr, 'x2', f(nx2));
+                tagStr = setOrReplace(tagStr, 'y2', f(ny2));
+                modified = true;
+            } else if (tagName === 'rect') {
+                let x = parseFloat(activeNode.getAttribute('x') || 0);
+                let y = parseFloat(activeNode.getAttribute('y') || 0);
+                let w = parseFloat(activeNode.getAttribute('width') || 0);
+                let h = parseFloat(activeNode.getAttribute('height') || 0);
+
+                if (Math.abs(angle) === 90) {
+                    let nw = h, nh = w;
+                    let nx = cx - nw / 2;
+                    let ny = cy - nh / 2;
+                    tagStr = setOrReplace(tagStr, 'x', f(nx));
+                    tagStr = setOrReplace(tagStr, 'y', f(ny));
+                    tagStr = setOrReplace(tagStr, 'width', f(nw));
+                    tagStr = setOrReplace(tagStr, 'height', f(nh));
+                }
+                modified = true;
+            } else if (tagName === 'ellipse' && Math.abs(angle) === 90) {
+                let rxMatch = tagStr.match(/\brx=["']([^"']+)["']/i);
+                let ryMatch = tagStr.match(/\bry=["']([^"']+)["']/i);
+                if (rxMatch && ryMatch) {
+                    let rx = rxMatch[1], ry = ryMatch[1];
+                    tagStr = tagStr.replace(/\brx=["'][^"']+["']/i, `rx="${ry}"`);
+                    tagStr = tagStr.replace(/\bry=["'][^"']+["']/i, `ry="${rx}"`);
+                }
+                modified = true;
+            } else if (tagName === 'polygon' || tagName === 'polyline') {
+                tagStr = tagStr.replace(/\bpoints=["']([^"']+)["']/i, (match, val) => {
+                    const newVals = val.trim().split(/[\s,]+/).filter(n => n !== "").map(Number);
+                    let out = [];
+                    for (let i = 0; i < newVals.length; i += 2) {
+                        if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+                            let [nx, ny] = rotPoint(newVals[i], newVals[i+1]);
+                            out.push(`${f(nx)},${f(ny)}`);
+                        }
+                    }
+                    return `points="${out.join(' ')}"`;
+                });
+                modified = true;
+            } else if (tagName === 'path') {
+                tagStr = tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => {
+                    const commands = val.match(/[a-df-zA-Z][^a-df-zA-Z]*/g);
+                    if (!commands) return match;
+
+                    let currX = 0, currY = 0;
+                    let startX = 0, startY = 0;
+
+                    const processCommand = (cmdChunk) => {
+                        const letter = cmdChunk.trim()[0];
+                        const nums = cmdChunk.substring(1).trim().split(/[\s,]+/).filter(n => n !== "").map(Number);
+                        const upper = letter.toUpperCase();
+                        const isRel = letter === letter.toLowerCase();
+
+                        if (upper === 'Z') {
+                            currX = startX;
+                            currY = startY;
+                            return 'Z'; // Absolute wrapper resolves relative Z complexities automatically
+                        }
+
+                        let out = [];
+
+                        // Convert specific path directives into standard Lines to easily pivot their coordinates
+                        if (upper === 'H') {
+                            for (let n of nums) {
+                                currX = isRel ? currX + n : n;
+                                let [rx, ry] = rotPoint(currX, currY);
+                                out.push(`L ${f(rx)} ${f(ry)}`);
+                            }
+                        } else if (upper === 'V') {
+                            for (let n of nums) {
+                                currY = isRel ? currY + n : n;
+                                let [rx, ry] = rotPoint(currX, currY);
+                                out.push(`L ${f(rx)} ${f(ry)}`);
+                            }
+                        } else if (upper === 'M' || upper === 'L' || upper === 'T') {
+                            for (let i = 0; i < nums.length; i += 2) {
+                                currX = isRel ? currX + nums[i] : nums[i];
+                                currY = isRel ? currY + nums[i+1] : nums[i+1];
+                                if (upper === 'M' && i === 0) {
+                                    startX = currX;
+                                    startY = currY;
+                                }
+                                let [rx, ry] = rotPoint(currX, currY);
+                                out.push(`${(upper === 'M' && i === 0) ? 'M' : (upper === 'M' ? 'L' : upper)} ${f(rx)} ${f(ry)}`);
+                            }
+                        } else if (upper === 'Q' || upper === 'S') {
+                            for (let i = 0; i < nums.length; i += 4) {
+                                let c1x = isRel ? currX + nums[i] : nums[i];
+                                let c1y = isRel ? currY + nums[i+1] : nums[i+1];
+                                let endX = isRel ? currX + nums[i+2] : nums[i+2];
+                                let endY = isRel ? currY + nums[i+3] : nums[i+3];
+                                
+                                let [rc1x, rc1y] = rotPoint(c1x, c1y);
+                                let [rendX, rendY] = rotPoint(endX, endY);
+                                
+                                out.push(`${upper} ${f(rc1x)} ${f(rc1y)} ${f(rendX)} ${f(rendY)}`);
+                                currX = endX;
+                                currY = endY;
+                            }
+                        } else if (upper === 'C') {
+                            for (let i = 0; i < nums.length; i += 6) {
+                                let c1x = isRel ? currX + nums[i] : nums[i];
+                                let c1y = isRel ? currY + nums[i+1] : nums[i+1];
+                                let c2x = isRel ? currX + nums[i+2] : nums[i+2];
+                                let c2y = isRel ? currY + nums[i+3] : nums[i+3];
+                                let endX = isRel ? currX + nums[i+4] : nums[i+4];
+                                let endY = isRel ? currY + nums[i+5] : nums[i+5];
+                                
+                                let [rc1x, rc1y] = rotPoint(c1x, c1y);
+                                let [rc2x, rc2y] = rotPoint(c2x, c2y);
+                                let [rendX, rendY] = rotPoint(endX, endY);
+                                
+                                out.push(`C ${f(rc1x)} ${f(rc1y)} ${f(rc2x)} ${f(rc2y)} ${f(rendX)} ${f(rendY)}`);
+                                currX = endX;
+                                currY = endY;
+                            }
+                        } else if (upper === 'A') {
+                            for (let i = 0; i < nums.length; i += 7) {
+                                let rx_val = nums[i];
+                                let ry_val = nums[i+1];
+                                let xRot = nums[i+2];
+                                let largeArc = nums[i+3];
+                                let sweep = nums[i+4];
+                                let endX = isRel ? currX + nums[i+5] : nums[i+5];
+                                let endY = isRel ? currY + nums[i+6] : nums[i+6];
+                                
+                                if (angle === 90 || angle === -90) {
+                                    let tmp = rx_val;
+                                    rx_val = ry_val;
+                                    ry_val = tmp;
+                                    xRot = (xRot + 90) % 360;
+                                }
+
+                                let [rendX, rendY] = rotPoint(endX, endY);
+                                
+                                out.push(`A ${f(rx_val)} ${f(ry_val)} ${f(xRot)} ${largeArc} ${sweep} ${f(rendX)} ${f(rendY)}`);
+                                currX = endX;
+                                currY = endY;
+                            }
+                        }
+                        return out.join(' ');
+                    };
+
+                    let newD = commands.map(processCommand).join(' ').replace(/\s+/g, ' ').trim();
+                    return `d="${newD}"`;
+                });
+                modified = true;
+            }
+
+            if (!modified) return;
+
+            const newCode = code.substring(0, activeTagInfo.start) + tagStr + code.substring(activeTagInfo.tagEnd);
+            
+            const offset = tagStr.length - (activeTagInfo.tagEnd - activeTagInfo.start);
+            let newCursor = textarea.selectionStart;
+            if (newCursor > activeTagInfo.start) newCursor += offset;
+
+            updateCode(newCode, true);
+            
+            textarea.focus();
+            textarea.setSelectionRange(newCursor, newCursor);
+            
+            updateSelection();
+            setTimeout(() => updateSelection(), 10);
+        }
+
+        function insertShape(type) {
+            let shapeMap = {
+                'circle': `<circle cx="50" cy="50" r="10" />`,
+                'line': `<line x1="10" y1="10" x2="90" y2="90" />`,
+                'path': `<path d="M 20 20 L 80 80" />`,
+                'polygon': `<polygon points="20,80 50,20 80,80" />`
+            };
+            
+            let template = shapeMap[type] || '';
+            const code = textarea.value;
+            let insertPos = textarea.selectionStart;
+            
+            // Prevent destroying the current tag: if cursor is inside the <tag ...> brackets, move it to the end of the brackets
+            if (activeTagInfo && insertPos > activeTagInfo.start && insertPos < activeTagInfo.tagEnd) {
+                insertPos = activeTagInfo.tagEnd;
+            }
+            
+            // Attempt smart indent
+            const lineStart = code.lastIndexOf('\n', insertPos - 1);
+            let indent = "\n  ";
+            if (lineStart !== -1) {
+                const spaces = code.substring(lineStart + 1).match(/^\s*/);
+                if (spaces) indent = "\n" + spaces[0];
+            }
+
+            const newCode = code.substring(0, insertPos) + indent + template + code.substring(insertPos);
+            updateCode(newCode, true);
+            
+            const newPos = insertPos + indent.length + template.length;
+            textarea.focus();
+            textarea.setSelectionRange(newPos, newPos);
+            updateSelection();
+        }
+
+        function deleteActiveShape() {
+            if (!activeTagInfo) return;
+            const code = textarea.value;
+            let start = activeTagInfo.start;
+            let end = activeTagInfo.fullEnd;
+
+            // Cleanup leading whitespace / tabs
+            while (start > 0 && (code[start-1] === ' ' || code[start-1] === '\t')) {
+                start--;
+            }
+            if (start > 0 && code[start-1] === '\n') start--;
+
+            const newCode = code.substring(0, start) + code.substring(end);
+            updateCode(newCode, true);
+            
+            textarea.focus();
+            textarea.setSelectionRange(start, start);
+            updateSelection();
+        }
+
+        // --- Output ---
+        function downloadSVG() {
+            const code = textarea.value;
+            let finalSVG = code;
+
+            // Check if the user's code uses a <symbol>
+            if (/<symbol/i.test(code)) {
+                // Extract viewBox and id to construct the wrapper
+                let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
+                let viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+                
+                let idMatch = code.match(/<symbol[^>]*id=["']([^"']+)["']/i);
+                let symbolId = idMatch ? idMatch[1] : "component";
+
+                // Indent the user's code for clean formatting
+                let indentedCode = code.split('\n').map(line => '    ' + line).join('\n');
+
+                finalSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">\n` +
+                           `  <defs>\n${indentedCode}\n  </defs>\n` +
+                           `  <use href="#${symbolId}" />\n` +
+                           `</svg>`;
+            } else if (!/<svg/i.test(code)) {
+                // If it's just raw shapes without a symbol or svg wrapper, wrap it anyway
+                let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
+                let viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+                let indentedCode = code.split('\n').map(line => '  ' + line).join('\n');
+                
+                finalSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">\n${indentedCode}\n</svg>`;
+            }
+
+            const blob = new Blob([finalSVG], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            // Name the file based on the symbol ID if available
+            let idMatch = code.match(/<symbol[^>]*id=["']([^"']+)["']/i);
+            a.download = (idMatch ? idMatch[1] : 'component') + '.svg';
+            
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        }
+
+        function copyToClipboard() {
+            textarea.select();
+            document.execCommand('copy');
+            textarea.setSelectionRange(textarea.selectionStart, textarea.selectionStart);
+            
+            const btn = document.getElementById('copy-btn');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '✅ Copied!';
+            setTimeout(() => btn.innerHTML = orig, 1500);
+            
+            textarea.focus();
+        }
+
+    </script>
+</body>
+</html>

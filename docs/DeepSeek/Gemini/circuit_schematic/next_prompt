@@ -1,0 +1,10 @@
+- make transtors little smaller to follow design guideline (vertical connector need to end on x=50)
+- make another simple components (exclide inductor, battery and switches) smaller to the same value as tranzistors to save proportinon
+- change terminal style. Not use square. Use crossed out circle
+- correct example schematic according to previous changes
+- add titles to examples schematics
+- make catalog, examples, design guide foldable (add some header which show/hide content on click) and fold it by defailt
+- add to inverted outputs and inputs the same circle as on `nand` `nor` etc
+- on NE555 output inverter need to be connected to inverted output of RS trigger
+- add very short description at he top of page
+- add foldable (folded by default) detailed description after short

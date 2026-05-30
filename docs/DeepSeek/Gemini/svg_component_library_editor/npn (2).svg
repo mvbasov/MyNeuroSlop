@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <!-- NPN Transistor -->
+    <symbol id="npn" viewBox="0 0 100 100">
+      <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="50" cy="50" r="42" stroke-width="2" />
+        <line x1="0" y1="50" x2="35" y2="50" />
+        <line x1="35" y1="28" x2="35" y2="72" stroke-width="4.5" />
+        <path d="M 35 40 L 60 20 L 60 0" />
+        <path d="M 35 60 L 60 80 L 60 100" />
+        <polygon points="62,78 50,76 58,67" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"/>
+      </g>
+    </symbol>
+  </defs>
+  <use href="#npn" />
+</svg>

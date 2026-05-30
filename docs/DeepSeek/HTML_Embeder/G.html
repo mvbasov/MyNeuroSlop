@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Embed Prepper</title>
+    <style>
+        :root {
+            --bg: #f4f4f9;
+            --surface: #ffffff;
+            --primary: #6366f1;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        header {
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            background: var(--surface);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-left: auto;
+        }
+        button:hover { opacity: 0.9; }
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            flex: 1;
+            min-height: 0; /* Fix for grid overflow */
+        }
+        .pane {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .pane-header {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+        }
+        textarea {
+            flex: 1;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: none;
+        }
+        textarea:focus { outline: 2px solid var(--primary); border-color: transparent; }
+    </style>
+</head>
+<body>
+
+    <header>HTML Embed Prepper</header>
+
+    <div class="controls">
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="optStructure" checked> Remove html/head/body</label>
+            <label><input type="checkbox" id="optDoctype" checked> Remove Doctype</label>
+            <label><input type="checkbox" id="optTitle" checked> Convert Title</label>
+            <label><input type="checkbox" id="optIndent" checked> Smart Dedent</label>
+        </div>
+        <button id="processBtn">Process Output</button>
+        <button id="copyBtn" style="background: #fff; color: var(--text); border: 1px solid var(--border); margin-left: 0.5rem;">Copy</button>
+    </div>
+
+    <div class="editor-container">
+        <div class="pane">
+            <div class="pane-header">
+                <span>Input Source</span>
+                <input type="file" id="fileInput" style="font-size: 0.8rem;">
+            </div>
+            <textarea id="input" placeholder="Paste your HTML here..."></textarea>
+        </div>
+        <div class="pane">
+            <div class="pane-header">
+                <span>Cleaned Output</span>
+            </div>
+            <textarea id="output" readonly placeholder="Result will appear here..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        const inputEl = document.getElementById('input');
+        const outputEl = document.getElementById('output');
+        const fileInput = document.getElementById('fileInput');
+
+        // File Upload Handler
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => inputEl.value = e.target.result;
+            reader.readAsText(file);
+        });
+
+        // Copy Handler
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            outputEl.select();
+            document.execCommand('copy');
+        });
+
+        // Main Processing Logic
+        document.getElementById('processBtn').addEventListener('click', () => {
+            const source = inputEl.value;
+            const lines = source.split(/\r?\n/);
+            
+            // Options
+            const removeStructure = document.getElementById('optStructure').checked;
+            const removeDoctype = document.getElementById('optDoctype').checked;
+            const convertTitle = document.getElementById('optTitle').checked;
+            const smartIndent = document.getElementById('optIndent').checked;
+
+            let processedLines = [];
+            let extractedTitle = null;
+            
+            // Indentation State
+            let indentStack = [];     // Stores the indent length of removed tags
+            let currentDedent = 0;    // Sum of indentations to remove from current line
+            let inScript = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const trimmed = line.trim();
+
+                // 1. Always remove empty lines (Main Mode)
+                if (trimmed.length === 0 && !inScript) continue;
+
+                // Script Block Protection
+                if (trimmed.toLowerCase().startsWith('<script')) inScript = true;
+                if (trimmed.toLowerCase().includes('</script>')) inScript = false;
+
+                if (inScript) {
+                    // Preserve indentation inside scripts if desired, or apply smart dedent
+                    // Applying smart dedent to scripts inside removed body is usually preferred
+                } else {
+                    // 2. Remove Doctype
+                    if (removeDoctype && trimmed.toLowerCase().startsWith('<!doctype')) continue;
+
+                    // 2. Remove Meta
+                    if (removeStructure && trimmed.toLowerCase().startsWith('<meta')) continue;
+
+                    // 4. Convert Title
+                    if (convertTitle) {
+                        const titleMatch = line.match(/<title>(.*?)<\/title>/i);
+                        if (titleMatch) {
+                            extractedTitle = "# " + titleMatch[1];
+                            continue;
+                        }
+                    }
+
+                    // 5. Smart Structure Removal
+                    if (removeStructure) {
+                        // Check for opening tags (html, head, body)
+                        // Regex captures leading whitespace (Group 1) and tag name (Group 2)
+                        const openMatch = line.match(/^(\s*)<(html|head|body).*?>/i);
+                        if (openMatch) {
+                            const indentLen = openMatch[1].length;
+                            indentStack.push(indentLen);
+                            currentDedent += indentLen;
+                            continue; // Drop the tag
+                        }
+
+                        // Check for closing tags
+                        const closeMatch = line.match(/^(\s*)<\/(html|head|body)>/i);
+                        if (closeMatch) {
+                            const removedIndent = indentStack.pop() || 0;
+                            currentDedent -= removedIndent;
+                            continue; // Drop the tag
+                        }
+                    }
+                }
+
+                // 6. Apply Indentation Removal
+                let finalLine = line;
+                if (smartIndent && currentDedent > 0) {
+                    // Only remove up to `currentDedent` characters, and only if they are whitespace
+                    // This prevents cutting off actual content if formatting is messy
+                    const match = line.match(/^(\s*)/);
+                    const currentLineIndent = match ? match[1].length : 0;
+                    const removeCount = Math.min(currentLineIndent, currentDedent);
+                    finalLine = line.substring(removeCount);
+                }
+
+                processedLines.push(finalLine);
+            }
+
+            // Prepend Title if found
+            if (extractedTitle) {
+                processedLines.unshift(extractedTitle);
+            }
+
+            outputEl.value = processedLines.join('\n');
+        });
+    </script>
+</body>
+</html>
+

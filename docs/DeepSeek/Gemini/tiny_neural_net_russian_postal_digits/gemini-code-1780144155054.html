@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Soviet 9-Segment Postal Code Neural Network</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f4f4f9; }
+        h2 { color: #333; text-align: center; }
+       .container { display: flex; gap: 40px; margin-top: 20px; align-items: flex-start; }
+        
+        /* 9-Segment Grid Layout simulating the Code Stamp */
+       .grid-container {
+            position: relative;
+            width: 120px;
+            height: 200px;
+            background-color: #fff;
+            border: 2px solid #ccc;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+       .segment {
+            position: absolute;
+            background-color: #eaeaea;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+       .segment:hover { background-color: #d0d0d0; }
+       .segment.active { background-color: #d32f2f; } /* Active red */
+
+        /* Horizontal Segments */
+       .h-seg { width: 80px; height: 15px; left: 20px; }
+        #s0 { top: 10px; } /* Top Horizontal */
+        #s1 { top: 92px; } /* Middle Horizontal */
+        #s2 { top: 175px; } /* Bottom Horizontal */
+
+        /* Vertical Segments */
+       .v-seg { width: 15px; height: 75px; }
+        #s3 { top: 20px; left: 10px; } /* Top-Left Vertical */
+        #s4 { top: 20px; left: 95px; } /* Top-Right Vertical */
+        #s5 { top: 105px; left: 10px; } /* Bottom-Left Vertical */
+        #s6 { top: 105px; left: 95px; } /* Bottom-Right Vertical */
+
+        /* Diagonal Segments (Forward Slanted to prevent Cyrillic confusion) */
+       .d-seg { width: 15px; height: 95px; left: 52px; transform: rotate(25deg); }
+        #s7 { top: 10px; } /* Top Diagonal */
+        #s8 { top: 95px; } /* Bottom Diagonal */
+
+       .controls { display: flex; flex-direction: column; gap: 10px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 4px; }
+        button:hover { background-color: #0056b3; }
+        
+        /* Output Visualization */
+       .output-bars { display: flex; align-items: flex-end; height: 150px; gap: 10px; border-bottom: 2px solid #333; padding-bottom: 5px; margin-top: 40px;}
+       .bar-container { display: flex; flex-direction: column; align-items: center; width: 30px; }
+       .bar { width: 100%; background-color: #4caf50; height: 0%; transition: height 0.1s; }
+       .label { margin-top: 5px; font-weight: bold; }
+        #status { margin-top: 15px; font-weight: bold; color: #d32f2f; }
+    </style>
+</head>
+<body>
+
+    <h2>Soviet 9-Segment Postal Digit OCR<br><small>JavaScript Neural Network</small></h2>
+    
+    <div class="container">
+        <div class="grid-container" id="grid">
+            <div class="segment h-seg" id="s0" onclick="toggle(0)"></div>
+            <div class="segment h-seg" id="s1" onclick="toggle(1)"></div>
+            <div class="segment h-seg" id="s2" onclick="toggle(2)"></div>
+            <div class="segment v-seg" id="s3" onclick="toggle(3)"></div>
+            <div class="segment v-seg" id="s4" onclick="toggle(4)"></div>
+            <div class="segment v-seg" id="s5" onclick="toggle(5)"></div>
+            <div class="segment v-seg" id="s6" onclick="toggle(6)"></div>
+            <div class="segment d-seg" id="s7" onclick="toggle(7)"></div>
+            <div class="segment d-seg" id="s8" onclick="toggle(8)"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="trainNetwork()">Train Neural Network (5000 Epochs)</button>
+            <button onclick="clearGrid()">Clear Grid</button>
+            <div id="status">Status: Untrained. Draw a digit.</div>
+        </div>
+    </div>
+
+    <div class="output-bars" id="output">
+        </div>
+
+<script>
+    /*
+     * MATHEMATICAL FOUNDATION:
+     * A highly optimized, purely dependency-free Multi-Layer Perceptron.
+     * Architecture: 9 Input Nodes -> 5 Hidden Nodes -> 10 Output Nodes
+     */
+    class TinyNeuralNetwork {
+        constructor(inputs, hidden, outputs) {
+            this.inNodes = inputs;
+            this.hidNodes = hidden;
+            this.outNodes = outputs;
+            this.lr = 0.1; // Learning rate
+
+            // Weight Matrices initialization with random values [-1, 1]
+            this.w_ih = this.createMatrix(this.hidNodes, this.inNodes);
+            this.w_ho = this.createMatrix(this.outNodes, this.hidNodes);
+            
+            // Bias vectors
+            this.b_h = this.createVector(this.hidNodes);
+            this.b_o = this.createVector(this.outNodes);
+        }
+
+        // Helper: Create 2D Array securely without array literals
+        createMatrix(rows, cols) {
+            let m = new Array(rows);
+            for (let i = 0; i < rows; i++) {
+                m[i] = new Array(cols);
+                for (let j = 0; j < cols; j++) {
+                    m[i][j] = Math.random() * 2 - 1; 
+                }
+            }
+            return m;
+        }
+
+        // Helper: Create 1D Array
+        createVector(size) {
+            let v = new Array(size);
+            for (let i = 0; i < size; i++) {
+                v[i] = Math.random() * 2 - 1;
+            }
+            return v;
+        }
+
+        // Logistic Sigmoid Activation Function
+        sigmoid(x) {
+            return 1 / (1 + Math.exp(-x));
+        }
+
+        // Derivative of Sigmoid for Backpropagation
+        dsigmoid(y) {
+            return y * (1 - y);
+        }
+
+        // Forward Propagation Pass
+        predict(inputArray) {
+            // 1. Calculate Hidden Layer Activations
+            let hidden = new Array(this.hidNodes);
+            for (let i = 0; i < this.hidNodes; i++) {
+                let sum = 0;
+                for (let j = 0; j < this.inNodes; j++) {
+                    sum += this.w_ih[i][j] * inputArray[j];
+                }
+                sum += this.b_h[i];
+                hidden[i] = this.sigmoid(sum);
+            }
+
+            // 2. Calculate Output Layer Activations
+            let output = new Array(this.outNodes);
+            for (let i = 0; i < this.outNodes; i++) {
+                let sum = 0;
+                for (let j = 0; j < this.hidNodes; j++) {
+                    sum += this.w_ho[i][j] * hidden[j];
+                }
+                sum += this.b_o[i];
+                output[i] = this.sigmoid(sum);
+            }
+            
+            return { output, hidden };
+        }
+
+        // Backpropagation and Weight Update
+        train(inputArray, targetArray) {
+            // Step 1: Forward Pass
+            let { output, hidden } = this.predict(inputArray);
+
+            // Step 2: Calculate Output Errors and Deltas
+            let outDeltas = new Array(this.outNodes);
+            for (let i = 0; i < this.outNodes; i++) {
+                let error = targetArray[i] - output[i];
+                outDeltas[i] = error * this.dsigmoid(output[i]);
+            }
+
+            // Step 3: Calculate Hidden Errors and Deltas
+            let hidDeltas = new Array(this.hidNodes);
+            for (let i = 0; i < this.hidNodes; i++) {
+                let error = 0;
+                for (let j = 0; j < this.outNodes; j++) {
+                    error += outDeltas[j] * this.w_ho[j][i];
+                }
+                hidDeltas[i] = error * this.dsigmoid(hidden[i]);
+            }
+
+            // Step 4: Update Hidden-to-Output Weights
+            for (let i = 0; i < this.outNodes; i++) {
+                for (let j = 0; j < this.hidNodes; j++) {
+                    this.w_ho[i][j] += this.lr * outDeltas[i] * hidden[j];
+                }
+                this.b_o[i] += this.lr * outDeltas[i];
+            }
+
+            // Step 5: Update Input-to-Hidden Weights
+            for (let i = 0; i < this.hidNodes; i++) {
+                for (let j = 0; j < this.inNodes; j++) {
+                    this.w_ih[i][j] += this.lr * hidDeltas[i] * inputArray[j];
+                }
+                this.b_h[i] += this.lr * hidDeltas[i];
+            }
+        }
+    }
+
+    /*
+     * APPLICATION LOGIC AND DOM INTEGRATION
+     */
+    
+    // The Postal Data: 9 segments state for digits 0-9
+    // Segment mapping: 0:TopH, 1:MidH, 2:BotH, 3:TL_V, 4:TR_V, 5:BL_V, 6:BR_V, 7:TopDiag, 8:BotDiag
+    const trainingData = [
+        { inputs: , targets:  }, // 0
+        { inputs: , targets:  }, // 1
+        { inputs: , targets:  }, // 2
+        { inputs: , targets:  }, // 3
+        { inputs: , targets:  }, // 4
+        { inputs: , targets:  }, // 5
+        { inputs: , targets:  }, // 6
+        { inputs: , targets:  }, // 7
+        { inputs: , targets:  }, // 8
+        { inputs: , targets:  }  // 9
+    ];
+
+    let currentState = ;
+    let nn = new TinyNeuralNetwork(9, 5, 10); // 9 inputs, 5 hidden, 10 outputs
+
+    // Initialize UI bars securely
+    const outputDiv = document.getElementById('output');
+    let bars = new Array();
+    for(let i = 0; i < 10; i++) {
+        let container = document.createElement('div');
+        container.className = 'bar-container';
+        let bar = document.createElement('div');
+        bar.className = 'bar';
+        let label = document.createElement('div');
+        label.className = 'label';
+        label.innerText = i;
+        container.appendChild(bar);
+        container.appendChild(label);
+        outputDiv.appendChild(container);
+        bars.push(bar);
+    }
+
+    // Toggle segment state on click
+    function toggle(index) {
+        currentState[index] = currentState[index] === 0? 1 : 0;
+        document.getElementById('s' + index).classList.toggle('active');
+        runInference();
+    }
+
+    function clearGrid() {
+        currentState = ;
+        for(let i = 0; i < 9; i++) {
+            document.getElementById('s' + i).classList.remove('active');
+        }
+        runInference();
+    }
+
+    // Forward pass and UI update
+    function runInference() {
+        let prediction = nn.predict(currentState).output;
+        for(let i = 0; i < 10; i++) {
+            bars[i].style.height = (prediction[i] * 100) + '%';
+        }
+    }
+
+    // Training Loop
+    function trainNetwork() {
+        document.getElementById('status').innerText = "Training...";
+        
+        // Timeout used to allow the DOM to update the status text before heavy calculation
+        setTimeout(() => {
+            let epochs = 5000;
+            for(let i = 0; i < epochs; i++) {
+                // Safely copy and shuffle data for Stochastic Gradient Descent
+                let data = trainingData.slice().sort(() => Math.random() - 0.5);
+                for(let d of data) {
+                    nn.train(d.inputs, d.targets);
+                }
+            }
+            document.getElementById('status').innerText = "Status: Trained. Network confidence high.";
+            document.getElementById('status').style.color = "#4caf50";
+            runInference(); // Update current view
+        }, 50);
+    }
+
+    // Run an initial blank inference to set the bars
+    runInference();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Embed Prepper</title>
+    <style>
+        :root {
+            --bg: #1e1e1e;
+            --sidebar-bg: #252526;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --text: #d4d4d4;
+            --text-muted: #a3a3a3;
+            --border: #3e3e42;
+            --input-bg: #1e1e1e;
+            --header-text: #ffffff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden; /* Prevent body scroll on desktop */
+        }
+
+        /* Main Layout Container */
+        .app-layout {
+            display: flex;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 300px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .brand {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--header-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .group-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .checkbox-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            user-select: none;
+            transition: color 0.2s;
+        }
+        label:hover { color: var(--header-text); }
+
+        input[type="checkbox"] {
+            accent-color: var(--primary);
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Action Buttons */
+        .actions {
+            margin-top: auto; /* Push to bottom of sidebar */
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: #525255;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            gap: 1rem;
+            overflow: hidden; /* Keep scroll inside textareas */
+            background: var(--bg);
+        }
+
+        .pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            min-height: 0; /* Important for Flexbox scrolling */
+        }
+
+        .pane-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 0 0.25rem;
+        }
+
+        textarea {
+            flex: 1;
+            width: 100%;
+            background: #18181b; /* Slightly darker than bg */
+            color: #e5e7eb;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: none;
+        }
+        textarea:focus {
+            outline: 2px solid var(--primary);
+            border-color: transparent;
+        }
+
+        /* File Input Styling */
+        input[type="file"] {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        input[type="file"]::file-selector-button {
+            background: var(--sidebar-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+
+        /* --- MOBILE RESPONSIVE OVERRIDES --- */
+        @media (max-width: 768px) {
+            body {
+                overflow: auto; /* Allow full page scroll */
+                height: auto;
+            }
+            
+            .app-layout {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 1rem;
+                gap: 1rem;
+            }
+
+            .actions {
+                margin-top: 0;
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .actions button {
+                flex: 1;
+            }
+
+            .main-content {
+                height: auto;
+                padding: 1rem;
+                overflow: visible;
+            }
+
+            .pane {
+                min-height: 400px; /* Give textareas height on mobile */
+            }
+            
+            /* Make textareas grow with content on mobile if needed, or fixed height */
+            textarea {
+                min-height: 350px; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-layout">
+    
+    <!-- SIDEBAR: Controls -->
+    <aside class="sidebar">
+        <div class="brand">
+            <span>HTML Embed Prepper</span>
+        </div>
+
+        <div class="control-group">
+            <div class="group-title">Filters</div>
+            <div class="checkbox-list">
+                <label><input type="checkbox" id="optStructure" checked> Remove html/head/body</label>
+                <label><input type="checkbox" id="optDoctype" checked> Remove Doctype</label>
+                <label><input type="checkbox" id="optTitle" checked> Convert Title to Markdown</label>
+                <label><input type="checkbox" id="optIndent" checked> Smart Dedent</label>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="processBtn" class="btn-primary">Process Output</button>
+            <button id="copyBtn" class="btn-secondary">Copy to Clipboard</button>
+            <button id="saveBtn" class="btn-secondary">Save to File</button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT: Vertical Editors -->
+    <main class="main-content">
+        
+        <!-- Top Pane: Input -->
+        <div class="pane">
+            <div class="pane-header">
+                <span>INPUT SOURCE</span>
+                <input type="file" id="fileInput">
+            </div>
+            <textarea id="input" placeholder="Paste your HTML source here..."></textarea>
+        </div>
+
+        <!-- Bottom Pane: Output -->
+        <div class="pane">
+            <div class="pane-header">
+                <span>CLEANED OUTPUT</span>
+            </div>
+            <textarea id="output" readonly placeholder="Result will appear here..."></textarea>
+        </div>
+
+    </main>
+</div>
+
+<script>
+    const inputEl = document.getElementById('input');
+    const outputEl = document.getElementById('output');
+    const fileInput = document.getElementById('fileInput');
+
+    // File Upload
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => inputEl.value = e.target.result;
+        reader.readAsText(file);
+    });
+
+    // Copy to Clipboard
+    document.getElementById('copyBtn').addEventListener('click', () => {
+        if (!outputEl.value) return;
+        outputEl.select();
+        document.execCommand('copy');
+        // Visual feedback could go here
+    });
+
+    // Save to File
+    document.getElementById('saveBtn').addEventListener('click', () => {
+        const content = outputEl.value;
+        if (!content) return;
+
+        const blob = new Blob([content], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'prepared-embed.html';
+        document.body.appendChild(a);
+        a.click();
+        
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    // Main Logic
+    document.getElementById('processBtn').addEventListener('click', () => {
+        const source = inputEl.value;
+        const lines = source.split(/\r?\n/);
+        
+        const removeStructure = document.getElementById('optStructure').checked;
+        const removeDoctype = document.getElementById('optDoctype').checked;
+        const convertTitle = document.getElementById('optTitle').checked;
+        const smartIndent = document.getElementById('optIndent').checked;
+
+        let processedLines = [];
+        let extractedTitle = null;
+        
+        let indentStack = [];
+        let currentDedent = 0;
+        let inScript = false;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+
+            // 1. Remove Empty Lines (Global)
+            if (trimmed.length === 0 && !inScript) continue;
+
+            // Script Block Safety (Split strings to hide from parser)
+            if (trimmed.toLowerCase().startsWith('<script')) inScript = true;
+            if (trimmed.toLowerCase().includes('</' + 'script>')) inScript = false;
+
+            if (inScript) {
+                if (smartIndent && currentDedent > 0) {
+                    const match = line.match(/^(\s*)/);
+                    const currentLineIndent = match ? match[1].length : 0;
+                    const removeCount = Math.min(currentLineIndent, currentDedent);
+                    processedLines.push(line.substring(removeCount));
+                } else {
+                    processedLines.push(line);
+                }
+                continue; 
+            } 
+
+            // 2. Logic Filters
+            if (removeDoctype && trimmed.toLowerCase().startsWith('<!doctype')) continue;
+            if (removeStructure && trimmed.toLowerCase().startsWith('<meta')) continue;
+
+            if (convertTitle) {
+                const titleMatch = line.match(/<title>(.*?)<\/title>/i);
+                if (titleMatch) {
+                    extractedTitle = "# " + titleMatch[1];
+                    continue;
+                }
+            }
+
+            if (removeStructure) {
+                const openMatch = line.match(/^(\s*)<(html|head|body).*?>/i);
+                if (openMatch) {
+                    const indentLen = openMatch[1].length;
+                    indentStack.push(indentLen);
+                    currentDedent += indentLen;
+                    continue; 
+                }
+
+                const closeMatch = line.match(/^(\s*)<\/(html|head|body)>/i);
+                if (closeMatch) {
+                    const removedIndent = indentStack.pop() || 0;
+                    currentDedent -= removedIndent;
+                    continue; 
+                }
+            }
+
+            // 3. Apply Dedent
+            let finalLine = line;
+            if (smartIndent && currentDedent > 0) {
+                const match = line.match(/^(\s*)/);
+                const currentLineIndent = match ? match[1].length : 0;
+                const removeCount = Math.min(currentLineIndent, currentDedent);
+                finalLine = line.substring(removeCount);
+            }
+
+            processedLines.push(finalLine);
+        }
+
+        // 4. Global Dedent (Post-Process)
+        if (processedLines.length > 0) {
+            let globalMinIndent = Infinity;
+            let hasContent = false;
+
+            processedLines.forEach(line => {
+                if (line.trim().length > 0) {
+                    const indent = line.match(/^\s*/)[0].length;
+                    if (indent < globalMinIndent) globalMinIndent = indent;
+                    hasContent = true;
+                }
+            });
+
+            if (hasContent && globalMinIndent > 0 && globalMinIndent !== Infinity) {
+                processedLines = processedLines.map(line => {
+                    if (line.length >= globalMinIndent) {
+                        return line.substring(globalMinIndent);
+                    }
+                    return line;
+                });
+            }
+        }
+
+        // 5. Add Title
+        if (extractedTitle) {
+            processedLines.unshift(extractedTitle);
+        }
+
+        outputEl.value = processedLines.join('\n');
+    });
+</script>
+</body>
+</html>
+

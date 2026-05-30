@@ -1,0 +1,117 @@
+<style>
+#content {
+    font-family: system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    margin: 0;
+    background-color: #f0f2f5;
+}
+content h1 {
+    color: #1a202c;
+    margin-bottom: 20px;
+}
+#canvas-container {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #ffffff;
+}
+#content button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #3182ce;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#content button:hover {
+    background-color: #2b6cb0;
+}
+</style>
+<div id="canvas-container"></div>
+<button onclick="renderNewDiagram()">Сгенерировать заново</button>
+<script>
+// Класс для работы с двумерными векторами (точками)
+class Vector {
+    constructor(x, y) { this.x = x; this.y = y; }
+}
+// Функция отсечения многоугольника полуплоскостью linePoint -> lineNormal
+function clipPolygon(poly, linePoint, lineNormal) {
+    const clipped = [];
+    if (poly.length === 0) return clipped;
+    for (let i = 0; i < poly.length; i++) {
+        const current = poly[i];
+        const next = poly[(i + 1) % poly.length];
+        const currDist = (current.x - linePoint.x) * lineNormal.x + (current.y - linePoint.y) * lineNormal.y;
+        const nextDist = (next.x - linePoint.x) * lineNormal.x + (next.y - linePoint.y) * lineNormal.y;
+        if (currDist <= 0) {
+            clipped.push(current);
+        }
+        if ((currDist > 0 && nextDist <= 0) || (currDist <= 0 && nextDist > 0)) {
+            const t = currDist / (currDist - nextDist);
+            const intersectX = current.x + t * (next.x - current.x);
+            const intersectY = current.y + t * (next.y - current.y);
+            clipped.push(new Vector(intersectX, intersectY));
+        }
+    }
+    return clipped;
+}
+// Главная функция построения диаграммы
+function generateVoronoiSVG(points, width, height) {
+    const cells = [];
+    const baseBox = [
+        new Vector(0, 0),
+        new Vector(width, 0),
+        new Vector(width, height),
+        new Vector(0, height)
+    ];
+    for (let i = 0; i < points.length; i++) {
+        let cellPoly = [...baseBox];
+        const pA = points[i];
+        for (let j = 0; j < points.length; j++) {
+            if (i === j) continue;
+            const pB = points[j];
+            const mid = new Vector((pA.x + pB.x) / 2, (pA.y + pB.y) / 2);
+            const normal = new Vector(pB.x - pA.x, pB.y - pA.y);
+            cellPoly = clipPolygon(cellPoly, mid, normal);
+        }
+        cells.push({ point: pA, poly: cellPoly });
+    }
+    // Генерация SVG разметки с цветной заливкой ячеек
+    let svgContent = `<svg width="${width}" height="${height}" xmlns="http://w3.org">`;
+    cells.forEach((cell, index) => {
+        if (cell.poly.length < 3) return;
+        const pointsStr = cell.poly.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+        // Генерируем мягкий случайный цвет для каждой ячейки
+        const hue = (index * 37) % 360;
+        const fillColor = `hsl(${hue}, 60%, 85%)`;
+        svgContent += `\n  <polygon points="${pointsStr}" fill="${fillColor}" stroke="#4a5568" stroke-width="1.5" />`;
+    });
+    // Рисуем исходные точки
+    points.forEach(p => {
+        svgContent += `\n  <circle cx="${p.x}" cy="${p.y}" r="3" fill="#e53e3e" stroke="#fff" stroke-width="1.5" />`;
+    });
+    svgContent += '\n</svg>';
+    return svgContent;
+}
+// Функция рендеринга
+function renderNewDiagram() {
+    const width = 330;
+    const height = 330;
+    const pointsCount = 3;
+    const randomPoints = Array.from({ length: pointsCount }, () => new Vector(
+        Math.random() * width,
+        Math.random() * height
+    ));
+    const svgMarkup = generateVoronoiSVG(randomPoints, width, height);
+    document.getElementById('canvas-container').innerHTML = svgMarkup;
+}
+// Первый запуск при загрузке страницы
+renderNewDiagram();
+</script>

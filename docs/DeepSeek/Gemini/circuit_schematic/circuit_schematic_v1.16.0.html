@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circuit Schematic Examples</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 2rem;
+      background-color: #f8fafc;
+      font-family: sans-serif;
+      gap: 2rem;
+      box-sizing: border-box;
+    }
+
+    .circuit-diagram {
+      color: #0f172a;
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      width: 100%;
+      max-width: 900px;
+    }
+    
+    .component-label {
+      font-size: 16px;
+      font-family: monospace;
+      font-weight: bold;
+      fill: currentColor;
+      stroke: none;
+    }
+
+    .catalog {
+      color: #0f172a;
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      width: 100%;
+      max-width: 900px;
+    }
+    
+    .catalog-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: monospace;
+      font-weight: bold;
+      gap: 0.5rem;
+    }
+
+    .tutorial-section {
+      color: #0f172a;
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    
+    .tutorial-text {
+      font-family: sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      color: #334155;
+      text-align: center;
+      max-width: 650px;
+      margin: 0;
+    }
+
+    .version-footer {
+      color: #475569;
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      width: 100%;
+      max-width: 900px;
+      text-align: center;
+      font-family: monospace;
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+  </style>
+</head>
+<body data-version="1.16.0">
+
+  <!-- ==========================================
+       1. THE LIBRARY DEFS (Hidden)
+       Name: simple components
+       Version: 1.5.0
+       ========================================== -->
+  <svg id="schematic-library" data-name="simple components" data-version="1.5.0" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <defs>
+      
+      <!-- NPN Transistor -->
+      <symbol id="npn" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="50" cy="50" r="42" stroke-width="2" />
+          <line x1="0" y1="50" x2="35" y2="50" />
+          <line x1="35" y1="28" x2="35" y2="72" stroke-width="4.5" />
+          <path d="M 35 40 L 60 20 L 60 0" />
+          <path d="M 35 60 L 60 80 L 60 100" />
+          <polygon points="58,78 46,76 54,67" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"/>
+        </g>
+      </symbol>
+
+      <!-- PNP Transistor -->
+      <symbol id="pnp" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="50" cy="50" r="42" stroke-width="2" />
+          <line x1="0" y1="50" x2="35" y2="50" />
+          <line x1="35" y1="28" x2="35" y2="72" stroke-width="4.5" />
+          <path d="M 35 40 L 60 20 L 60 0" />
+          <path d="M 35 60 L 60 80 L 60 100" />
+          <polygon points="43,66 55,68 47,77" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"/>
+        </g>
+      </symbol>
+
+      <!-- Resistor -->
+      <symbol id="resistor" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="50" x2="25" y2="50" />
+          <rect x="25" y="35" width="50" height="30" />
+          <line x1="75" y1="50" x2="100" y2="50" />
+        </g>
+      </symbol>
+
+      <!-- Potentiometer (3-Pin) -->
+      <symbol id="potentiometer" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Main Terminals -->
+          <line x1="0" y1="50" x2="25" y2="50" />
+          <line x1="75" y1="50" x2="100" y2="50" />
+          <!-- Resistor Body -->
+          <rect x="25" y="35" width="50" height="30" />
+          <!-- Wiper Terminal (Pin 3) snapping to (50, 0) -->
+          <line x1="50" y1="0" x2="50" y2="24" />
+          <polygon points="50,35 44,23 56,23" fill="currentColor" stroke="none" />
+        </g>
+      </symbol>
+
+      <!-- Capacitor -->
+      <symbol id="capacitor" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="50" x2="40" y2="50" />
+          <line x1="40" y1="20" x2="40" y2="80" stroke-width="4" />
+          <line x1="60" y1="20" x2="60" y2="80" stroke-width="4" />
+          <line x1="60" y1="50" x2="100" y2="50" />
+        </g>
+      </symbol>
+
+      <!-- Polarized Capacitor -->
+      <symbol id="capacitor-pol" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="50" x2="35" y2="50" />
+          <line x1="35" y1="20" x2="35" y2="80" stroke-width="4" />
+          <line x1="15" y1="25" x2="25" y2="25" stroke-width="2"/>
+          <line x1="20" y1="20" x2="20" y2="30" stroke-width="2"/>
+          <path d="M 65 20 Q 50 50 65 80" stroke-width="4" />
+          <line x1="57.5" y1="50" x2="100" y2="50" />
+        </g>
+      </symbol>
+
+      <!-- Inductor -->
+      <symbol id="inductor" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 0 50 L 20 50 Q 30 20 40 50 Q 50 20 60 50 Q 70 20 80 50 L 100 50" />
+        </g>
+      </symbol>
+
+      <!-- Diode -->
+      <symbol id="diode" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="50" x2="35" y2="50" />
+          <polygon points="35,25 35,75 65,50" />
+          <line x1="65" y1="25" x2="65" y2="75" />
+          <line x1="65" y1="50" x2="100" y2="50" />
+        </g>
+      </symbol>
+
+      <!-- Zener Diode -->
+      <symbol id="zener-diode" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="50" x2="35" y2="50" />
+          <polygon points="35,25 35,75 65,50" />
+          <!-- Cathode bar with Zener 'Z' wings -->
+          <path d="M 75 25 L 65 25 L 65 75 L 55 75" />
+          <line x1="65" y1="50" x2="100" y2="50" />
+        </g>
+      </symbol>
+
+      <!-- N-MOSFET -->
+      <symbol id="n-mosfet" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="50" cy="50" r="42" stroke-width="2" />
+          <line x1="0" y1="50" x2="30" y2="50" />
+          <line x1="30" y1="25" x2="30" y2="75" stroke-width="3" />
+          <line x1="40" y1="25" x2="40" y2="40" stroke-width="3" />
+          <line x1="40" y1="42.5" x2="40" y2="57.5" stroke-width="3" />
+          <line x1="40" y1="60" x2="40" y2="75" stroke-width="3" />
+          <path d="M 40 32.5 L 60 32.5 L 60 0" />
+          <path d="M 40 67.5 L 60 67.5 L 60 100" />
+          <line x1="40" y1="50" x2="60" y2="50" />
+          <line x1="60" y1="50" x2="60" y2="67.5" />
+          <polygon points="53,50 43,45 43,55" fill="currentColor" stroke-width="1.5"/>
+        </g>
+      </symbol>
+
+      <!-- P-MOSFET -->
+      <symbol id="p-mosfet" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="50" cy="50" r="42" stroke-width="2" />
+          <line x1="0" y1="50" x2="30" y2="50" />
+          <line x1="30" y1="25" x2="30" y2="75" stroke-width="3" />
+          <line x1="40" y1="25" x2="40" y2="40" stroke-width="3" />
+          <line x1="40" y1="42.5" x2="40" y2="57.5" stroke-width="3" />
+          <line x1="40" y1="60" x2="40" y2="75" stroke-width="3" />
+          <path d="M 40 32.5 L 60 32.5 L 60 0" />
+          <path d="M 40 67.5 L 60 67.5 L 60 100" />
+          <line x1="40" y1="50" x2="60" y2="50" />
+          <line x1="60" y1="50" x2="60" y2="67.5" />
+          <polygon points="47,50 57,45 57,55" fill="currentColor" stroke-width="1.5"/>
+        </g>
+      </symbol>
+
+      <!-- LED -->
+      <symbol id="led" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="50" x2="35" y2="50" />
+          <polygon points="35,25 35,75 65,50" />
+          <line x1="65" y1="25" x2="65" y2="75" />
+          <line x1="65" y1="50" x2="100" y2="50" />
+          <!-- Arrow 1 (Floating above the top edge) -->
+          <line x1="42" y1="23" x2="50" y2="3" />
+          <polygon points="50,3 44,6 52,9" fill="currentColor" stroke="none" />
+          <!-- Arrow 2 -->
+          <line x1="52" y1="31.5" x2="60" y2="11" />
+          <polygon points="60,11 54,14 62,17" fill="currentColor" stroke="none" />
+        </g>
+      </symbol>
+
+      <!-- Terminal / Clemm Block -->
+      <symbol id="terminal" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="0" y="25" width="50" height="50" rx="4" />
+          <circle cx="25" cy="50" r="12" />
+          <line x1="17" y1="58" x2="33" y2="42" />
+          <line x1="50" y1="50" x2="100" y2="50" />
+        </g>
+      </symbol>
+
+      <!-- Ground -->
+      <symbol id="ground" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="50" y1="0" x2="50" y2="50" />
+          <line x1="20" y1="50" x2="80" y2="50" stroke-width="3"/>
+          <line x1="35" y1="65" x2="65" y2="65" stroke-width="3"/>
+          <line x1="45" y1="80" x2="55" y2="80" stroke-width="3"/>
+        </g>
+      </symbol>
+
+      <!-- Battery -->
+      <symbol id="battery" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="50" x2="40" y2="50" />
+          <line x1="40" y1="20" x2="40" y2="80" stroke-width="2.5" />
+          <line x1="60" y1="35" x2="60" y2="65" stroke-width="6" />
+          <line x1="60" y1="50" x2="100" y2="50" />
+          <!-- Plus symbol on positive terminal -->
+          <line x1="20" y1="25" x2="30" y2="25" />
+          <line x1="25" y1="20" x2="25" y2="30" />
+        </g>
+      </symbol>
+
+      <!-- SPST Switch (2-Pin) -->
+      <symbol id="switch-spst" viewBox="0 0 100 100">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="0" y1="50" x2="30" y2="50" />
+          <circle cx="30" cy="50" r="4" fill="currentColor" />
+          <line x1="100" y1="50" x2="70" y2="50" />
+          <circle cx="70" cy="50" r="4" fill="currentColor" />
+          <!-- Lever -->
+          <line x1="30" y1="50" x2="65" y2="30" stroke-width="3" />
+        </g>
+      </symbol>
+
+      <!-- SPDT Switch (3-Pin) -->
+      <symbol id="switch-spdt" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Common Pole -->
+          <line x1="0" y1="100" x2="70" y2="100" />
+          <circle cx="70" cy="100" r="5" fill="currentColor" />
+          
+          <!-- Throw 1 (Top) -->
+          <line x1="200" y1="50" x2="130" y2="50" />
+          <circle cx="130" cy="50" r="5" fill="currentColor" />
+          
+          <!-- Throw 2 (Bottom) -->
+          <line x1="200" y1="150" x2="130" y2="150" />
+          <circle cx="130" cy="150" r="5" fill="currentColor" />
+          
+          <!-- Lever -->
+          <line x1="70" y1="100" x2="125" y2="45" stroke-width="3" />
+        </g>
+      </symbol>
+
+    </defs>
+  </svg>
+
+  <!-- ==========================================
+       1B. ANALOG COMPONENTS LIBRARY (Hidden)
+       Name: analog components
+       Version: 1.1.0
+       ========================================== -->
+  <svg id="analog-library" data-name="analog components" data-version="1.1.0" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <defs>
+      <!-- Operational Amplifier -->
+      <symbol id="op-amp" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Triangle -->
+          <polygon points="50,25 50,175 150,100" />
+          <!-- Non-Inverting Input (+) - UP -->
+          <line x1="0" y1="50" x2="50" y2="50" />
+          <line x1="60" y1="50" x2="70" y2="50" stroke-width="2" />
+          <line x1="65" y1="45" x2="65" y2="55" stroke-width="2" />
+          <!-- Inverting Input (-) - DOWN -->
+          <line x1="0" y1="150" x2="50" y2="150" />
+          <line x1="60" y1="150" x2="70" y2="150" stroke-width="2" />
+          <!-- Output -->
+          <line x1="150" y1="100" x2="200" y2="100" />
+          <!-- Power Top (V+) -->
+          <line x1="100" y1="0" x2="100" y2="62.5" />
+          <!-- Power Bottom (V-) -->
+          <line x1="100" y1="200" x2="100" y2="137.5" />
+        </g>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- ==========================================
+       1C. DIGITAL COMPONENTS LIBRARY (Hidden)
+       Name: digital components
+       Version: 1.1.0
+       ========================================== -->
+  <svg id="digital-library" data-name="digital components" data-version="1.1.0" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <defs>
+      <!-- RS Flip-Flop -->
+      <symbol id="rs-flipflop" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="50" y="25" width="100" height="150" rx="4" />
+          <!-- Inputs -->
+          <line x1="0" y1="50" x2="50" y2="50" />
+          <line x1="0" y1="150" x2="50" y2="150" />
+          <line x1="100" y1="0" x2="100" y2="25" />
+          <!-- Outputs -->
+          <line x1="150" y1="50" x2="200" y2="50" />
+          <line x1="150" y1="150" x2="200" y2="150" />
+          <!-- Labels -->
+          <text x="65" y="55" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="start" dominant-baseline="middle">R</text>
+          <text x="65" y="155" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="start" dominant-baseline="middle">S</text>
+          <text x="135" y="55" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="end" dominant-baseline="middle">Q</text>
+          <text x="135" y="155" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="end" dominant-baseline="middle">Q̅</text>
+          <text x="100" y="45" font-family="monospace" font-size="14" font-weight="bold" fill="currentColor" stroke="none" text-anchor="middle">RST</text>
+        </g>
+      </symbol>
+
+      <!-- D-Trigger (D Flip-Flop) -->
+      <symbol id="d-trigger" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="50" y="25" width="100" height="150" rx="4" />
+          <!-- Inputs -->
+          <line x1="0" y1="50" x2="50" y2="50" />
+          <line x1="0" y1="150" x2="50" y2="150" />
+          <!-- Clock Triangle -->
+          <polyline points="50,140 65,150 50,160" />
+          <!-- Outputs -->
+          <line x1="150" y1="50" x2="200" y2="50" />
+          <line x1="150" y1="150" x2="200" y2="150" />
+          <!-- Labels -->
+          <text x="65" y="55" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="start" dominant-baseline="middle">D</text>
+          <text x="135" y="55" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="end" dominant-baseline="middle">Q</text>
+          <text x="135" y="155" font-family="monospace" font-size="16" font-weight="bold" fill="currentColor" stroke="none" text-anchor="end" dominant-baseline="middle">Q̅</text>
+        </g>
+      </symbol>
+
+      <!-- Inverter -->
+      <symbol id="inverter" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="80,50 80,150 140,100" />
+          <circle cx="150" cy="100" r="10" />
+          <line x1="0" y1="100" x2="80" y2="100" />
+          <line x1="160" y1="100" x2="200" y2="100" />
+        </g>
+      </symbol>
+
+      <!-- Schmitt Trigger -->
+      <symbol id="shmidt-trigger" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="80,50 80,150 160,100" />
+          <line x1="0" y1="100" x2="80" y2="100" />
+          <line x1="160" y1="100" x2="200" y2="100" />
+          <!-- Hysteresis symbol -->
+          <path d="M 100 115 L 120 115 L 120 85 L 135 85 M 130 85 L 110 85 L 110 115 L 95 115" stroke-width="2.5" />
+        </g>
+      </symbol>
+
+      <!-- AND Gate -->
+      <symbol id="and" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 50 25 V 175 H 100 A 75 75 0 0 0 100 25 Z" />
+          <line x1="0" y1="50" x2="50" y2="50" />
+          <line x1="0" y1="150" x2="50" y2="150" />
+          <line x1="175" y1="100" x2="200" y2="100" />
+        </g>
+      </symbol>
+
+      <!-- NAND Gate -->
+      <symbol id="nand" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 50 25 V 175 H 90 A 75 75 0 0 0 90 25 Z" />
+          <line x1="0" y1="50" x2="50" y2="50" />
+          <line x1="0" y1="150" x2="50" y2="150" />
+          <circle cx="175" cy="100" r="10" />
+          <line x1="185" y1="100" x2="200" y2="100" />
+        </g>
+      </symbol>
+
+      <!-- OR Gate -->
+      <symbol id="or" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 30 25 Q 80 100 30 175 Q 130 175 175 100 Q 130 25 30 25 Z" />
+          <line x1="0" y1="50" x2="45" y2="50" />
+          <line x1="0" y1="150" x2="45" y2="150" />
+          <line x1="175" y1="100" x2="200" y2="100" />
+        </g>
+      </symbol>
+
+      <!-- NOR Gate -->
+      <symbol id="nor" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 30 25 Q 80 100 30 175 Q 120 175 165 100 Q 120 25 30 25 Z" />
+          <line x1="0" y1="50" x2="45" y2="50" />
+          <line x1="0" y1="150" x2="45" y2="150" />
+          <circle cx="175" cy="100" r="10" />
+          <line x1="185" y1="100" x2="200" y2="100" />
+        </g>
+      </symbol>
+
+      <!-- XOR Gate -->
+      <symbol id="xor" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 15 25 Q 65 100 15 175" />
+          <path d="M 30 25 Q 80 100 30 175 Q 130 175 175 100 Q 130 25 30 25 Z" />
+          <line x1="0" y1="50" x2="30" y2="50" />
+          <line x1="0" y1="150" x2="30" y2="150" />
+          <line x1="175" y1="100" x2="200" y2="100" />
+        </g>
+      </symbol>
+
+      <!-- XNOR Gate -->
+      <symbol id="xnor" viewBox="0 0 200 200">
+        <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M 15 25 Q 65 100 15 175" />
+          <path d="M 30 25 Q 80 100 30 175 Q 120 175 165 100 Q 120 25 30 25 Z" />
+          <line x1="0" y1="50" x2="30" y2="50" />
+          <line x1="0" y1="150" x2="30" y2="150" />
+          <circle cx="175" cy="100" r="10" />
+          <line x1="185" y1="100" x2="200" y2="100" />
+        </g>
+      </symbol>
+
+    </defs>
+  </svg>
+
+  <!-- ==========================================
+       2. COMPONENT CATALOG SHOWCASE
+       ========================================== -->
+  <div class="catalog">
+    <div style="grid-column: span 4; text-align: center; margin-bottom: -1rem;">
+      <h3 style="margin-top: 0;">simple components v1.5.0</h3>
+    </div>
+    
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#resistor" /></svg>
+      <span>Resistor</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#potentiometer" /></svg>
+      <span>Potentiometer</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#capacitor" /></svg>
+      <span>Capacitor</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#capacitor-pol" /></svg>
+      <span>Pol. Cap</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#inductor" /></svg>
+      <span>Inductor</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#diode" /></svg>
+      <span>Diode</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#zener-diode" /></svg>
+      <span>Zener</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#n-mosfet" /></svg>
+      <span>N-MOSFET</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#npn" /></svg>
+      <span>NPN</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#pnp" /></svg>
+      <span>PNP</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#p-mosfet" /></svg>
+      <span>P-MOSFET</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#led" /></svg>
+      <span>LED</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#terminal" /></svg>
+      <span>Terminal</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#ground" /></svg>
+      <span>Ground</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#battery" /></svg>
+      <span>Battery</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 100 100" width="60" height="60"><use href="#switch-spst" /></svg>
+      <span>SPST Switch</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#switch-spdt" /></svg>
+      <span>SPDT Switch</span>
+    </div>
+
+    <!-- Analog Components Section -->
+    <div style="grid-column: span 4; text-align: center; margin-top: 1rem; margin-bottom: -1rem;">
+      <h3 style="margin-top: 0;">analog components v1.1.0</h3>
+    </div>
+    <div class="catalog-item">
+      <!-- Using 80x80 to visually indicate this is a larger module, while keeping the catalog neat -->
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#op-amp" /></svg>
+      <span>Op-Amp</span>
+    </div>
+
+    <!-- Digital Components Section -->
+    <div style="grid-column: span 4; text-align: center; margin-top: 1rem; margin-bottom: -1rem;">
+      <h3 style="margin-top: 0;">digital components v1.1.0</h3>
+    </div>
+    
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#and" /></svg>
+      <span>AND</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#or" /></svg>
+      <span>OR</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#xor" /></svg>
+      <span>XOR</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#nand" /></svg>
+      <span>NAND</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#nor" /></svg>
+      <span>NOR</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#xnor" /></svg>
+      <span>XNOR</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#inverter" /></svg>
+      <span>Inverter</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#shmidt-trigger" /></svg>
+      <span>Schmitt</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#d-trigger" /></svg>
+      <span>D-Trigger</span>
+    </div>
+    <div class="catalog-item">
+      <svg viewBox="0 0 200 200" width="80" height="80"><use href="#rs-flipflop" /></svg>
+      <span>RS Flip-Flop</span>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       3. SYMMETRICAL ASTABLE MULTIVIBRATOR
+       ========================================== -->
+  <svg class="circuit-diagram" viewBox="-20 0 850 650" width="100%" height="650">
+    <!-- Library: simple components v1.4.0 -->
+    
+    <!-- === POWER RAILS === -->
+    <use href="#terminal" x="150" y="30" width="100" height="100" />
+    <text x="175" y="20" class="component-label" text-anchor="middle">VCC IN</text>
+    <line x1="200" y1="80" x2="610" y2="80" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    
+    <use href="#terminal" x="150" y="500" width="100" height="100" />
+    <text x="175" y="490" class="component-label" text-anchor="middle">GND</text>
+    <line x1="200" y1="550" x2="610" y2="550" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+
+    <!-- Right Side Ground Component -->
+    <use href="#ground" x="560" y="550" width="100" height="100" />
+
+
+    <!-- === LEFT HALF (Q1 - Flipped) === -->
+    
+    <!-- Collector Resistor (R1) - Placed on the OUTSIDE (X=290) -->
+    <use href="#resistor" transform="translate(290, 150) rotate(90) translate(-50, -50)" width="100" height="100" />
+    <text x="270" y="155" class="component-label" text-anchor="end">R1 (1k)</text>
+
+    <!-- Base Resistor (R2) - Placed on the INSIDE (X=350) -->
+    <use href="#resistor" transform="translate(350, 150) rotate(90) translate(-50, -50)" width="100" height="100" />
+    <text x="370" y="155" class="component-label" text-anchor="start">R2 (47k)</text>
+
+    <!-- LED (D1) -->
+    <use href="#led" transform="translate(290, 250) rotate(90) translate(-50, -50)" width="100" height="100" />
+    <text x="240" y="255" class="component-label" text-anchor="end">D1</text>
+
+    <!-- Transistor (Q1) - Horizontally flipped to face right -->
+    <use href="#npn" transform="translate(350, 400) scale(-1, 1)" width="100" height="100" />
+    <text x="240" y="460" class="component-label" text-anchor="end">Q1</text>
+
+    <!-- Wires for Left Half -->
+    <line x1="290" y1="80" x2="290" y2="100" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="350" y1="80" x2="350" y2="100" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="350" y1="200" x2="350" y2="450" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="290" y1="300" x2="290" y2="400" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="290" y1="500" x2="290" y2="550" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+
+
+    <!-- === RIGHT HALF (Q2 - Normal) === -->
+    
+    <!-- Base Resistor (R3) - Placed on the INSIDE (X=550) -->
+    <use href="#resistor" transform="translate(550, 150) rotate(90) translate(-50, -50)" width="100" height="100" />
+    <text x="530" y="155" class="component-label" text-anchor="end">R3 (47k)</text>
+
+    <!-- Collector Resistor (R4) - Placed on the OUTSIDE (X=610) -->
+    <use href="#resistor" transform="translate(610, 150) rotate(90) translate(-50, -50)" width="100" height="100" />
+    <text x="630" y="155" class="component-label" text-anchor="start">R4 (1k)</text>
+
+    <!-- LED (D2) -->
+    <use href="#led" transform="translate(610, 250) rotate(90) translate(-50, -50)" width="100" height="100" />
+    <text x="660" y="255" class="component-label" text-anchor="start">D2</text>
+
+    <!-- Transistor (Q2) -->
+    <use href="#npn" transform="translate(550, 400)" width="100" height="100" />
+    <text x="660" y="460" class="component-label" text-anchor="start">Q2</text>
+
+    <!-- Wires for Right Half -->
+    <line x1="550" y1="80" x2="550" y2="100" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="610" y1="80" x2="610" y2="100" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="550" y1="200" x2="550" y2="450" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="610" y1="300" x2="610" y2="400" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="610" y1="500" x2="610" y2="550" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+
+
+    <!-- === CROSS COUPLING CAPACITORS === -->
+    
+    <!-- C1: Q1 Collector (290) to Q2 Base (550). Centered at X=420, Y=320 -->
+    <use href="#capacitor-pol" x="370" y="270" width="100" height="100" />
+    <text x="420" y="280" class="component-label" text-anchor="middle">C1 (10µF)</text>
+    <line x1="290" y1="320" x2="370" y2="320" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="470" y1="320" x2="550" y2="320" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+
+    <!-- C2: Q2 Collector (610) to Q1 Base (350). Centered at X=480, Y=360 -->
+    <use href="#capacitor-pol" transform="translate(480, 360) rotate(180) translate(-50, -50)" width="100" height="100" />
+    <text x="480" y="415" class="component-label" text-anchor="middle">C2 (10µF)</text>
+    <line x1="350" y1="360" x2="430" y2="360" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="530" y1="360" x2="610" y2="360" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+
+
+    <!-- === JUNCTION DOTS === -->
+    <!-- Top VCC rail connections -->
+    <circle cx="290" cy="80" r="4" fill="currentColor" />
+    <circle cx="350" cy="80" r="4" fill="currentColor" />
+    <circle cx="550" cy="80" r="4" fill="currentColor" />
+    
+    <!-- Bottom GND rail connections -->
+    <circle cx="290" cy="550" r="4" fill="currentColor" />
+    <circle cx="610" cy="550" r="4" fill="currentColor" />
+    
+    <!-- Capacitor to Transistor cross-junctions -->
+    <circle cx="290" cy="320" r="4" fill="currentColor" /> <!-- C1 to Coll1 -->
+    <circle cx="550" cy="320" r="4" fill="currentColor" /> <!-- C1 to Base2 -->
+    <circle cx="350" cy="360" r="4" fill="currentColor" /> <!-- C2 to Base1 -->
+    <circle cx="610" cy="360" r="4" fill="currentColor" /> <!-- C2 to Coll2 -->
+
+  </svg>
+
+  <!-- ==========================================
+       4. NE555 TIMER INTERNAL SCHEMATIC
+       ========================================== -->
+  <svg class="circuit-diagram" viewBox="-120 -20 1400 750" width="100%" height="750">
+    <!-- Library: analog components, digital components, simple components -->
+    
+    <!-- Right Side Rail External Pins -->
+    <circle cx="1050" cy="50" r="4" fill="none" stroke="currentColor" stroke-width="2" />
+    <text x="1065" y="55" class="component-label" text-anchor="start">VCC</text>
+    <text x="1050" y="35" class="component-label" text-anchor="middle">8</text>
+    
+    <circle cx="1050" cy="650" r="4" fill="none" stroke="currentColor" stroke-width="2" /> 
+    <text x="1065" y="655" class="component-label" text-anchor="start">GND</text>
+    <text x="1050" y="635" class="component-label" text-anchor="middle">1</text>
+    
+    <!-- === POWER RAILS === -->
+    <line x1="250" y1="50" x2="1050" y2="50" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="250" y1="650" x2="1050" y2="650" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+
+    <!-- === VOLTAGE DIVIDER === -->
+    <!-- 3x 5k Resistors -->
+    <use href="#resistor" transform="translate(250, 150) rotate(90) translate(-50, -50)" width="100" height="100" />
+    <use href="#resistor" transform="translate(250, 300) rotate(90) translate(-50, -50)" width="100" height="100" />
+    <use href="#resistor" transform="translate(250, 450) rotate(90) translate(-50, -50)" width="100" height="100" />
+    
+    <text x="225" y="155" class="component-label" text-anchor="end">5kΩ</text>
+    <text x="225" y="305" class="component-label" text-anchor="end">5kΩ</text>
+    <text x="225" y="455" class="component-label" text-anchor="end">5kΩ</text>
+
+    <!-- Divider Wires & Nodes -->
+    <line x1="250" y1="50" x2="250" y2="100" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="250" y1="200" x2="250" y2="250" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="250" y1="350" x2="250" y2="400" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="250" y1="500" x2="250" y2="650" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+
+    <circle cx="250" cy="225" r="4" fill="currentColor" /> <!-- Node A: 2/3 VCC -->
+    <circle cx="250" cy="375" r="4" fill="currentColor" /> <!-- Node B: 1/3 VCC -->
+
+    <text x="235" y="200" font-family="monospace" font-size="12" fill="currentColor" text-anchor="end" dominant-baseline="middle">2/3 VCC</text>
+    <text x="235" y="375" font-family="monospace" font-size="12" fill="currentColor" text-anchor="end" dominant-baseline="middle">1/3 VCC</text>
+
+
+    <!-- === COMPARATORS === -->
+    <!-- Comp 1 (Threshold) -->
+    <use href="#op-amp" x="350" y="75" width="200" height="200" />
+    <text x="450" y="180" class="component-label" text-anchor="middle">Comp 1</text>
+    
+    <!-- Comp 2 (Trigger) -->
+    <use href="#op-amp" x="350" y="325" width="200" height="200" />
+    <text x="450" y="430" class="component-label" text-anchor="middle">Comp 2</text>
+
+    <!-- Comparator Divider Connections -->
+    <!-- Comp1 In- to 2/3 VCC Node A -->
+    <line x1="250" y1="225" x2="350" y2="225" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <!-- Comp2 In+ to 1/3 VCC Node B -->
+    <line x1="250" y1="375" x2="350" y2="375" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+
+
+    <!-- === FLIP-FLOP & DIGITAL LOGIC === -->
+    <use href="#rs-flipflop" x="600" y="200" width="200" height="200" />
+
+    <!-- Comp to FF Wiring -->
+    <polyline points="550,175 575,175 575,250 600,250" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    <polyline points="550,425 575,425 575,350 600,350" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Output Inverter -->
+    <use href="#inverter" x="800" y="150" width="200" height="200" />
+
+
+    <!-- === DISCHARGE TRANSISTOR === -->
+    <use href="#npn" x="820" y="400" width="100" height="100" />
+    <text x="930" y="455" class="component-label" text-anchor="start">Discharge</text>
+
+    <!-- Transistor Base Wiring -->
+    <polyline points="800,350 810,350 810,450 820,450" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Transistor Emitter to GND -->
+    <line x1="880" y1="500" x2="880" y2="650" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <circle cx="880" cy="650" r="4" fill="currentColor" />
+
+
+    <!-- === EXTERNAL PINS (LEFT) === -->
+    <!-- Pin 4 (Reset) - Routed above the Op-Amps and Resistors -->
+    <polyline points="100,-10 700,-10 700,200" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="100" cy="-10" r="4" fill="none" stroke="currentColor" stroke-width="2" />
+    <text x="-100" y="-5" class="component-label" text-anchor="start">Reset</text>
+    <text x="100" y="-20" class="component-label" text-anchor="middle">4</text>
+
+    <!-- Pin 6 (Threshold) - Routed to bypass the resistor body -->
+    <polyline points="100,75 280,75 280,125 350,125" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="100" cy="75" r="4" fill="none" stroke="currentColor" stroke-width="2" />
+    <text x="-100" y="80" class="component-label" text-anchor="start">Threshold</text>
+    <text x="100" y="60" class="component-label" text-anchor="middle">6</text>
+
+    <!-- Pin 5 (Control) -->
+    <line x1="100" y1="225" x2="250" y2="225" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <circle cx="100" cy="225" r="4" fill="none" stroke="currentColor" stroke-width="2" />
+    <text x="-100" y="230" class="component-label" text-anchor="start">Control</text>
+    <text x="100" y="210" class="component-label" text-anchor="middle">5</text>
+
+    <!-- Pin 2 (Trigger) - Routed to bypass the resistor body -->
+    <polyline points="100,525 280,525 280,475 350,475" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="100" cy="525" r="4" fill="none" stroke="currentColor" stroke-width="2" />
+    <text x="-100" y="530" class="component-label" text-anchor="start">Trigger</text>
+    <text x="100" y="510" class="component-label" text-anchor="middle">2</text>
+
+
+    <!-- === EXTERNAL PINS (RIGHT) === -->
+    <!-- Pin 3 (Output) - Connects to Inverter Output -->
+    <line x1="1000" y1="250" x2="1050" y2="250" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <circle cx="1050" cy="250" r="4" fill="none" stroke="currentColor" stroke-width="2" />
+    <text x="1065" y="255" class="component-label" text-anchor="start">Output</text>
+    <text x="1050" y="235" class="component-label" text-anchor="middle">3</text>
+
+    <!-- Pin 7 (Discharge) - Connects to Transistor Collector -->
+    <line x1="880" y1="400" x2="1050" y2="400" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+    <circle cx="1050" cy="400" r="4" fill="none" stroke="currentColor" stroke-width="2" />
+    <text x="1065" y="405" class="component-label" text-anchor="start">Discharge</text>
+    <text x="1050" y="385" class="component-label" text-anchor="middle">7</text>
+
+  </svg>
+
+  <!-- ==========================================
+       5. HOW TO DESIGN ELEMENTS TUTORIAL
+       ========================================== -->
+  <div class="tutorial-section">
+    <h3>How to design element for library</h3>
+    <p class="tutorial-text">
+      Every component in this library is designed within a standard <strong>100x100 coordinate grid</strong>. 
+      To ensure elements snap together perfectly without manual wire routing, align connection points to precise grid coordinates. For example, a transistor places its Base at <strong>(0, 50)</strong>, Collector at <strong>(60, 0)</strong>, and Emitter at <strong>(60, 100)</strong>.
+    </p>
+
+    <svg viewBox="-40 -30 180 160" width="100%" style="max-width: 450px; overflow: visible;">
+      
+      <!-- Outer viewBox boundary -->
+      <rect x="0" y="0" width="100" height="100" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4" />
+      
+      <!-- Grid lines (10 unit spacing) -->
+      <path d="M10 0 V100 M20 0 V100 M30 0 V100 M40 0 V100 M60 0 V100 M70 0 V100 M80 0 V100 M90 0 V100" stroke="#cbd5e1" stroke-width="0.5" />
+      <path d="M0 10 H100 M0 20 H100 M0 30 H100 M0 40 H100 M0 60 H100 M0 70 H100 M0 80 H100 M0 90 H100" stroke="#cbd5e1" stroke-width="0.5" />
+      
+      <!-- Center Axes (x=50, y=50) -->
+      <path d="M50 0 V100 M0 50 H100" stroke="#94a3b8" stroke-width="1" />
+
+      <!-- Coordinate Axis Labels -->
+      <g fill="#64748b" font-family="monospace" font-size="6" text-anchor="middle">
+        <text x="0" y="-5">0</text>
+        <text x="50" y="-5">50</text>
+        <text x="100" y="-5">100</text>
+      </g>
+      <g fill="#64748b" font-family="monospace" font-size="6" text-anchor="end" dominant-baseline="middle">
+        <text x="-5" y="0">0</text>
+        <text x="-5" y="50">50</text>
+        <text x="-5" y="100">100</text>
+      </g>
+
+      <!-- Component (Transistor overlay) -->
+      <g color="#0f172a">
+        <use href="#npn" x="0" y="0" width="100" height="100" />
+      </g>
+
+      <!-- Annotations: Center -->
+      <circle cx="50" cy="50" r="2" fill="#3b82f6" />
+      <text x="50" y="42" fill="#3b82f6" stroke="#f8fafc" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round" font-family="monospace" font-size="6" font-weight="bold" text-anchor="middle">Center (50, 50)</text>
+
+      <!-- Annotations: Base -->
+      <circle cx="0" cy="50" r="2.5" fill="#ef4444" />
+      <text x="-5" y="46" fill="#ef4444" stroke="#f8fafc" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round" font-family="monospace" font-size="6" font-weight="bold" text-anchor="end">Base (0, 50)</text>
+
+      <!-- Annotations: Collector -->
+      <circle cx="60" cy="0" r="2.5" fill="#ef4444" />
+      <text x="65" y="0" fill="#ef4444" dominant-baseline="middle" stroke="#f8fafc" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round" font-family="monospace" font-size="6" font-weight="bold" text-anchor="start">Collector (60, 0)</text>
+      
+      <!-- Annotations: Emitter -->
+      <circle cx="60" cy="100" r="2.5" fill="#ef4444" />
+      <text x="65" y="100" fill="#ef4444" dominant-baseline="middle" stroke="#f8fafc" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round" font-family="monospace" font-size="6" font-weight="bold" text-anchor="start">Emitter (60, 100)</text>
+
+      <!-- Title Annotation -->
+      <text x="50" y="-18" fill="#0f172a" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle">viewBox="0 0 100 100"</text>
+
+    </svg>
+
+    <h3 style="margin-top: 2rem;">Designing Larger Modules (e.g. analog components)</h3>
+    <p class="tutorial-text">
+      Complex components can use larger module footprints (like <strong>200x200</strong>) to accommodate more pins. To maintain full compatibility with the rest of the libraries, ensure all connection points strictly map to the standard <strong>50-unit snapping grid</strong>.
+    </p>
+
+    <svg viewBox="-40 -30 280 260" width="100%" style="max-width: 550px; overflow: visible;">
+      
+      <!-- Outer viewBox boundary -->
+      <rect x="0" y="0" width="200" height="200" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4" />
+      
+      <!-- Grid lines (10 unit spacing) -->
+      <path d="M10 0 V200 M20 0 V200 M30 0 V200 M40 0 V200 M60 0 V200 M70 0 V200 M80 0 V200 M90 0 V200 M110 0 V200 M120 0 V200 M130 0 V200 M140 0 V200 M160 0 V200 M170 0 V200 M180 0 V200 M190 0 V200" stroke="#cbd5e1" stroke-width="0.5" />
+      <path d="M0 10 H200 M0 20 H200 M0 30 H200 M0 40 H200 M0 60 H200 M0 70 H200 M0 80 H200 M0 90 H200 M0 110 H200 M0 120 H200 M0 130 H200 M0 140 H200 M0 160 H200 M0 170 H200 M0 180 H200 M0 190 H200" stroke="#cbd5e1" stroke-width="0.5" />
+      
+      <!-- 50-unit snapping grid lines -->
+      <path d="M50 0 V200 M100 0 V200 M150 0 V200 M0 50 H200 M0 100 H200 M0 150 H200" stroke="#94a3b8" stroke-width="1" />
+
+      <!-- Coordinate Axis Labels -->
+      <g fill="#64748b" font-family="monospace" font-size="6" text-anchor="middle">
+        <text x="0" y="-5">0</text>
+        <text x="50" y="-5">50</text>
+        <text x="100" y="-5">100</text>
+        <text x="150" y="-5">150</text>
+        <text x="200" y="-5">200</text>
+      </g>
+      <g fill="#64748b" font-family="monospace" font-size="6" text-anchor="end" dominant-baseline="middle">
+        <text x="-5" y="0">0</text>
+        <text x="-5" y="50">50</text>
+        <text x="-5" y="100">100</text>
+        <text x="-5" y="150">150</text>
+        <text x="-5" y="200">200</text>
+      </g>
+
+      <!-- Component (Op-Amp overlay) -->
+      <g color="#0f172a">
+        <use href="#op-amp" x="0" y="0" width="200" height="200" />
+      </g>
+
+      <!-- Annotations -->
+      <circle cx="0" cy="50" r="2.5" fill="#ef4444" />
+      <text x="-5" y="46" fill="#ef4444" stroke="#f8fafc" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round" font-family="monospace" font-size="6" font-weight="bold" text-anchor="end">In+ (0, 50)</text>
+
+      <circle cx="0" cy="150" r="2.5" fill="#ef4444" />
+      <text x="-5" y="156" fill="#ef4444" stroke="#f8fafc" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round" font-family="monospace" font-size="6" font-weight="bold" text-anchor="end">In- (0, 150)</text>
+
+      <circle cx="200" cy="100" r="2.5" fill="#ef4444" />
+      <text x="205" y="100" fill="#ef4444" dominant-baseline="middle" stroke="#f8fafc" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round" font-family="monospace" font-size="6" font-weight="bold" text-anchor="start">Out (200, 100)</text>
+
+      <circle cx="100" cy="0" r="2.5" fill="#ef4444" />
+      <text x="100" y="-8" fill="#ef4444" stroke="#f8fafc" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round" font-family="monospace" font-size="6" font-weight="bold" text-anchor="middle">V+ (100, 0)</text>
+
+      <circle cx="100" cy="200" r="2.5" fill="#ef4444" />
+      <text x="100" y="208" fill="#ef4444" stroke="#f8fafc" stroke-width="2.5" paint-order="stroke" stroke-linejoin="round" font-family="monospace" font-size="6" font-weight="bold" text-anchor="middle">V- (100, 200)</text>
+
+      <!-- Title Annotation -->
+      <text x="100" y="-18" fill="#0f172a" font-family="monospace" font-size="8" font-weight="bold" text-anchor="middle">viewBox="0 0 200 200"</text>
+
+    </svg>
+  </div>
+
+  <!-- ==========================================
+       6. VERSION INFO
+       ========================================== -->
+  <div class="version-footer">
+    <div><strong>Document Version:</strong> v1.16.0</div>
+    <div style="margin-top: 0.75rem; margin-bottom: 0.25rem;"><strong>Libraries:</strong></div>
+    <div>simple components v1.5.0</div>
+    <div>analog components v1.1.0</div>
+    <div>digital components v1.1.0</div>
+  </div>
+
+</body>
+</html>
