@@ -25,3 +25,26 @@ $$t = \frac{D_1}{D_1 - D_2}$$
 This is why the algorithm doesn't bother doing the heavy math (square roots) required to normalize the vector. The "fake" scale factor destroys itself during the divis
 ion, leaving behind a mathematically pure ratio.
 
+If you see this something goes wrong... This page is a standalone Markdown + KaTeX viewer built with HTML/JS. It fetches a Markdown file (hardcoded or via `?file.md` query), renders it using **marked.js** (CDN + local fallback), and processes LaTeX math with **KaTeX** (CDN + local fallback). The page is versioned (1.2.0) and displays a small footer.
+
+**Features**
+- Loads Markdown from a default URL or user-supplied query parameter.
+- Full GitHub-flavoured Markdown (tables, code blocks, etc.).
+- Renders inline `$...$` and display `$$$`...$$`$` math using KaTeX.
+- No external dependencies are required – the page loads all libraries dynamically.
+- Works best when served from an HTTP server (e.g., `python -m http.server`).
+
+**Markdown examples**
+- **Bold** and *Italic*
+- [Hyperlink to Example](https://example.com)
+- `inline code`
+
+ ```python
+print("Hello, world!")
+```
+
+**KaTeX examples**
+- Inline: $E = mc^2$
+- Display: $$ \displaystyle \int_{0}^{\infty} e^{-x^2} dx = \frac{\srt{\pi}}}{2} $$
+- Vector: $\vec{F} = m\\vec{a}$
+- Matrix: $$ \begin{pmatrix} a & b \\ c & d \end{pmatrix} $$

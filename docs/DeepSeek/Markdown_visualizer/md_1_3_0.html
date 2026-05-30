@@ -4,20 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markdown Viewer with KaTeX</title>
+    <!-- Minimal custom styles – only layout & non‑markdown elements -->
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             background: #fafafa;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.5;
             padding: 2rem 1rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-
         .markdown-body {
             max-width: 900px;
             margin: 0 auto;
@@ -26,40 +24,6 @@
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
-
-        .markdown-body h1, .markdown-body h2, .markdown-body h3 {
-            margin-top: 1.5em;
-            margin-bottom: 0.5em;
-            font-weight: 600;
-        }
-        .markdown-body h1 { font-size: 2rem; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
-        .markdown-body h2 { font-size: 1.5rem; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
-        .markdown-body p, .markdown-body ul, .markdown-body ol { margin-bottom: 1rem; }
-        .markdown-body code {
-            font-family: monospace;
-            background: #f6f8fa;
-            padding: 0.2rem 0.4rem;
-            border-radius: 6px;
-            font-size: 0.85em;
-            color: #e36209;
-        }
-        .markdown-body pre {
-            background: #f6f8fa;
-            padding: 1rem;
-            border-radius: 8px;
-            overflow-x: auto;
-        }
-        .markdown-body pre code { background: none; padding: 0; }
-        .markdown-body blockquote {
-            border-left: 4px solid #dfe2e5;
-            margin: 1rem 0;
-            padding-left: 1rem;
-            color: #6a737d;
-        }
-        .markdown-body a { color: #0366d6; text-decoration: none; }
-        .markdown-body a:hover { text-decoration: underline; }
-        .markdown-body img { max-width: 100%; }
-
         .loader, .error {
             text-align: center;
             padding: 3rem 1rem;
@@ -91,19 +55,23 @@
     // 1. CONFIGURATION
     // --------------------------------------------------------------
     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/markdown_example.md';
-    const PAGE_VERSION = '1.2.0';
+    const PAGE_VERSION = '1.3.0';   // Incremented version
 
-    // Marked.js (CDN + local fallback)
+    // Marked.js (CDN + local fallback inside fallback_js/)
     const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
-    const MARKED_LOCAL = 'marked.min.js';
+    const MARKED_LOCAL = 'fallback_js/marked.min.js';
 
-    // KaTeX resources (CSS + core + auto-render)
+    // GitHub Markdown CSS (CDN + local fallback)
+    const MD_CSS_CDN = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown.min.css';
+    const MD_CSS_LOCAL = 'fallback_js/github-markdown.min.css';
+
+    // KaTeX resources (CSS + core + auto-render) with local fallbacks in fallback_js/
     const KATEX_CSS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
-    const KATEX_CSS_LOCAL = 'katex.min.css';
+    const KATEX_CSS_LOCAL = 'fallback_js/katex.min.css';
     const KATEX_JS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js';
-    const KATEX_JS_LOCAL = 'katex.min.js';
+    const KATEX_JS_LOCAL = 'fallback_js/katex.min.js';
     const KATEX_AUTO_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js';
-    const KATEX_AUTO_LOCAL = 'auto-render.min.js';
+    const KATEX_AUTO_LOCAL = 'fallback_js/auto-render.min.js';
 
     // --------------------------------------------------------------
     // 2. Helper: load CSS (returns promise)
@@ -146,7 +114,19 @@
     }
 
     // --------------------------------------------------------------
-    // 3. Load KaTeX fully (CSS + core + auto-render)
+    // 3. Load Markdown CSS (with fallback)
+    // --------------------------------------------------------------
+    async function loadMarkdownCSS() {
+        try {
+            await loadCSS(MD_CSS_CDN, MD_CSS_LOCAL);
+            console.log('✓ Markdown CSS loaded');
+        } catch (e) {
+            console.warn('Markdown CSS failed, using fallback styles', e);
+        }
+    }
+
+    // --------------------------------------------------------------
+    // 4. Load KaTeX fully (CSS + core + auto-render)
     // --------------------------------------------------------------
     async function loadKaTeX() {
         try {
@@ -189,7 +169,7 @@
     }
 
     // --------------------------------------------------------------
-    // 4. Get markdown URL (query parameter support)
+    // 5. Get markdown URL (query parameter support)
     // --------------------------------------------------------------
     function getMarkdownUrlFromQuery() {
         const search = window.location.search;
@@ -208,7 +188,7 @@
     const rawMarkdownUrl = getMarkdownUrlFromQuery() || DEFAULT_MARKDOWN_URL;
 
     // --------------------------------------------------------------
-    // 5. Fetch markdown content
+    // 6. Fetch markdown content
     // --------------------------------------------------------------
     async function fetchMarkdown(url) {
         let absoluteUrl;
@@ -227,7 +207,7 @@
     }
 
     // --------------------------------------------------------------
-    // 6. Render markdown and then apply KaTeX math
+    // 7. Render markdown and then apply KaTeX math
     // --------------------------------------------------------------
     async function renderMarkdownWithMath(markdownText, markedLib, container) {
         markedLib.setOptions({ gfm: true, breaks: true, headerIds: true });
@@ -263,19 +243,21 @@
     }
 
     // --------------------------------------------------------------
-    // 7. Main: load all dependencies first, then fetch and render
+    // 8. Main: load all dependencies first, then fetch and render
     // --------------------------------------------------------------
     async function init() {
         const container = document.getElementById('content');
         try {
-            container.innerHTML = '<div class="loader">Loading dependencies (marked.js + KaTeX)...</div>';
+            container.innerHTML = '<div class="loader">Loading dependencies (CSS, marked.js, KaTeX)...</div>';
 
+            // Load Markdown CSS, marked, and KaTeX in parallel
             const [markedLib, katexLoaded] = await Promise.all([
                 loadMarked(),
                 loadKaTeX().catch(e => {
                     console.error('KaTeX loading failed but continuing without math:', e);
                     return false;
-                })
+                }),
+                loadMarkdownCSS().catch(e => console.warn('Markdown CSS optional:', e))
             ]);
 
             if (!katexLoaded) {
