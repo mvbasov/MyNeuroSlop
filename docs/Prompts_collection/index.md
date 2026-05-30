@@ -1,2 +1,0 @@
-favicon.ico_for_provided_code_prompt.md
-LED_symbol_SVG_prompt.md
