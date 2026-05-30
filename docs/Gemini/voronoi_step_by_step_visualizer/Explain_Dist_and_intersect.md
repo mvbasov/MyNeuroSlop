@@ -1,12 +1,11 @@
 ### prompt
 
 ```
-Don't change code. dot production has no real world meaning as distance. How `t` produced real relation for intersect point? 
+Dot production has no real world meaning as distance. 
+How `t` produced real relation for intersect point? 
 ```
 
 ### answer
-
-Hey, mvb here.
 
 You are absolutely right to call this out. I appreciate the sharp eye.
 
