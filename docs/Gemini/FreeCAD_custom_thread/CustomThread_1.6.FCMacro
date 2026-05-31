@@ -1,0 +1,180 @@
+# Custom Thread Macro v1.6 - Shape Binder Edition
+import FreeCAD as App
+import FreeCADGui as Gui
+import Part
+import math
+
+# Handle PyQt/PySide versions across different FreeCAD releases
+try:
+    from PySide import QtGui
+    import PySide.QtGui as QtWidgets
+except ImportError:
+    try:
+        from PySide2 import QtWidgets
+    except ImportError:
+        from PySide6 import QtWidgets
+
+class ParametricThreadPath:
+    def __init__(self, obj, radius, height, turns, lead_turns, taper_depth, start_z):
+        obj.Proxy = self
+        obj.addProperty("App::PropertyLength", "BaseRadius", "Thread Parameters", "Base radius of the thread").BaseRadius = radius
+        obj.addProperty("App::PropertyLength", "TotalHeight", "Thread Parameters", "Total height of the thread").TotalHeight = height
+        obj.addProperty("App::PropertyFloat", "Turns", "Thread Parameters", "Number of full turns").Turns = turns
+        obj.addProperty("App::PropertyFloat", "LeadTurns", "Thread Parameters", "Turns for lead-in and lead-out").LeadTurns = lead_turns
+        obj.addProperty("App::PropertyLength", "TaperDepth", "Thread Parameters", "Depth of the taper").TaperDepth = taper_depth
+        obj.addProperty("App::PropertyDistance", "ZStart", "Thread Parameters", "Starting Z elevation").ZStart = start_z
+
+    def execute(self, obj):
+        def get_float(val):
+            return float(val.Value) if hasattr(val, 'Value') else float(val)
+
+        height = get_float(obj.TotalHeight)
+        turns = get_float(obj.Turns)
+        lead_turns = get_float(obj.LeadTurns)
+        taper_depth = get_float(obj.TaperDepth)
+        radius = get_float(obj.BaseRadius)
+        start_z = get_float(obj.ZStart)
+
+        if turns <= 0 or height <= 0:
+            return
+
+        pitch = height / turns
+        points = []
+        steps_per_turn = 72 
+        total_steps = int(turns * steps_per_turn)
+
+        for i in range(total_steps + 1):
+            current_turn = i / steps_per_turn
+            t = current_turn * 2 * math.pi
+            
+            r_offset = 0.0
+            if current_turn < lead_turns:
+                if lead_turns > 0:
+                    r_offset = -taper_depth * (1.0 - (current_turn / lead_turns))
+            elif current_turn > (turns - lead_turns):
+                if lead_turns > 0:
+                    r_offset = -taper_depth * ((current_turn - (turns - lead_turns)) / lead_turns)
+                
+            current_radius = radius + r_offset
+            
+            x = current_radius * math.cos(t)
+            y = current_radius * math.sin(t)
+            z = start_z + (pitch * current_turn)
+            
+            points.append(App.Vector(x, y, z))
+
+        curve = Part.BSplineCurve()
+        curve.buildFromPoles(points)
+        obj.Shape = Part.Wire([curve.toShape()])
+
+
+class ViewProviderThreadPath:
+    def __init__(self, vobj):
+        vobj.Proxy = self
+
+    def attach(self, vobj):
+        self.ViewObject = vobj
+        self.Object = vobj.Object
+
+    def updateData(self, fp, prop):
+        pass
+
+    def getDisplayModes(self, obj):
+        return ["Flat Lines"]
+
+    def getDefaultDisplayMode(self):
+        return "Flat Lines"
+
+    def setDisplayMode(self, mode):
+        return mode == "Flat Lines"
+
+    def claimChildren(self):
+        return []
+
+
+def create_parametric_thread():
+    # 1. Validate Selection
+    sel = Gui.Selection.getSelection()
+    if len(sel) != 1:
+        App.Console.PrintError("Error: Please select exactly 1 item -> Thread Profile (Sketch).\n")
+        return
+
+    profile_obj = sel[0]
+
+    # 2. Validate PartDesign Body Containment
+    body = None
+    if hasattr(profile_obj, "getParentGroup") and profile_obj.getParentGroup():
+        if profile_obj.getParentGroup().isDerivedFrom("PartDesign::Body"):
+            body = profile_obj.getParentGroup()
+            
+    if not body and hasattr(profile_obj, "InList"):
+        for parent in profile_obj.InList:
+            if parent.isDerivedFrom("PartDesign::Body"):
+                body = parent
+                break
+
+    if not body:
+        App.Console.PrintError("Error: The selected Thread Profile must be inside a PartDesign Body.\n")
+        return
+
+    # 3. Estimate Base Radius and Starting Z from Sketch Position
+    est_radius = float(abs(profile_obj.Shape.BoundBox.XMin))
+    if est_radius < 0.1: est_radius = 10.0
+    start_z = float(profile_obj.Shape.BoundBox.Center.z)
+
+    # 4. Prompt User for Initial Parameters
+    radius, ok0 = QtWidgets.QInputDialog.getDouble(None, "Thread Parameters v1.6", "Base Radius (mm):", est_radius, 0.1, 1000.0, 3)
+    if not ok0: return
+
+    height, ok1 = QtWidgets.QInputDialog.getDouble(None, "Thread Parameters v1.6", "Total Height (mm):", 20.0, 0.1, 1000.0, 3)
+    if not ok1: return
+    
+    turns, ok2 = QtWidgets.QInputDialog.getDouble(None, "Thread Parameters v1.6", "Number of Turns:", 10.0, 0.1, 1000.0, 3)
+    if not ok2: return
+
+    lead_turns, ok3 = QtWidgets.QInputDialog.getDouble(None, "Thread Parameters v1.6", "Lead-in/out (in Turns, e.g. 0.1):", 0.1, 0.0, turns/2, 3)
+    if not ok3: return
+
+    taper_depth, ok4 = QtWidgets.QInputDialog.getDouble(None, "Thread Parameters v1.6", "Taper Depth (mm):", radius*0.1, 0.1, radius, 3)
+    if not ok4: return
+
+    # 5. Create the Custom Parametric Feature (Math Path)
+    trajectory_feature = App.ActiveDocument.addObject("Part::FeaturePython", "ParametricThreadPath")
+    ParametricThreadPath(trajectory_feature, radius, height, turns, lead_turns, taper_depth, start_z)
+    ViewProviderThreadPath(trajectory_feature.ViewObject)
+    
+    if hasattr(trajectory_feature, "ViewObject") and trajectory_feature.ViewObject:
+        trajectory_feature.ViewObject.Visibility = False
+
+    trajectory_feature.recompute()
+
+    # 6. v1.6 FIX: Create a SubShapeBinder inside the Body to legally reference the path
+    binder = body.newObject('PartDesign::SubShapeBinder', 'ThreadPathBinder')
+    binder.Support = [(trajectory_feature, '')]
+    
+    if hasattr(binder, "ViewObject") and binder.ViewObject:
+        binder.ViewObject.Visibility = False
+        
+    App.ActiveDocument.recompute()
+
+    # 7. Create PartDesign AdditivePipe using the Binder
+    try:
+        pipe = body.newObject('PartDesign::AdditivePipe', 'CustomThread')
+        pipe.Profile = profile_obj
+        
+        # Pull edge names strictly from the Binder, satisfying PartDesign requirements
+        edge_names = ['Edge' + str(i+1) for i in range(len(binder.Shape.Edges))]
+        pipe.Spine = (binder, edge_names)
+        pipe.Mode = "Frenet"
+        
+        if hasattr(profile_obj, "ViewObject") and profile_obj.ViewObject:
+            profile_obj.ViewObject.Visibility = False
+
+        App.ActiveDocument.recompute()
+        App.Console.PrintMessage("Parametric PartDesign Thread v1.6 created successfully.\n")
+        
+    except Exception as e:
+        App.Console.PrintError(f"PartDesign Pipe Error: {str(e)}\nCheck if your profile intersects itself.\n")
+
+if __name__ == "__main__":
+    create_parametric_thread()
