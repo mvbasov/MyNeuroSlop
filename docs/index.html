@@ -7,19 +7,24 @@
     <title>AI Tools Workspace</title>
     
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            /* Uses standard system fonts, no external requests needed */
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.5;
-            color: #222;
-            background-color: #fff;
-            max-width: 800px;
+            color: #1a1a1a;
+            background-color: #fafafa;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 2rem;
         }
 
         header {
-            border-bottom: 2px solid #eee;
+            border-bottom: 2px solid #e5e5e5;
             padding-bottom: 1rem;
             margin-bottom: 2rem;
         }
@@ -27,66 +32,198 @@
         h1 {
             margin: 0 0 0.5rem 0;
             font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
             color: #000;
         }
 
         .description {
-            color: #666;
+            color: #555;
             margin: 0;
             font-size: 1.1rem;
+        }
+
+        .warning {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: #b91c1c;
+            background: #fee2e2;
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+        }
+
+        .prompts-link {
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .prompts-link a {
+            color: #1e3a8a;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .prompts-link a:hover {
+            text-decoration: underline;
         }
 
         ul {
-            list-style-type: none;
-            padding: 0;
+            list-style: none;
             margin: 0;
+            padding: 0;
         }
 
         li {
-            padding: 1rem 0;
-            border-bottom: 1px solid #eee;
+            background: #ffffff;
+            border: 1px solid #eaeef2;
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        li:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .tool-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
-        a {
-            color: #0056b3;
-            text-decoration: none;
+        .tool-icon {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-icon img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .tool-title {
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 1rem;
+            color: #0f172a;
+            text-decoration: none;
+            transition: color 0.2s;
         }
 
-        a:hover, a:focus {
+        .tool-title:hover {
+            color: #1e3a8a;
             text-decoration: underline;
-            color: #003d82;
+        }
+
+        /* sublist styling */
+        .tool-sublinks {
+            margin-top: 0.75rem;
+            margin-left: 2.5rem;  /* align under icon + gap */
+        }
+
+        .sublist {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding-left: 0;
+        }
+
+        .sublist li {
+            margin: 0;
+            padding: 0;
+            border: none;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .sublist a {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #2c3e66;
+            background: #f1f5f9;
+            padding: 0.25rem 0.75rem;
+            border-radius: 24px;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: 1px solid #e2e8f0;
+            display: inline-block;
+        }
+
+        .sublist a:hover {
+            background: #e6edf5;
+            color: #0f172a;
+            border-color: #cbd5e1;
+            text-decoration: none;
+        }
+
+        .tool-meta {
+            margin-top: 0.75rem;
+            display: flex;
+            justify-content: flex-end;
         }
 
         .tag {
-            background-color: #f0f0f0;
-            color: #444;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            font-family: monospace;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            padding: 0.25rem 0.7rem;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            font-family: ui-monospace, 'Cascadia Code', monospace;
+            letter-spacing: -0.01em;
+            border: 1px solid #e2e8f0;
+            white-space: nowrap;
         }
 
         footer {
             margin-top: 3rem;
-            color: #888;
-            font-size: 0.9rem;
-            text-align: left;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e5e5;
+            color: #6c6f78;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
 
-        /* Basic responsive behavior for smaller screens */
-        @media (max-width: 600px) {
-            li {
+        .version {
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 1.25rem;
+            }
+            .tool-sublinks {
+                margin-left: 2rem;
+            }
+            .sublist {
                 flex-direction: column;
-                align-items: flex-start;
                 gap: 0.5rem;
             }
-            body {
-                padding: 1rem;
+            .tool-meta {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .tool-sublinks {
+                margin-left: 1.75rem;
             }
         }
     </style>
@@ -96,75 +233,132 @@
     <header>
         <h1>AI Tools Workspace</h1>
         <p class="description">Offline-ready index of single-page utilities.</p>
-	<p><b>Warning!</b> all tools on this page AI generated :)</p>
-	<p>Some of usefull for me prompts collected <a href="Prompts_collection/">here</a>
+        <div class="warning">⚠️ Warning! all tools on this page AI generated :)</div>
+        <div class="prompts-link">📘 Some useful prompts collected <a href="Prompts_collection/">here</a></div>
     </header>
 
     <main>
         <ul>
+            <!-- Circuit Schematic Library -->
             <li>
-                <a href="Gemini/circuit_schematic/schematic_library_1_26_0.html">
-                  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'  viewBox='0 0 100 100'%3E%3Cline x1='15' y1='50' x2='35' y2='50' stroke='%230f172a' stroke-width='6' stroke-linecap='round'/%3E%3Cline x1='65' y1='50' x2='85' y2='50' stroke='%230f172a' stroke-width='6' stroke-linecap='round'/%3E%3Cpolygon points='35,30 35,70 65,50' fill='%233b82f6'/%3E%3Cline x1='65' y1='30' x2='65' y2='70' stroke='%23ef4444' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E" alt="Icon" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
-		  Circuit Schematic Library
-		</a>
-                <span class="tag">Gemini 3.1 Pro</span>
+                <div class="tool-header">
+                    <span class="tool-icon">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'  viewBox='0 0 100 100'%3E%3Cline x1='15' y1='50' x2='35' y2='50' stroke='%230f172a' stroke-width='6' stroke-linecap='round'/%3E%3Cline x1='65' y1='50' x2='85' y2='50' stroke='%230f172a' stroke-width='6' stroke-linecap='round'/%3E%3Cpolygon points='35,30 35,70 65,50' fill='%233b82f6'/%3E%3Cline x1='65' y1='30' x2='65' y2='70' stroke='%23ef4444' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E" alt="Icon">
+                    </span>
+                    <a href="Gemini/circuit_schematic/schematic_library_1_26_0.html" class="tool-title">Circuit Schematic Library</a>
+                </div>
+                <div class="tool-meta">
+                    <span class="tag">Gemini 3.1 Pro</span>
+                </div>
             </li>
+
+            <!-- SVG Component Editor -->
             <li>
-                <a href="Gemini/svg_component_library_editor/svg_component_editor_v4_10_0.html">
-                  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%233b82f6' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='50' cy='50' r='40' /%3E%3Cline x1='10' y1='50' x2='35' y2='50' /%3E%3Cline x1='35' y1='30' x2='35' y2='70' stroke-width='7' /%3E%3Cpath d='M 35 40 L 60 20 L 60 10' /%3E%3Cpath d='M 35 60 L 60 80 L 60 90' /%3E%3Cpolygon points='58,78 46,76 54,67' fill='%233b82f6' /%3E%3C/g%3E%3C/svg%3E" alt="Icon" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
-		  SVG Component Editor
-		</a>
-                <span class="tag">Gemini 3.1 Pro</span>
+                <div class="tool-header">
+                    <span class="tool-icon">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%233b82f6' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='50' cy='50' r='40' /%3E%3Cline x1='10' y1='50' x2='35' y2='50' /%3E%3Cline x1='35' y1='30' x2='35' y2='70' stroke-width='7' /%3E%3Cpath d='M 35 40 L 60 20 L 60 10' /%3E%3Cpath d='M 35 60 L 60 80 L 60 90' /%3E%3Cpolygon points='58,78 46,76 54,67' fill='%233b82f6' /%3E%3C/g%3E%3C/svg%3E" alt="Icon">
+                    </span>
+                    <a href="Gemini/svg_component_library_editor/svg_component_editor_v4_10_0.html" class="tool-title">SVG Component Editor</a>
+                </div>
+                <div class="tool-meta">
+                    <span class="tag">Gemini 3.1 Pro</span>
+                </div>
             </li>
+
+            <!-- HTML Embed Preparer -->
             <li>
-                <a href="Gemini/html_embed_preparer/html_embed_preparer_v1.2.0.html">
-                  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231e293b'/%3E%3Cpolyline points='35,35 20,50 35,65' fill='none' stroke='%232563eb' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpolyline points='65,35 80,50 65,65' fill='none' stroke='%232563eb' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='58' y1='25' x2='42' y2='75' stroke='%23ffffff' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E" alt="Icon" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
-		  HTML Embed Preparer
-		</a>
-                <span class="tag">Gemini 3.1 Pro</span>
+                <div class="tool-header">
+                    <span class="tool-icon">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231e293b'/%3E%3Cpolyline points='35,35 20,50 35,65' fill='none' stroke='%232563eb' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpolyline points='65,35 80,50 65,65' fill='none' stroke='%232563eb' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='58' y1='25' x2='42' y2='75' stroke='%23ffffff' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E" alt="Icon">
+                    </span>
+                    <a href="Gemini/html_embed_preparer/html_embed_preparer_v1.2.0.html" class="tool-title">HTML Embed Preparer</a>
+                </div>
+                <div class="tool-meta">
+                    <span class="tag">Gemini 3.1 Pro</span>
+                </div>
             </li>
+
+            <!-- Voronoi Step-by-Step with sublist (Code) -->
             <li>
-                <a href="Gemini/voronoi_step_by_step_visualizer/voronoi_step_by_step_visualizer_v1.2.0.html">
-                  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='10' y='10' width='80' height='80' fill='%23ffffff' stroke='%23e5e7eb' stroke-width='4' rx='8'/%3E%3Cpath d='M 10 10 L 10 90 L 90 90 Z' fill='%23dbeafe' stroke='%233b82f6' stroke-width='4' stroke-linejoin='round'/%3E%3Cline x1='10' y1='10' x2='90' y2='90' stroke='%23ef4444' stroke-width='4' stroke-dasharray='6,6' stroke-linecap='round'/%3E%3Cline x1='50' y1='50' x2='62' y2='38' stroke='%23f97316' stroke-width='4' stroke-linecap='round'/%3E%3Cpolygon points='68,32 57,37 63,43' fill='%23f97316'/%3E%3Ccircle cx='30' cy='70' r='6' fill='%233b82f6'/%3E%3Ccircle cx='70' cy='30' r='6' fill='%23ef4444'/%3E%3C/svg%3E" alt="Icon" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
-		  Voronoi Generation Step-by-Step
-		</a>
-		</a><a href="md.html?Gemini/voronoi_step_by_step_visualizer/Explain_Dist_and_intersect.md">Code</a>
-                <span class="tag">Gemini 3.1 Pro</span>
+                <div class="tool-header">
+                    <span class="tool-icon">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='10' y='10' width='80' height='80' fill='%23ffffff' stroke='%23e5e7eb' stroke-width='4' rx='8'/%3E%3Cpath d='M 10 10 L 10 90 L 90 90 Z' fill='%23dbeafe' stroke='%233b82f6' stroke-width='4' stroke-linejoin='round'/%3E%3Cline x1='10' y1='10' x2='90' y2='90' stroke='%23ef4444' stroke-width='4' stroke-dasharray='6,6' stroke-linecap='round'/%3E%3Cline x1='50' y1='50' x2='62' y2='38' stroke='%23f97316' stroke-width='4' stroke-linecap='round'/%3E%3Cpolygon points='68,32 57,37 63,43' fill='%23f97316'/%3E%3Ccircle cx='30' cy='70' r='6' fill='%233b82f6'/%3E%3Ccircle cx='70' cy='30' r='6' fill='%23ef4444'/%3E%3C/svg%3E" alt="Icon">
+                    </span>
+                    <a href="Gemini/voronoi_step_by_step_visualizer/voronoi_step_by_step_visualizer_v1.2.0.html" class="tool-title">Voronoi Generation Step-by-Step</a>
+                </div>
+                <div class="tool-sublinks">
+                    <ul class="sublist">
+                        <li><a href="md.html?Gemini/voronoi_step_by_step_visualizer/Explain_Dist_and_intersect.md">📄 Code explanation</a></li>
+                    </ul>
+                </div>
+                <div class="tool-meta">
+                    <span class="tag">Gemini 3.1 Pro</span>
+                </div>
             </li>
+
+            <!-- SVG Data URL Converter (LeoAI) -->
             <li>
-                <a href="LeoAI/SVG_to_URI_converter/converter_v1.7.html">
-                  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%232563eb' /%3E%3Cpath d='M20 32a12 12 0 0 1 20.5-8.5l2.5-3.5A16 16 0 0 0 16 32c0 3.5 1 6.8 2.7 9.5l3.5-2.5A11.9 11.9 0 0 1 20 32z' fill='white' /%3E%3Cpath d='M44 32a12 12 0 0 1-20.5 8.5l-2.5 3.5A16 16 0 0 0 48 32c0-3.5-1-6.8-2.7-9.5l-3.5 2.5A11.9 11.9 0 0 1 44 32z' fill='white' /%3E%3Ctext x='32' y='36' font-family='monospace' font-size='10' fill='%232563eb' text-anchor='middle' font-weight='bold'%3E&amp;lt;%3C/text%3E%3C/svg%3E" alt="Icon" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
-		  SVG Data URL Converter
-		</a>
-                <span class="tag">Qwen VL 235B via LeoAI</span>
+                <div class="tool-header">
+                    <span class="tool-icon">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%232563eb' /%3E%3Cpath d='M20 32a12 12 0 0 1 20.5-8.5l2.5-3.5A16 16 0 0 0 16 32c0 3.5 1 6.8 2.7 9.5l3.5-2.5A11.9 11.9 0 0 1 20 32z' fill='white' /%3E%3Cpath d='M44 32a12 12 0 0 1-20.5 8.5l-2.5 3.5A16 16 0 0 0 48 32c0-3.5-1-6.8-2.7-9.5l-3.5 2.5A11.9 11.9 0 0 1 44 32z' fill='white' /%3E%3Ctext x='32' y='36' font-family='monospace' font-size='10' fill='%232563eb' text-anchor='middle' font-weight='bold'%3E&amp;lt;%3C/text%3E%3C/svg%3E" alt="Icon">
+                    </span>
+                    <a href="LeoAI/SVG_to_URI_converter/converter_v1.7.html" class="tool-title">SVG Data URL Converter</a>
+                </div>
+                <div class="tool-meta">
+                    <span class="tag">Qwen VL 235B via LeoAI</span>
+                </div>
             </li>
+
+            <!-- Tiny Neural Net: Russian Postal Digits + sublist (Algorithm, Code) -->
             <li>
-                <a href="Gemini/tiny_neural_net_russian_postal_digits/tiny_neural_net_russian_postal_digits_1_8_0.html">
-                  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117' stroke='%2330363d' stroke-width='2.5'/%3E%3Cline x1='28' y1='22' x2='72' y2='50' stroke='%2300ff41' stroke-width='1.2' opacity='0.3'/%3E%3Cline x1='28' y1='50' x2='72' y2='22' stroke='%23ff003c' stroke-width='1.2' opacity='0.35'/%3E%3Cline x1='28' y1='50' x2='72' y2='78' stroke='%2300ff41' stroke-width='1.2' opacity='0.3'/%3E%3Cline x1='28' y1='78' x2='72' y2='50' stroke='%2300ff41' stroke-width='1.2' opacity='0.3'/%3E%3Cline x1='28' y1='22' x2='72' y2='22' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='22' x2='28' y2='50' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='72' y1='22' x2='72' y2='50' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='50' x2='72' y2='50' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='50' x2='28' y2='78' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='72' y1='50' x2='72' y2='78' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='78' x2='72' y2='78' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='50' x2='72' y2='22' stroke='%2300ff41' stroke-width='2' stroke-linecap='round' opacity='0.55'/%3E%3Cline x1='28' y1='78' x2='72' y2='50' stroke='%2300ff41' stroke-width='2' stroke-linecap='round' opacity='0.55'/%3E%3Ccircle cx='28' cy='22' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='72' cy='22' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='28' cy='50' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='72' cy='50' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='28' cy='78' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='72' cy='78' r='5.5' fill='%2300ff41'/%3E%3C/svg%3E" alt="Icon" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
-		 Tiny Neural Net: Russian Postal Digits 
-		</a><a href="md.html?Gemini/tiny_neural_net_russian_postal_digits/tiny_neural_net_russian_postal_digits_algo_description.md">Algorithm</a>
-		</a><a href="md.html?Gemini/tiny_neural_net_russian_postal_digits/tiny_neural_net_russian_postal_digits_code_explain.md">Code</a>
-                <span class="tag">Gemini 3.1 Pro</span>
+                <div class="tool-header">
+                    <span class="tool-icon">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117' stroke='%2330363d' stroke-width='2.5'/%3E%3Cline x1='28' y1='22' x2='72' y2='50' stroke='%2300ff41' stroke-width='1.2' opacity='0.3'/%3E%3Cline x1='28' y1='50' x2='72' y2='22' stroke='%23ff003c' stroke-width='1.2' opacity='0.35'/%3E%3Cline x1='28' y1='50' x2='72' y2='78' stroke='%2300ff41' stroke-width='1.2' opacity='0.3'/%3E%3Cline x1='28' y1='78' x2='72' y2='50' stroke='%2300ff41' stroke-width='1.2' opacity='0.3'/%3E%3Cline x1='28' y1='22' x2='72' y2='22' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='22' x2='28' y2='50' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='72' y1='22' x2='72' y2='50' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='50' x2='72' y2='50' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='50' x2='28' y2='78' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='72' y1='50' x2='72' y2='78' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='78' x2='72' y2='78' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='50' x2='72' y2='22' stroke='%2300ff41' stroke-width='2' stroke-linecap='round' opacity='0.55'/%3E%3Cline x1='28' y1='78' x2='72' y2='50' stroke='%2300ff41' stroke-width='2' stroke-linecap='round' opacity='0.55'/%3E%3Ccircle cx='28' cy='22' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='72' cy='22' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='28' cy='50' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='72' cy='50' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='28' cy='78' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='72' cy='78' r='5.5' fill='%2300ff41'/%3E%3C/svg%3E" alt="Icon">
+                    </span>
+                    <a href="Gemini/tiny_neural_net_russian_postal_digits/tiny_neural_net_russian_postal_digits_1_8_0.html" class="tool-title">Tiny Neural Net: Russian Postal Digits</a>
+                </div>
+                <div class="tool-sublinks">
+                    <ul class="sublist">
+                        <li><a href="md.html?Gemini/tiny_neural_net_russian_postal_digits/tiny_neural_net_russian_postal_digits_algo_description.md">📘 Algorithm</a></li>
+                        <li><a href="md.html?Gemini/tiny_neural_net_russian_postal_digits/tiny_neural_net_russian_postal_digits_code_explain.md">📄 Code walkthrough</a></li>
+                    </ul>
+                </div>
+                <div class="tool-meta">
+                    <span class="tag">Gemini 3.1 Pro</span>
+                </div>
             </li>
+
+            <!-- Markdown visualizer -->
             <li>
-                <a href="DeepSeek/Markdown_visualizer/md_1_3_0.html">
-                  <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%2290%22%20height%3D%2290%22%20rx%3D%2214%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%2F%3E%3Ctext%20x%3D%2228%22%20y%3D%2268%22%20font-family%3D%22'Segoe%20UI'%2C%20-apple-system%2C%20BlinkMacSystemFont%2C%20sans-serif%22%20font-weight%3D%22800%22%20font-size%3D%2248%22%20fill%3D%22%23000000%22%3EM%3C%2Ftext%3E%3Ctext%20x%3D%2262%22%20y%3D%2285%22%20font-family%3D%22'Segoe%20UI'%2C%20-apple-system%2C%20BlinkMacSystemFont%2C%20sans-serif%22%20font-size%3D%2242%22%20fill%3D%22%231e3a8a%22%3E%E2%88%AB%3C%2Ftext%3E%3C%2Fsvg%3E" alt="Icon" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
-		  Markdown visualizer
-		</a>
-                <span class="tag">DeepSeek (Instant)</span>
+                <div class="tool-header">
+                    <span class="tool-icon">
+                        <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%2290%22%20height%3D%2290%22%20rx%3D%2214%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%2F%3E%3Ctext%20x%3D%2228%22%20y%3D%2268%22%20font-family%3D%22'Segoe%20UI'%2C%20-apple-system%2C%20BlinkMacSystemFont%2C%20sans-serif%22%20font-weight%3D%22800%22%20font-size%3D%2248%22%20fill%3D%22%23000000%22%3EM%3C%2Ftext%3E%3Ctext%20x%3D%2262%22%20y%3D%2285%22%20font-family%3D%22'Segoe%20UI'%2C%20-apple-system%2C%20BlinkMacSystemFont%2C%20sans-serif%22%20font-size%3D%2242%22%20fill%3D%22%231e3a8a%22%3E%E2%88%AB%3C%2Ftext%3E%3C%2Fsvg%3E" alt="Icon">
+                    </span>
+                    <a href="DeepSeek/Markdown_visualizer/md_1_3_0.html" class="tool-title">Markdown visualizer</a>
+                </div>
+                <div class="tool-meta">
+                    <span class="tag">DeepSeek (Instant)</span>
+                </div>
             </li>
+
+            <!-- To be continued... placeholder -->
             <li>
-                <a href="">
-                  <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%3Cg%20stroke%3D%22currentColor%22%20fill%3D%22currentColor%22%20stroke-width%3D%224%22%3E%20%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%2280%22%20height%3D%2280%22%20rx%3D%2210%22%20fill%3D%22none%22%2F%3E%20%3Ccircle%20cx%3D%2230%22%20cy%3D%2250%22%20r%3D%223%22%20%2F%3E%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%223%22%20%2F%3E%20%3Ccircle%20cx%3D%2270%22%20cy%3D%2250%22%20r%3D%223%22%20%2F%3E%20%3C%2Fg%3E%20%3C%2Fsvg%3E" alt="Icon" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">
-		 To be continued... 
-		</a>
-                <span class="tag">Gemini</span>
+                <div class="tool-header">
+                    <span class="tool-icon">
+                        <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%3Cg%20stroke%3D%22currentColor%22%20fill%3D%22currentColor%22%20stroke-width%3D%224%22%3E%20%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%2280%22%20height%3D%2280%22%20rx%3D%2210%22%20fill%3D%22none%22%2F%3E%20%3Ccircle%20cx%3D%2230%22%20cy%3D%2250%22%20r%3D%223%22%20%2F%3E%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%223%22%20%2F%3E%20%3Ccircle%20cx%3D%2270%22%20cy%3D%2250%22%20r%3D%223%22%20%2F%3E%20%3C%2Fg%3E%20%3C%2Fsvg%3E" alt="Icon">
+                    </span>
+                    <span class="tool-title" style="color:#6c757d;">To be continued...</span>
+                </div>
+                <div class="tool-meta">
+                    <span class="tag">Gemini</span>
+                </div>
             </li>
         </ul>
     </main>
 
     <footer>
-        <p>Local File Index</p>
+        <span>📁 Local File Index</span>
+        <span class="version">Version 1.1</span>
     </footer>
 
 </body>
