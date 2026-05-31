@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230d1117' stroke='%2330363d' stroke-width='2.5'/%3E%3Cline x1='28' y1='22' x2='72' y2='50' stroke='%2300ff41' stroke-width='1.2' opacity='0.3'/%3E%3Cline x1='28' y1='50' x2='72' y2='22' stroke='%23ff003c' stroke-width='1.2' opacity='0.35'/%3E%3Cline x1='28' y1='50' x2='72' y2='78' stroke='%2300ff41' stroke-width='1.2' opacity='0.3'/%3E%3Cline x1='28' y1='78' x2='72' y2='50' stroke='%2300ff41' stroke-width='1.2' opacity='0.3'/%3E%3Cline x1='28' y1='22' x2='72' y2='22' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='22' x2='28' y2='50' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='72' y1='22' x2='72' y2='50' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='50' x2='72' y2='50' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='50' x2='28' y2='78' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='72' y1='50' x2='72' y2='78' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='78' x2='72' y2='78' stroke='%2300ff41' stroke-width='3.5' stroke-linecap='round'/%3E%3Cline x1='28' y1='50' x2='72' y2='22' stroke='%2300ff41' stroke-width='2' stroke-linecap='round' opacity='0.55'/%3E%3Cline x1='28' y1='78' x2='72' y2='50' stroke='%2300ff41' stroke-width='2' stroke-linecap='round' opacity='0.55'/%3E%3Ccircle cx='28' cy='22' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='72' cy='22' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='28' cy='50' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='72' cy='50' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='28' cy='78' r='5.5' fill='%2300ff41'/%3E%3Ccircle cx='72' cy='78' r='5.5' fill='%2300ff41'/%3E%3C/svg%3E">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiny Neural Net: Russian Postal Digits</title>
+    <style>
+        /* Standalone Reset ONLY - everything visual is scoped to #nn-app-wrapper */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Scope strictly to avoid embed bleed */
+        #nn-app-wrapper, #nn-app-wrapper * {
+            box-sizing: border-box;
+        }
+
+        /* Fully Embeddable App Wrapper */
+        #nn-app-wrapper {
+            position: relative; /* Contain modals/toasts to the app scope */
+            container-type: inline-size;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%; /* Will fill parent space */
+            min-height: 600px; /* Safe minimum functional height */
+            overflow: hidden;
+            
+            /* Theming properly scoped to the wrapper */
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: system-ui, -apple-system, sans-serif;
+
+            --bg-dark: #0d1117;
+            --bg-panel: #161b22;
+            --border: #30363d;
+            --accent: #00ff41;
+            --accent-hover: #00cc33;
+            --negative: #ff003c;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+        }
+
+        /* Version Badge */
+        #nn-app-wrapper .version-badge {
+            font-size: 0.75rem;
+            background: var(--border);
+            color: var(--text-main);
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            margin-left: 0.75rem;
+            font-weight: normal;
+            white-space: nowrap;
+        }
+
+        #nn-app-wrapper header {
+            padding: 1rem 1.5rem;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+
+        #nn-app-wrapper header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        #nn-app-wrapper header p {
+            margin: 0.25rem 0 0 0;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        #nn-app-wrapper .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr 250px;
+            gap: 1px;
+            background: var(--border);
+            flex: 1;
+            overflow: hidden; /* Constrain grid bounds */
+            min-height: 0;
+        }
+
+        #nn-app-wrapper .panel {
+            background: var(--bg-dark);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Individual panel scrolling on desktop */
+            min-height: 0;
+        }
+
+        #nn-app-wrapper h2 {
+            font-size: 1rem;
+            margin-top: 0;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        /* 9-Segment Grid */
+        #nn-app-wrapper .grid-container {
+            position: relative;
+            width: 180px;
+            height: 340px;
+            margin: 0 auto 1.5rem auto;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        #nn-app-wrapper .segment {
+            position: absolute;
+            background: transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+            z-index: 2;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Hover isolated to mouse devices to avoid sticky touch states */
+        @media (hover: hover) {
+            #nn-app-wrapper .segment:hover { background: rgba(48, 54, 61, 0.8); }
+        }
+        
+        #nn-app-wrapper .segment.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); z-index: 3; }
+
+        /* Segment Positions (Russian Postal standard) */
+        #nn-app-wrapper .seg-0 { top: 20px; left: 20px; width: 140px; height: 12px; } /* Top */
+        #nn-app-wrapper .seg-1 { top: 20px; left: 20px; width: 12px; height: 150px; } /* TL */
+        #nn-app-wrapper .seg-2 { top: 20px; right: 20px; width: 12px; height: 150px; } /* TR */
+        #nn-app-wrapper .seg-3 { top: 164px; left: 20px; width: 140px; height: 12px; } /* Mid */
+        #nn-app-wrapper .seg-4 { bottom: 20px; left: 20px; width: 12px; height: 150px; } /* BL */
+        #nn-app-wrapper .seg-5 { bottom: 20px; right: 20px; width: 12px; height: 150px; } /* BR */
+        #nn-app-wrapper .seg-6 { bottom: 20px; left: 20px; width: 140px; height: 12px; } /* Bot */
+        
+        /* Diagonals */
+        #nn-app-wrapper .seg-7 { top: 164px; left: 20px; width: 205px; height: 12px; transform: rotate(-48.37deg); transform-origin: 6px 6px; } /* D1 (ML-TR) */
+        #nn-app-wrapper .seg-8 { top: 308px; left: 20px; width: 205px; height: 12px; transform: rotate(-48.37deg); transform-origin: 6px 6px; } /* D2 (BL-MR) */
+
+        /* Authentic 6-Dot Template */
+        #nn-app-wrapper .dots-template {
+            position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none;
+        }
+
+        /* Controls */
+        #nn-app-wrapper .controls { display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; }
+        #nn-app-wrapper .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        #nn-app-wrapper button {
+            background: #21262d; border: 1px solid var(--border); color: var(--text-main);
+            padding: 0.65rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
+            transition: all 0.2s; flex: 1; min-width: 44px; /* Touch target sizing */
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        @media (hover: hover) {
+            #nn-app-wrapper button:hover { background: #30363d; border-color: #8b949e; }
+            #nn-app-wrapper button.primary:hover { background: var(--accent-hover); }
+        }
+        
+        #nn-app-wrapper button.primary { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); }
+
+        /* Output Bars */
+        #nn-app-wrapper .bar-container {
+            display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;
+        }
+        #nn-app-wrapper .bar-label { width: 20px; font-weight: bold; text-align: center; font-size: 1.1rem; }
+        #nn-app-wrapper .bar-track { flex: 1; height: 16px; background: var(--bg-panel); border-radius: 8px; overflow: hidden; }
+        #nn-app-wrapper .bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.1s; }
+        #nn-app-wrapper .bar-val { width: 40px; font-size: 0.8rem; text-align: right; font-family: monospace; }
+        
+        #nn-app-wrapper .prediction-box {
+            margin-top: 1.5rem; padding: 1rem; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; text-align: center;
+        }
+        #nn-app-wrapper .prediction-box span { display: block; font-size: 3rem; font-weight: bold; color: var(--accent); }
+
+        /* Visualization Canvas */
+        #nn-app-wrapper .network-view {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        #nn-app-wrapper .canvas-container {
+            flex: 1;
+            position: relative;
+            min-height: 200px;
+            width: 100%;
+        }
+        /* Absolute position decouples canvas from pushing layout bounds */
+        #nn-app-wrapper canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-dark);
+            border-radius: 8px;
+        }
+        
+        #nn-app-wrapper .stats {
+            display: flex; justify-content: space-between; font-family: monospace; font-size: 0.9rem;
+            padding: 0.75rem; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; margin-top: 1rem; flex-shrink: 0;
+            flex-wrap: wrap; gap: 0.5rem;
+        }
+
+        /* Container Queries for responsive behavior based on app-wrapper width */
+        @container (max-width: 900px) {
+            #nn-app-wrapper header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            #nn-app-wrapper header > div:last-child {
+                width: 100%;
+            }
+            #nn-app-wrapper header button {
+                width: 100%;
+                padding: 0.75rem;
+            }
+            
+            #nn-app-wrapper .layout { 
+                /* Change to Flex-Column so panels explicitly stack and don't overlap */
+                display: flex;
+                flex-direction: column;
+                overflow-y: auto; 
+            }
+            #nn-app-wrapper .panel { 
+                /* Allow panels to determine their natural height */
+                overflow: visible; 
+                flex-shrink: 0;
+            }
+            #nn-app-wrapper .network-view {
+                /* Guarantee canvas drawing area on mobile */
+                height: 500px; 
+            }
+        }
+
+        /* Modal & Toasts (Positioned absolute to #nn-app-wrapper for safe embeddability) */
+        #nn-app-wrapper #toast-container { position: absolute; top: 1.5rem; right: 1.5rem; z-index: 1000; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
+        #nn-app-wrapper .toast { background: var(--accent); color: #000; padding: 0.75rem 1.25rem; border-radius: 6px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.4); opacity: 1; transition: opacity 0.3s ease; pointer-events: auto; }
+        #nn-app-wrapper .toast.error { background: var(--negative); color: #fff; }
+        
+        #nn-app-wrapper #import-modal { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        #nn-app-wrapper .modal-content { background: var(--bg-panel); padding: 1.5rem; border: 1px solid var(--border); border-radius: 8px; width: 90%; max-width: 500px; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        #nn-app-wrapper .modal-content h3 { margin: 0; color: #fff; }
+        #nn-app-wrapper .modal-content textarea { background: var(--bg-dark); color: var(--text-main); padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px; font-family: monospace; resize: vertical; min-height: 120px; }
+        #nn-app-wrapper .modal-content textarea:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+    </style>
+</head>
+<body>
+
+<div id="nn-app-wrapper">
+    <!-- Overlay Containers -->
+    <div id="toast-container"></div>
+    <div id="import-modal">
+        <div class="modal-content">
+            <h3>Import Network State</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Paste your previously exported JSON configuration below:</p>
+            <textarea id="import-textarea"></textarea>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button id="btn-import-cancel" style="flex: 0 1 auto;">Cancel</button>
+                <button id="btn-import-load" class="primary" style="flex: 0 1 auto;">Load JSON</button>
+            </div>
+        </div>
+    </div>
+    <textarea id="hidden-clipboard" style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; opacity: 0;"></textarea>
+
+    <header>
+        <div>
+            <h1>Tiny Neural Net: Error Backpropagation <span class="version-badge" id="version-badge"></span></h1>
+            <p>Visualizing a 9→6→11 network learning to recognize Russian postal digits.</p>
+        </div>
+        <div>
+            <button id="btn-reset-net">♻️ Reset Weights</button>
+        </div>
+    </header>
+
+    <div class="layout">
+        <!-- Panel 1: Input -->
+        <div class="panel">
+            <h2>1. Drawing Input (9 Nodes)</h2>
+            <div class="grid-container" id="grid">
+                <!-- Authentic 6-Dot Template -->
+                <svg class="dots-template" id="dots-template"></svg>
+                
+                <!-- Interactive Segments -->
+                <div class="segment seg-0" data-idx="0"></div>
+                <div class="segment seg-1" data-idx="1"></div>
+                <div class="segment seg-2" data-idx="2"></div>
+                <div class="segment seg-3" data-idx="3"></div>
+                <div class="segment seg-4" data-idx="4"></div>
+                <div class="segment seg-5" data-idx="5"></div>
+                <div class="segment seg-6" data-idx="6"></div>
+                <div class="segment seg-7" data-idx="7"></div>
+                <div class="segment seg-8" data-idx="8"></div>
+            </div>
+            
+            <div class="controls">
+                <button id="btn-clear">Clear Grid</button>
+                <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #8b949e;">Test Dataset Templates:</div>
+                <div class="btn-row" id="btn-templates">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 2: Network Visualization -->
+        <div class="panel network-view">
+            <h2>2. Network & Training</h2>
+            <div class="canvas-container" id="canvas-container">
+                <canvas id="network-canvas"></canvas>
+            </div>
+            <div class="stats">
+                <span id="stat-epoch">Epoch: 0</span>
+                <span id="stat-mse">MSE: 1.00000</span>
+                <span id="stat-lr">LR: 0.15</span>
+            </div>
+            <div class="controls" style="margin-top: 1rem; flex-direction: row; flex-wrap: wrap;">
+                <button id="btn-step">Step (1 Epoch)</button>
+                <button id="btn-train" class="primary">Start Training</button>
+            </div>
+            <div class="controls" style="margin-top: 0.5rem; flex-direction: row; flex-wrap: wrap;">
+                <button id="btn-export">Export JSON 📤</button>
+                <button id="btn-import">Import JSON 📥</button>
+            </div>
+        </div>
+
+        <!-- Panel 3: Output -->
+        <div class="panel">
+            <h2>3. Output Layer (11 Nodes)</h2>
+            <div id="output-bars">
+                <!-- Populated by JS -->
+            </div>
+            <div class="prediction-box">
+                Network Guess
+                <span id="final-guess">?</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const APP_VERSION = "1.10.0";
+
+    // --- 1. Dataset: Russian Postal Index Segments ---
+    // Segments: 0:Top, 1:TL, 2:TR, 3:Mid, 4:BL, 5:BR, 6:Bot, 7:Diag1(ML-TR), 8:Diag2(BL-MR)
+    const BASE_TEMPLATES = [
+        { label: 0, inputs: [1, 1, 1, 0, 1, 1, 1, 0, 0] },
+        { label: 1, inputs: [0, 0, 1, 0, 0, 1, 0, 1, 0] },
+        { label: 2, inputs: [1, 0, 1, 1, 1, 0, 1, 0, 0] },
+        { label: 3, inputs: [1, 0, 0, 1, 0, 1, 1, 1, 0] },
+        { label: 4, inputs: [0, 1, 1, 1, 0, 1, 0, 0, 0] },
+        { label: 5, inputs: [1, 1, 0, 1, 0, 1, 1, 0, 0] },
+        { label: 6, inputs: [1, 1, 0, 1, 1, 1, 1, 0, 0] },
+        { label: 7, inputs: [1, 0, 1, 0, 0, 0, 0, 0, 1] },
+        { label: 8, inputs: [1, 1, 1, 1, 1, 1, 1, 0, 0] },
+        { label: 9, inputs: [1, 1, 1, 1, 0, 1, 1, 0, 0] },
+        { label: 10, inputs: [0, 0, 0, 0, 0, 0, 0, 0, 0] } // Default NaN for UI
+    ];
+
+    const DATASET = [];
+
+    // Helper to check if an array matches a valid digit
+    function isValidDigit(arr) {
+        for (let i = 0; i < 10; i++) { // Only check 0-9
+            if (BASE_TEMPLATES[i].inputs.every((val, idx) => val === arr[idx])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Balance the dataset
+    for (let k = 0; k < 50; k++) {
+        for (let i = 0; i < 10; i++) {
+            DATASET.push({ label: BASE_TEMPLATES[i].label, inputs: [...BASE_TEMPLATES[i].inputs] });
+        }
+    }
+
+    // Generate all 512 possible segment combinations
+    for (let i = 0; i < 512; i++) {
+        let binArray = i.toString(2).padStart(9, '0').split('').map(Number);
+        if (!isValidDigit(binArray)) {
+            DATASET.push({ label: 10, inputs: binArray });
+        }
+    }
+
+    // Helper to create One-Hot encoding arrays
+    DATASET.forEach(d => {
+        d.targets = Array(11).fill(0);
+        d.targets[d.label] = 1;
+    });
+
+    // --- 2. Tiny Neural Network Math Core ---
+    function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+    function dSigmoid(y) { return y * (1 - y); }
+
+    class TinyNN {
+        constructor(in_nodes, hid_nodes, out_nodes) {
+            this.in = in_nodes;
+            this.hn = hid_nodes;
+            this.on = out_nodes;
+            this.lr = 0.15; // Learning Rate
+
+            // Initialize weights
+            this.w_ih = Array(this.in).fill(0).map(() => Array(this.hn).fill(0).map(() => Math.random() * 2 - 1));
+            this.w_ho = Array(this.hn).fill(0).map(() => Array(this.on).fill(0).map(() => Math.random() * 2 - 1));
+            
+            // Initialize biases
+            this.b_h = Array(this.hn).fill(0).map(() => Math.random() * 2 - 1);
+            this.b_o = Array(this.on).fill(0).map(() => Math.random() * 2 - 1);
+            
+            // Expose neuron activations for visualization
+            this.hidden_nodes = Array(this.hn).fill(0);
+            this.output_nodes = Array(this.on).fill(0);
+        }
+
+        predict(input_array) {
+            // Hidden Layer
+            for (let j = 0; j < this.hn; j++) {
+                let sum = this.b_h[j];
+                for (let i = 0; i < this.in; i++) sum += input_array[i] * this.w_ih[i][j];
+                this.hidden_nodes[j] = sigmoid(sum);
+            }
+            // Output Layer
+            for (let j = 0; j < this.on; j++) {
+                let sum = this.b_o[j];
+                for (let i = 0; i < this.hn; i++) sum += this.hidden_nodes[i] * this.w_ho[i][j];
+                this.output_nodes[j] = sigmoid(sum);
+            }
+            return this.output_nodes;
+        }
+
+        train(input_array, target_array) {
+            this.predict(input_array);
+
+            // 1. Output Errors & Gradients
+            let o_errors = Array(this.on).fill(0);
+            let o_deltas = Array(this.on).fill(0);
+            for (let j = 0; j < this.on; j++) {
+                o_errors[j] = target_array[j] - this.output_nodes[j];
+                o_deltas[j] = o_errors[j] * dSigmoid(this.output_nodes[j]);
+            }
+
+            // 2. Hidden Errors & Gradients
+            let h_deltas = Array(this.hn).fill(0);
+            for (let i = 0; i < this.hn; i++) {
+                let error = 0;
+                for (let j = 0; j < this.on; j++) error += o_deltas[j] * this.w_ho[i][j];
+                h_deltas[i] = error * dSigmoid(this.hidden_nodes[i]);
+            }
+
+            // 3. Update Weights (Hidden -> Output)
+            for (let j = 0; j < this.on; j++) {
+                this.b_o[j] += o_deltas[j] * this.lr;
+                for (let i = 0; i < this.hn; i++) {
+                    this.w_ho[i][j] += this.hidden_nodes[i] * o_deltas[j] * this.lr;
+                }
+            }
+
+            // 4. Update Weights (Input -> Hidden)
+            for (let j = 0; j < this.hn; j++) {
+                this.b_h[j] += h_deltas[j] * this.lr;
+                for (let i = 0; i < this.in; i++) {
+                    this.w_ih[i][j] += input_array[i] * h_deltas[j] * this.lr;
+                }
+            }
+
+            return o_errors.reduce((sum, e) => sum + (e * e), 0) / this.on;
+        }
+    }
+
+    // --- 3. UI and Application Logic ---
+    const nn = new TinyNN(9, 6, 11);
+    let currentInput = Array(9).fill(0);
+    let currentEpoch = 0;
+    let lastMse = 1.0;
+    let isTraining = false;
+    let animationFrameId = null;
+
+    // DOM Elements
+    const segments = document.querySelectorAll('.segment');
+    const outBarsContainer = document.getElementById('output-bars');
+    const canvas = document.getElementById('network-canvas');
+    const canvasContainer = document.getElementById('canvas-container');
+    const ctx = canvas.getContext('2d');
+    const statEpoch = document.getElementById('stat-epoch');
+    const statMse = document.getElementById('stat-mse');
+    const finalGuess = document.getElementById('final-guess');
+    const btnTrain = document.getElementById('btn-train');
+
+    // Initialize UI
+    function initUI() {
+        document.getElementById('version-badge').textContent = `v${APP_VERSION}`;
+        document.getElementById('import-textarea').placeholder = `{"version":"${APP_VERSION}","epoch":100,"mse":0.005,"weights":{...}}`;
+
+        // Generate Authentic 6-Dot Segments
+        const svgDots = document.getElementById('dots-template');
+        const v = [[26, 26], [154, 26], [26, 170], [154, 170], [26, 314], [154, 314]];
+        const segEdges = [[0,1], [0,2], [1,3], [2,3], [2,4], [3,5], [4,5], [2,1], [4,3]];
+        
+        let dotsStr = '';
+        segEdges.forEach(([start, end]) => {
+            for (let i = 0; i <= 5; i++) {
+                const cx = v[start][0] + (v[end][0] - v[start][0]) * (i / 5);
+                const cy = v[start][1] + (v[end][1] - v[start][1]) * (i / 5);
+                dotsStr += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="#58606a" />`;
+            }
+        });
+        svgDots.innerHTML = dotsStr;
+
+        // Build template buttons
+        const tplContainer = document.getElementById('btn-templates');
+        for (let i = 0; i < 11; i++) {
+            const btn = document.createElement('button');
+            btn.textContent = i === 10 ? 'NaN' : i;
+            btn.onclick = () => loadTemplate(i);
+            tplContainer.appendChild(btn);
+        }
+
+        // Build output bars
+        for (let i = 0; i < 11; i++) {
+            const labelStr = i === 10 ? "NaN" : i;
+            const fontSize = i === 10 ? "0.8rem" : "1.1rem";
+            outBarsContainer.innerHTML += `
+                <div class="bar-container">
+                    <div class="bar-label" style="font-size: ${fontSize}">${labelStr}</div>
+                    <div class="bar-track"><div class="bar-fill" id="bar-${i}"></div></div>
+                    <div class="bar-val" id="val-${i}">0.00</div>
+                </div>`;
+        }
+
+        // Segment click handlers
+        segments.forEach(seg => {
+            seg.addEventListener('click', (e) => {
+                const idx = parseInt(e.target.dataset.idx);
+                currentInput[idx] = currentInput[idx] === 1 ? 0 : 1;
+                e.target.classList.toggle('active');
+                updatePrediction();
+            });
+        });
+
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            currentInput.fill(0);
+            segments.forEach(s => s.classList.remove('active'));
+            updatePrediction();
+        });
+
+        document.getElementById('btn-step').addEventListener('click', () => runEpochs(1));
+        
+        btnTrain.addEventListener('click', () => {
+            isTraining = !isTraining;
+            btnTrain.textContent = isTraining ? "Stop Training" : "Start Training";
+            if (isTraining) loopTraining();
+            else cancelAnimationFrame(animationFrameId);
+        });
+
+        // Export / Import Logic
+        document.getElementById('btn-export').addEventListener('click', exportToClipboard);
+        document.getElementById('btn-import').addEventListener('click', () => {
+            document.getElementById('import-modal').style.display = 'flex';
+            document.getElementById('import-textarea').value = '';
+            document.getElementById('import-textarea').focus();
+        });
+        
+        document.getElementById('btn-import-cancel').addEventListener('click', () => {
+            document.getElementById('import-modal').style.display = 'none';
+        });
+        
+        document.getElementById('btn-import-load').addEventListener('click', loadFromJSON);
+
+        document.getElementById('btn-reset-net').addEventListener('click', () => {
+            nn.w_ih = Array(nn.in).fill(0).map(() => Array(nn.hn).fill(0).map(() => Math.random() * 2 - 1));
+            nn.w_ho = Array(nn.hn).fill(0).map(() => Array(nn.on).fill(0).map(() => Math.random() * 2 - 1));
+            currentEpoch = 0;
+            updatePrediction();
+        });
+
+        // Safe embedded Canvas Resizing via ResizeObserver
+        const resizeObserver = new ResizeObserver(() => {
+            // Only update if dimensions actually changed
+            if (canvas.width !== canvasContainer.clientWidth || canvas.height !== canvasContainer.clientHeight) {
+                canvas.width = canvasContainer.clientWidth;
+                canvas.height = canvasContainer.clientHeight;
+                drawNetwork();
+            }
+        });
+        resizeObserver.observe(canvasContainer);
+
+        updatePrediction();
+    }
+
+    function loadTemplate(num) {
+        currentInput = [...BASE_TEMPLATES[num].inputs];
+        segments.forEach((seg, idx) => {
+            if (currentInput[idx] === 1) seg.classList.add('active');
+            else seg.classList.remove('active');
+        });
+        updatePrediction();
+    }
+
+    function updatePrediction() {
+        const out = nn.predict(currentInput);
+        let maxVal = -1;
+        let bestGuess = -1;
+
+        for (let i = 0; i < 11; i++) {
+            const val = out[i];
+            document.getElementById(`bar-${i}`).style.width = `${(val * 100)}%`;
+            document.getElementById(`val-${i}`).textContent = val.toFixed(2);
+            
+            if (val > maxVal) {
+                maxVal = val;
+                bestGuess = i;
+            }
+        }
+        
+        finalGuess.textContent = bestGuess === 10 ? "NaN" : bestGuess;
+        drawNetwork();
+    }
+
+    // --- Toast Notifications ---
+    function showToast(msg, isError = false) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${isError ? 'error' : ''}`;
+        toast.textContent = msg;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // --- JSON Export / Import ---
+    function exportToClipboard() {
+        const state = {
+            version: APP_VERSION,
+            epoch: currentEpoch,
+            mse: lastMse,
+            weights: {
+                w_ih: nn.w_ih,
+                w_ho: nn.w_ho,
+                b_h: nn.b_h,
+                b_o: nn.b_o
+            }
+        };
+        const jsonStr = JSON.stringify(state);
+        
+        const hiddenTa = document.getElementById('hidden-clipboard');
+        hiddenTa.value = jsonStr;
+        hiddenTa.select();
+        
+        try {
+            document.execCommand('copy');
+            showToast("Network State Exported to Clipboard!");
+        } catch (err) {
+            showToast("Failed to copy data.", true);
+            console.error('Clipboard fallback failed', err);
+        }
+    }
+
+    function loadFromJSON() {
+        const jsonStr = document.getElementById('import-textarea').value;
+        try {
+            const parsed = JSON.parse(jsonStr);
+            if (!parsed.weights || !parsed.weights.w_ih) throw new Error("Invalid format");
+            
+            nn.w_ih = parsed.weights.w_ih;
+            nn.w_ho = parsed.weights.w_ho;
+            nn.b_h = parsed.weights.b_h;
+            nn.b_o = parsed.weights.b_o;
+            
+            currentEpoch = parsed.epoch || 0;
+            lastMse = parsed.mse || 1.0;
+            
+            statEpoch.textContent = `Epoch: ${currentEpoch}`;
+            statMse.textContent = `MSE: ${lastMse.toFixed(5)}`;
+            
+            document.getElementById('import-modal').style.display = 'none';
+            updatePrediction();
+            showToast("Network State Imported Successfully!");
+        } catch (err) {
+            showToast("Invalid JSON format!", true);
+        }
+    }
+
+    // --- 4. Training Loop ---
+    function runEpochs(count) {
+        let totalMse = 0;
+        for (let e = 0; e < count; e++) {
+            let epochMse = 0;
+            const shuffled = [...DATASET].sort(() => Math.random() - 0.5);
+            for (let item of shuffled) {
+                epochMse += nn.train(item.inputs, item.targets);
+            }
+            totalMse += epochMse / DATASET.length;
+            currentEpoch++;
+        }
+        
+        lastMse = totalMse / count;
+        statEpoch.textContent = `Epoch: ${currentEpoch}`;
+        statMse.textContent = `MSE: ${lastMse.toFixed(5)}`;
+        
+        updatePrediction(); 
+    }
+
+    function loopTraining() {
+        if (!isTraining) return;
+        runEpochs(2); 
+        animationFrameId = requestAnimationFrame(loopTraining);
+    }
+
+    // --- 5. Network Visualization ---
+    function drawNetwork() {
+        if (!ctx || canvas.width === 0) return; // Prevent errors during initial load/resize
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const w = canvas.width;
+        const h = canvas.height;
+        const padding = 20;
+        
+        // Calculate layer X positions
+        const xIn = padding + 20;
+        const xHid = w / 2;
+        const xOut = w - padding - 20;
+
+        // Calculate node spacing
+        const spaceIn = (h - padding * 2) / nn.in;
+        const spaceHid = (h - padding * 2) / nn.hn;
+        const spaceOut = (h - padding * 2) / nn.on;
+
+        // Draw Weights (Input -> Hidden)
+        for (let i = 0; i < nn.in; i++) {
+            let y1 = padding + spaceIn * i + spaceIn / 2;
+            for (let j = 0; j < nn.hn; j++) {
+                let y2 = padding + spaceHid * j + spaceHid / 2;
+                let weight = nn.w_ih[i][j];
+                drawConnection(xIn, y1, xHid, y2, weight);
+            }
+        }
+
+        // Draw Weights (Hidden -> Output)
+        for (let j = 0; j < nn.hn; j++) {
+            let y1 = padding + spaceHid * j + spaceHid / 2;
+            for (let k = 0; k < nn.on; k++) {
+                let y2 = padding + spaceOut * k + spaceOut / 2;
+                let weight = nn.w_ho[j][k];
+                drawConnection(xHid, y1, xOut, y2, weight);
+            }
+        }
+
+        // Draw Nodes
+        for (let i = 0; i < nn.in; i++) drawNode(xIn, padding + spaceIn * i + spaceIn / 2, currentInput[i]);
+        for (let j = 0; j < nn.hn; j++) drawNode(xHid, padding + spaceHid * j + spaceHid / 2, nn.hidden_nodes[j]);
+        for (let k = 0; k < nn.on; k++) drawNode(xOut, padding + spaceOut * k + spaceOut / 2, nn.output_nodes[k]);
+    }
+
+    function drawConnection(x1, y1, x2, y2, weight) {
+        if (Math.abs(weight) < 0.2) return; 
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        
+        const alpha = Math.min(1, Math.abs(weight) * 0.3);
+        ctx.strokeStyle = weight > 0 ? `rgba(0, 255, 65, ${alpha})` : `rgba(255, 0, 60, ${alpha})`;
+        ctx.lineWidth = Math.min(4, Math.abs(weight));
+        ctx.stroke();
+    }
+
+    function drawNode(x, y, activation) {
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        
+        const v = Math.floor(activation * 255);
+        ctx.fillStyle = `rgb(${v/2}, ${v}, ${v/2})`; 
+        ctx.strokeStyle = '#c9d1d9';
+        ctx.lineWidth = 1;
+        
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    // Start App
+    initUI();
+    
+</script>
+</body>
+</html>
