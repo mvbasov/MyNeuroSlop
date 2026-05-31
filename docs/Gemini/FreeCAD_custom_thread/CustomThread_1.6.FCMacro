@@ -1,3 +1,4 @@
+#```python
 # Custom Thread Macro v1.6 - Shape Binder Edition
 import FreeCAD as App
 import FreeCADGui as Gui
@@ -178,3 +179,4 @@ def create_parametric_thread():
 
 if __name__ == "__main__":
     create_parametric_thread()
+#```
