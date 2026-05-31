@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%232563eb' /%3E%3Cpath d='M20 32a12 12 0 0 1 20.5-8.5l2.5-3.5A16 16 0 0 0 16 32c0 3.5 1 6.8 2.7 9.5l3.5-2.5A11.9 11.9 0 0 1 20 32z' fill='white' /%3E%3Cpath d='M44 32a12 12 0 0 1-20.5 8.5l-2.5 3.5A16 16 0 0 0 48 32c0-3.5-1-6.8-2.7-9.5l-3.5 2.5A11.9 11.9 0 0 1 44 32z' fill='white' /%3E%3Ctext x='32' y='36' font-family='monospace' font-size='10' fill='%232563eb' text-anchor='middle' font-weight='bold'%3E&amp;lt;%3C/text%3E%3C/svg%3E">
+    <title>Offline SVG Data URL Converter v1.8.0</title>
+    <style>
+        /* Minimal standalone styles */
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Scoped App Styles */
+        #svg-converter-app {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            color: var(--text);
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+
+        #svg-converter-app * {
+            box-sizing: inherit;
+        }
+
+        #svg-converter-app header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #svg-converter-app h1 { margin: 0; font-size: 1.8rem; color: var(--primary); }
+        #svg-converter-app .version { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; font-weight: bold; }
+        #svg-converter-app p { color: #64748b; margin-top: 5px; }
+
+        /* Unified Preview Area */
+        #svg-converter-app .preview-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: repeating-conic-gradient(#e2e8f0 0% 25%, #ffffff 0% 50%) 50% / 20px 20px;
+            border-radius: 12px;
+            height: 120px;
+            width: 100%;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        #svg-converter-app .preview-container img {
+            max-width: 100px;
+            max-height: 100px;
+            background: transparent;
+            /* Add drop shadow for better visibility on checkboard */
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+        }
+
+        #svg-converter-app .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            #svg-converter-app .grid { grid-template-columns: 1fr; }
+        }
+
+        #svg-converter-app .card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #svg-converter-app h2 { 
+            font-size: 1.2rem; 
+            margin-top: 0; 
+            margin-bottom: 15px; 
+            border-bottom: 2px solid var(--bg); 
+            padding-bottom: 10px; 
+        }
+
+        #svg-converter-app textarea {
+            width: 100%;
+            height: 250px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+            margin-bottom: 15px;
+            white-space: pre;
+            overflow-x: auto;
+            background: #fbfbfb;
+            color: #333;
+        }
+
+        #svg-converter-app textarea:focus { 
+            outline: 2px solid var(--primary); 
+            border-color: transparent; 
+            background: #fff;
+        }
+
+        #svg-converter-app .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        #svg-converter-app button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #svg-converter-app .btn-primary { background: var(--primary); color: white; }
+        #svg-converter-app .btn-primary:hover { background: #1d4ed8; }
+
+        #svg-converter-app .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        #svg-converter-app .btn-outline:hover { background: var(--bg); }
+
+        #svg-converter-app .btn-copy { background: var(--success); color: white; margin-left: auto; }
+        #svg-converter-app .btn-copy:hover { background: #15803d; }
+
+        #svg-converter-app .error { color: #dc2626; font-size: 0.85rem; margin-top: 10px; display: none; font-weight: 500; }
+        #svg-converter-app .status-text { font-size: 0.75rem; color: #64748b; margin-top: 10px; text-align: right;}
+        #svg-converter-app .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        #svg-converter-app .checkbox-group label { font-size: 0.85rem; font-weight: 500; cursor: pointer; color: var(--text); }
+    </style>
+</head>
+<body>
+
+<div id="svg-converter-app">
+    <header>
+        <h1>SVG Data URL Converter</h1>
+        <div class="version">v1.9.0</div>
+        <p>Works 100% offline. Type in either box to automatically update the other.</p>
+    </header>
+
+    <div class="preview-container">
+        <img id="sharedPreview" alt="SVG Preview will appear here">
+    </div>
+
+    <div class="grid">
+        <!-- Input/Output 1: SVG Code -->
+        <div class="card">
+            <h2>SVG Code</h2>
+            <textarea id="svgCode" placeholder='<svg xmlns="..." viewBox="...">\n  ...\n</svg>'></textarea>
+            
+            <div class="btn-group">
+                <button class="btn-primary" id="btnConvertSvg">Convert &rarr;</button>
+                <button class="btn-outline" id="btnClearSvg">Clear</button>
+                <button class="btn-copy" id="btnCopySvg">Copy SVG</button>
+            </div>
+            <div id="svgError" class="error"></div>
+            <div id="svgStatus" class="status-text"></div>
+        </div>
+
+        <!-- Input/Output 2: Data URL -->
+        <div class="card">
+            <h2>Data URL</h2>
+            <div class="checkbox-group">
+                <input type="checkbox" id="faviconWrap">
+                <label for="faviconWrap">Wrap in &lt;link rel="icon"&gt; tag</label>
+            </div>
+            <textarea id="dataUrl" placeholder="data:image/svg+xml;base64,..."></textarea>
+
+            <div class="btn-group">
+                <button class="btn-primary" id="btnConvertDataUrl">&larr; Convert</button>
+                <button class="btn-outline" id="btnClearDataUrl">Clear</button>
+                <button class="btn-copy" id="btnCopyDataUrl">Copy URL</button>
+            </div>
+            <div id="dataUrlError" class="error"></div>
+            <div id="dataUrlStatus" class="status-text"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Encapsulate all logic within an IIFE to prevent global namespace pollution (Embeddable Design)
+(function() {
+    const app = document.getElementById('svg-converter-app');
+    if (!app) return;
+
+    const svgCodeEl = app.querySelector('#svgCode');
+    const dataUrlEl = app.querySelector('#dataUrl');
+    const previewImg = app.querySelector('#sharedPreview');
+    const faviconWrapEl = app.querySelector('#faviconWrap');
+    
+    // UI Elements
+    const svgErrorEl = app.querySelector('#svgError');
+    const dataUrlErrorEl = app.querySelector('#dataUrlError');
+    const svgStatusEl = app.querySelector('#svgStatus');
+    const dataUrlStatusEl = app.querySelector('#dataUrlStatus');
+
+    let isSyncing = false;
+
+    // --- Core Logic Functions ---
+
+    function formatXML(xmlString) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xmlString, 'image/svg+xml');
+        const root = doc.documentElement;
+        
+        let result = '';
+        let indentLevel = 0;
+        const indentStr = '  '; // 2 spaces
+
+        function serializeNode(node) {
+            let str = '';
+            const indent = indentStr.repeat(indentLevel);
+
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                str += indent + '<' + node.tagName;
+                if (node.attributes) {
+                    for (let i = 0; i < node.attributes.length; i++) {
+                        const attr = node.attributes[i];
+                        str += ' ' + attr.name + '="' + attr.value.replace(/"/g, '&quot;') + '"';
+                    }
+                }
+
+                const hasChildren = node.childNodes.length > 0;
+                const hasTextContent = Array.from(node.childNodes).some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== '');
+                
+                if (hasChildren && !hasTextContent) {
+                    str += '>\n';
+                    indentLevel++;
+                    for (let i = 0; i < node.childNodes.length; i++) {
+                        str += serializeNode(node.childNodes[i]);
+                    }
+                    indentLevel--;
+                    str += indent + '</' + node.tagName + '>\n';
+                } else if (hasTextContent) {
+                    str += '>' + node.textContent.trim() + '</' + node.tagName + '>\n';
+                } else {
+                    str += '/>\n';
+                }
+            } else if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent.trim();
+                if (text) {
+                    str += indent + text + '\n';
+                }
+            }
+            return str;
+        }
+
+        return serializeNode(root).trim();
+    }
+
+    function processSvgToDataUrl(auto = false) {
+        if (isSyncing) return;
+        svgErrorEl.style.display = 'none';
+
+        const svgCode = svgCodeEl.value.trim();
+        if (!svgCode) {
+            if (!auto) {
+                svgErrorEl.textContent = 'Please enter SVG code.';
+                svgErrorEl.style.display = 'block';
+            }
+            return;
+        }
+
+        try {
+            let compact = svgCode.replace(/\s+/g, ' ').trim();
+            const encoded = encodeURIComponent(compact)
+                .replace(/['()]/g, escape)
+                .replace(/\*/g, '%2A');
+
+            const dataUrl = `data:image/svg+xml,${encoded}`;
+            
+            let finalOutput = dataUrl;
+            if (faviconWrapEl.checked) {
+                finalOutput = `<link rel="icon" type="image/svg+xml" href="${dataUrl}">`;
+            }
+
+            // Sync
+            isSyncing = true;
+            dataUrlEl.value = finalOutput;
+            previewImg.src = dataUrl;
+            isSyncing = false;
+
+            updateStatus();
+        } catch (e) {
+            if (!auto) {
+                svgErrorEl.textContent = 'Error processing SVG: ' + e.message;
+                svgErrorEl.style.display = 'block';
+            }
+        }
+    }
+
+    function processDataUrlToSvg(auto = false) {
+        if (isSyncing) return;
+        dataUrlErrorEl.style.display = 'none';
+
+        let input = dataUrlEl.value.trim();
+        if (!input) {
+            if (!auto) {
+                dataUrlErrorEl.textContent = 'Please enter a Data URL.';
+                dataUrlErrorEl.style.display = 'block';
+            }
+            return;
+        }
+
+        // Auto-unwrap if it's a link tag
+        if (input.toLowerCase().includes('<link')) {
+            const match = input.match(/href=["'](data:image\/svg\+xml[^"']+)["']/i);
+            if (match) {
+                input = match[1];
+            }
+        }
+
+        try {
+            let svgContent = '';
+
+            if (input.startsWith('data:image/svg+xml;base64,')) {
+                svgContent = atob(input.substring(26));
+            } else if (input.startsWith('data:image/svg+xml,')) {
+                svgContent = decodeURIComponent(input.substring(19));
+            } else if (input.startsWith('data:')) {
+                throw new Error('Unsupported Data URL type. Must be image/svg+xml.');
+            } else {
+                throw new Error('Invalid format. Must start with "data:image/svg+xml".');
+            }
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgContent, 'image/svg+xml');
+            
+            if (doc.querySelector('parsererror')) {
+                throw new Error('Invalid XML in SVG content.');
+            }
+
+            const serializer = new XMLSerializer();
+            let rawString = serializer.serializeToString(doc);
+            const formattedString = formatXML(rawString);
+
+            // Sync
+            isSyncing = true;
+            svgCodeEl.value = formattedString;
+            previewImg.src = input;
+            isSyncing = false;
+
+            updateStatus();
+        } catch (e) {
+            if (!auto) {
+                dataUrlErrorEl.textContent = 'Error decoding: ' + e.message;
+                dataUrlErrorEl.style.display = 'block';
+            }
+        }
+    }
+
+    function updateStatus() {
+        const svgLines = (svgCodeEl.value.match(/\n/g) || []).length + (svgCodeEl.value ? 1 : 0);
+        svgStatusEl.textContent = svgCodeEl.value ? `${svgLines} lines | ${svgCodeEl.value.length} chars` : '';
+        dataUrlStatusEl.textContent = dataUrlEl.value ? `${dataUrlEl.value.length} chars` : '';
+    }
+
+    // --- Helper Functions ---
+
+    function clearFields(target) {
+        if (target === 'svg' || target === 'all') {
+            svgCodeEl.value = '';
+            svgErrorEl.style.display = 'none';
+        }
+        if (target === 'dataUrl' || target === 'all') {
+            dataUrlEl.value = '';
+            dataUrlErrorEl.style.display = 'none';
+        }
+        if (target === 'all' || (!svgCodeEl.value && !dataUrlEl.value)) {
+            previewImg.src = '';
+            previewImg.removeAttribute('src'); // removes broken image icon in some browsers
+        }
+        updateStatus();
+    }
+
+    function copyToClipboard(el, btn) {
+        const text = el.value;
+        if (!text) {
+            alert('Nothing to copy!');
+            return;
+        }
+
+        const originalText = btn.textContent;
+        
+        const fallbackCopy = () => {
+            el.focus();
+            el.select();
+            el.setSelectionRange(0, 99999);
+            try {
+                if (document.execCommand('copy')) showSuccess();
+                else alert('Failed to copy. Please manually select and copy.');
+            } catch (err) {
+                alert('Failed to copy. Please manually select and copy.');
+            }
+        };
+
+        const showSuccess = () => {
+            btn.textContent = 'Copied!';
+            btn.style.background = '#059669';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(showSuccess).catch(fallbackCopy);
+        } else {
+            fallbackCopy();
+        }
+    }
+
+    // --- Event Listeners ---
+
+    // Real-time bidirectional sync
+    svgCodeEl.addEventListener('input', () => processSvgToDataUrl(true));
+    dataUrlEl.addEventListener('input', () => processDataUrlToSvg(true));
+    faviconWrapEl.addEventListener('change', () => processSvgToDataUrl(true));
+
+    // Handle broken preview images
+    previewImg.addEventListener('error', () => {
+        if (previewImg.getAttribute('src')) {
+            svgErrorEl.textContent = 'Invalid SVG format causing preview to fail.';
+            svgErrorEl.style.display = 'block';
+        }
+    });
+
+    // Buttons: SVG Side
+    app.querySelector('#btnConvertSvg').addEventListener('click', () => processSvgToDataUrl(false));
+    app.querySelector('#btnClearSvg').addEventListener('click', () => {
+        clearFields('svg');
+        processSvgToDataUrl(true); // force update other side to empty
+    });
+    app.querySelector('#btnCopySvg').addEventListener('click', function() { copyToClipboard(svgCodeEl, this); });
+
+    // Buttons: Data URL Side
+    app.querySelector('#btnConvertDataUrl').addEventListener('click', () => processDataUrlToSvg(false));
+    app.querySelector('#btnClearDataUrl').addEventListener('click', () => {
+        clearFields('dataUrl');
+        processDataUrlToSvg(true); // force update other side to empty
+    });
+    app.querySelector('#btnCopyDataUrl').addEventListener('click', function() { copyToClipboard(dataUrlEl, this); });
+
+    // --- Initialization ---
+    window.addEventListener('DOMContentLoaded', () => {
+        const demoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <g stroke="currentColor" fill="currentColor" stroke-width="8">
+    <rect x="10" y="10" width="80" height="80" rx="10" fill="none"/>
+    <circle cx="30" cy="50" r="3" />
+    <circle cx="50" cy="50" r="3" />
+    <circle cx="70" cy="50" r="3" />
+  </g>
+</svg>`;
+        svgCodeEl.value = demoSvg;
+        processSvgToDataUrl(false);
+    });
+
+})();
+</script>
+
+</body>
+</html>
