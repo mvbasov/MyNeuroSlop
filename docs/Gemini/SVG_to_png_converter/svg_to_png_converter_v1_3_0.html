@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG to PNG Converter</title>
+    
+    <!-- Embedded SVG Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%234A90E2'/%3E%3Ctext x='50' y='65' font-family='sans-serif' font-size='40' font-weight='bold' fill='white' text-anchor='middle'%3EPNG%3C/text%3E%3C/svg%3E">
+
+    <style>
+        /* html, body: Only the minimal rules needed for standalone display */
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* App Container: All application styles are strictly scoped here */
+        #svg-to-png-app {
+            --primary: #4A90E2;
+            --primary-hover: #357ABD;
+            --bg-color: #ffffff;
+            --border-color: #d1d5db;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+
+            background: var(--bg-color);
+            width: 100%;
+            max-width: 1000px;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #svg-to-png-app header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+
+        #svg-to-png-app h2 {
+            margin: 0;
+            color: var(--text-main);
+            font-size: 1.5rem;
+        }
+
+        #svg-to-png-app .version {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-family: monospace;
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        #svg-to-png-app .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        #svg-to-png-app button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #svg-to-png-app button:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        #svg-to-png-app button:disabled {
+            background: var(--border-color);
+            cursor: not-allowed;
+            color: var(--text-muted);
+        }
+
+        #svg-to-png-app #svg-input {
+            width: 100%;
+            min-height: 200px;
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+            box-sizing: border-box;
+            background: #f9fafb;
+            color: var(--text-main);
+        }
+        
+        #svg-to-png-app #svg-input:focus {
+            outline: 2px solid var(--primary);
+            border-color: transparent;
+        }
+
+        #svg-to-png-app .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 700px) {
+            #svg-to-png-app .main-content {
+                flex-direction: row;
+            }
+            #svg-to-png-app .input-section {
+                flex: 6;
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+            }
+            #svg-to-png-app .preview-section {
+                flex: 4;
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+            }
+        }
+
+        #svg-to-png-app .input-header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 8px;
+        }
+
+        #svg-to-png-app #btn-clear {
+            background: #f3f4f6;
+            color: var(--text-main);
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        #svg-to-png-app #btn-clear:hover {
+            background: #e5e7eb;
+        }
+
+        #svg-to-png-app .preview-container {
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #fafafa;
+            background-image: linear-gradient(45deg, #e5e5e5 25%, transparent 25%), linear-gradient(-45deg, #e5e5e5 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e5e5e5 75%), linear-gradient(-45deg, transparent 75%, #e5e5e5 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #svg-to-png-app #canvas-preview {
+            max-width: 100%;
+            max-height: 500px;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background: white; /* PNGs with transparency will show white background unless otherwise set, but canvas retains transparency */
+        }
+
+        #svg-to-png-app #empty-state {
+            color: var(--text-muted);
+            font-size: 1rem;
+            pointer-events: none;
+        }
+
+        #svg-to-png-app .actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        #svg-to-png-app .status-msg {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            color: #10b981;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- App Container -->
+    <div id="svg-to-png-app">
+        <header>
+            <h2>SVG to PNG Converter</h2>
+            <span class="version">v1.3.0</span>
+        </header>
+
+        <div class="controls">
+            <input type="file" id="file-input" accept=".svg, image/svg+xml" style="display: none;">
+            <button id="btn-upload" title="Select an SVG file from your device">
+                Load SVG File
+            </button>
+            <button id="btn-paste" title="Paste raw SVG code directly from your clipboard">
+                Paste from Clipboard
+            </button>
+        </div>
+
+        <div class="main-content">
+            <div class="input-section">
+                <div class="input-header">
+                    <button id="btn-clear" title="Clear text area">Clear</button>
+                </div>
+                <textarea id="svg-input" placeholder="Paste or edit raw SVG code here..."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="40" fill="#4A90E2" />
+  <text x="50" y="58" font-family="sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">SVG</text>
+</svg></textarea>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-container" id="drop-zone">
+                    <div id="empty-state">No SVG loaded. Click 'Load', 'Paste', drop a file, or type above.</div>
+                    <canvas id="canvas-preview"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <span id="status-message" class="status-msg">Success!</span>
+            <button id="btn-download" disabled>Save PNG</button>
+            <button id="btn-copy-base64" disabled>Copy Base64</button>
+        </div>
+    </div>
+
+    <!-- Application Logic Isolated in IIFE -->
+    <script>
+        (function() {
+            // Container Scope
+            const app = document.getElementById('svg-to-png-app');
+            if (!app) return;
+
+            // DOM Elements
+            const fileInput = app.querySelector('#file-input');
+            const btnUpload = app.querySelector('#btn-upload');
+            const btnPaste = app.querySelector('#btn-paste');
+            const btnClear = app.querySelector('#btn-clear');
+            const svgInput = app.querySelector('#svg-input');
+            const dropZone = app.querySelector('#drop-zone');
+            const canvas = app.querySelector('#canvas-preview');
+            const emptyState = app.querySelector('#empty-state');
+            const btnDownload = app.querySelector('#btn-download');
+            const btnCopyBase64 = app.querySelector('#btn-copy-base64');
+            const statusMessage = app.querySelector('#status-message');
+            
+            const ctx = canvas.getContext('2d');
+            let currentFileName = 'converted_image.png';
+
+            // --- Utilities ---
+
+            function showStatus(msg, isError = false) {
+                statusMessage.textContent = msg;
+                statusMessage.style.color = isError ? '#ef4444' : '#10b981';
+                statusMessage.style.opacity = '1';
+                setTimeout(() => statusMessage.style.opacity = '0', 3000);
+            }
+
+            function resetPreview() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvas.style.display = 'none';
+                emptyState.style.display = 'block';
+                btnDownload.disabled = true;
+                btnCopyBase64.disabled = true;
+            }
+
+            // Core Conversion Logic
+            function loadSVGToCanvas(svgString, fileName = 'image.png', fromTextarea = false) {
+                // Basic validation
+                if (!svgString || !svgString.toLowerCase().includes('<svg')) {
+                    if (!fromTextarea) showStatus('Invalid SVG format detected.', true);
+                    return;
+                }
+
+                currentFileName = fileName.replace('.svg', '.png');
+
+                if (!fromTextarea) {
+                    svgInput.value = svgString;
+                }
+
+                // Sanitize and create blob
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                
+                const img = new Image();
+                img.onload = function() {
+                    // Default to 800x800 if SVG lacks explicit dimensions
+                    canvas.width = img.width || 800;
+                    canvas.height = img.height || 800;
+                    
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    URL.revokeObjectURL(url);
+                    
+                    // Update UI
+                    canvas.style.display = 'block';
+                    emptyState.style.display = 'none';
+                    btnDownload.disabled = false;
+                    btnCopyBase64.disabled = false;
+                    
+                    showStatus('SVG Rendered Successfully!');
+                };
+                
+                img.onerror = function() {
+                    showStatus('Failed to render SVG onto canvas.', true);
+                    URL.revokeObjectURL(url);
+                };
+
+                img.src = url;
+            }
+
+            // --- Event Listeners ---
+
+            // 0. Textarea Input
+            let debounceTimer;
+            svgInput.addEventListener('input', (e) => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    const text = e.target.value.trim();
+                    if (!text) {
+                        resetPreview();
+                    } else {
+                        loadSVGToCanvas(text, 'edited_image.png', true);
+                    }
+                }, 400); // 400ms debounce to wait for user to stop typing
+            });
+
+            // 1. File Upload
+            btnUpload.addEventListener('click', () => fileInput.click());
+            
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => loadSVGToCanvas(event.target.result, file.name);
+                reader.readAsText(file);
+                
+                // Reset input so same file can be loaded again if needed
+                fileInput.value = '';
+            });
+
+            // 2. Clipboard Paste
+            btnPaste.addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    loadSVGToCanvas(text, 'clipboard_paste.png');
+                } catch (err) {
+                    // Fallback to manual pasting approach if permission is denied
+                    const userInput = prompt("Clipboard read permission denied. Please paste your raw SVG code here:");
+                    if(userInput) loadSVGToCanvas(userInput, 'pasted_data.png');
+                    else showStatus('Failed to read clipboard.', true);
+                }
+            });
+
+            // Global paste listener within app
+            app.addEventListener('paste', (e) => {
+                const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+                if (pasteData) loadSVGToCanvas(pasteData, 'pasted_data.png');
+            });
+
+            // 3. Drag and Drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--primary)';
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.borderColor = 'var(--border-color)';
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                
+                if (e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => loadSVGToCanvas(event.target.result, file.name);
+                        reader.readAsText(file);
+                    } else {
+                        showStatus('Please drop a valid .svg file', true);
+                    }
+                }
+            });
+
+            // 4. Download PNG
+            btnDownload.addEventListener('click', () => {
+                canvas.toBlob((blob) => {
+                    if (!blob) return showStatus('Failed to generate PNG blob.', true);
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = currentFileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showStatus('PNG file downloaded!');
+                }, 'image/png');
+            });
+
+            // 5. Copy Base64
+            btnCopyBase64.addEventListener('click', async () => {
+                const dataUrl = canvas.toDataURL('image/png');
+                try {
+                    await navigator.clipboard.writeText(dataUrl);
+                    showStatus('Base64 copied to clipboard!');
+                } catch (err) {
+                    // Fallback via document.execCommand if clipboard API fails
+                    const textArea = document.createElement("textarea");
+                    textArea.value = dataUrl;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        showStatus('Base64 copied to clipboard!');
+                    } catch (ex) {
+                        showStatus('Failed to copy to clipboard.', true);
+                    }
+                    document.body.removeChild(textArea);
+                }
+            });
+
+            // 6. Clear Button
+            btnClear.addEventListener('click', () => {
+                svgInput.value = '';
+                resetPreview();
+            });
+
+            // 7. Initial Load
+            if (svgInput.value.trim()) {
+                loadSVGToCanvas(svgInput.value.trim(), 'default_image.png', true);
+            }
+
+        })();
+    </script>
+</body>
+</html>
