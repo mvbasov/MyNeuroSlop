@@ -17,23 +17,85 @@
 
         /* Standalone fallback rules only */
         html, body {
-            background-color: #fafafa;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body:not(.theme-dark) {
+            background-color: #fafafa;
+            color: #1a1a1a;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.theme-dark {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         /* Scoped primary container for embed support */
         #name-app {
+            --bg-app: #fafafa;
+            --bg-card: #ffffff;
+            --border-color: #eaeef2;
+            --border-hover: #cbd5e1;
+            --text-main: #1a1a1a;
+            --text-title: #000000;
+            --text-muted: #555555;
+            --text-meta: #6c6f78;
+            --tag-bg: #f1f5f9;
+            --tag-text: #1e293b;
+            --tag-border: #e2e8f0;
+            --sublink-bg: #f1f5f9;
+            --sublink-text: #2c3e66;
+            --sublink-hover-bg: #e6edf5;
+            --sublink-hover-text: #0f172a;
+            --header-border: #e5e5e5;
+            --shadow-color: rgba(0,0,0,0.02);
+            --shadow-hover: rgba(0,0,0,0.03);
+            
+            --bg-input: #ffffff;
+            --border-input: #cbd5e1;
+            --text-input: #1a1a1a;
+
             line-height: 1.5;
-            color: #1a1a1a;
+            color: var(--text-main);
+            background-color: var(--bg-app);
             max-width: 1000px;
             margin: 0 auto;
             padding: 2rem;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #name-app.theme-dark {
+            --bg-app: #0f172a;
+            --bg-card: #1e293b;
+            --border-color: #334155;
+            --border-hover: #475569;
+            --text-main: #e2e8f0;
+            --text-title: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-meta: #64748b;
+            --tag-bg: #1e293b;
+            --tag-text: #cbd5e1;
+            --tag-border: #334155;
+            --sublink-bg: #334155;
+            --sublink-text: #e2e8f0;
+            --sublink-hover-bg: #475569;
+            --sublink-hover-text: #f8fafc;
+            --header-border: #334155;
+            --shadow-color: rgba(0,0,0,0.2);
+            --shadow-hover: rgba(0,0,0,0.3);
+            
+            --bg-input: #1e293b;
+            --border-input: #475569;
+            --text-input: #f8fafc;
         }
 
         header {
-            border-bottom: 2px solid #e5e5e5;
+            border-bottom: 2px solid var(--header-border);
             padding-bottom: 1rem;
             margin-bottom: 2rem;
+            transition: border-color 0.3s ease;
         }
 
         h1 {
@@ -41,13 +103,15 @@
             font-size: 2rem;
             font-weight: 700;
             letter-spacing: -0.01em;
-            color: #000;
+            color: var(--text-title);
+            transition: color 0.3s ease;
         }
 
         .description {
-            color: #555;
+            color: var(--text-muted);
             margin: 0;
             font-size: 1.1rem;
+            transition: color 0.3s ease;
         }
 
         .warning {
@@ -58,6 +122,12 @@
             display: inline-block;
             padding: 0.2rem 0.6rem;
             border-radius: 12px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        #name-app.theme-dark .warning {
+            background: #7f1d1d;
+            color: #fca5a5;
         }
 
         .prompts-link {
@@ -69,9 +139,14 @@
             display: inline-flex;
             align-items: center;
             gap: 0.75rem;
-            color: #1e3a8a;
+            color: #3b82f6;
             text-decoration: none;
             font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        #name-app.theme-dark .prompts-link a {
+            color: #60a5fa;
         }
 
         .prompts-link a:hover {
@@ -85,18 +160,18 @@
         }
 
         li {
-            background: #ffffff;
-            border: 1px solid #eaeef2;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 1rem 1.25rem;
             margin-bottom: 1rem;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 1px 2px var(--shadow-color);
         }
 
         li:hover {
-            border-color: #cbd5e1;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            border-color: var(--border-hover);
+            box-shadow: 0 4px 12px var(--shadow-hover);
         }
 
         .tool-header {
@@ -128,14 +203,18 @@
             gap: 0.75rem;
             font-weight: 600;
             font-size: 1rem;
-            color: #0f172a;
+            color: var(--text-title);
             text-decoration: none;
-            transition: color 0.2s;
+            transition: color 0.3s ease;
         }
 
         .tool-title:hover {
-            color: #1e3a8a;
+            color: #3b82f6;
             text-decoration: underline;
+        }
+
+        #name-app.theme-dark .tool-title:hover {
+            color: #60a5fa;
         }
 
         /* sublist styling */
@@ -163,20 +242,20 @@
         .sublist a {
             font-size: 0.85rem;
             font-weight: 500;
-            color: #2c3e66;
-            background: #f1f5f9;
+            color: var(--sublink-text);
+            background: var(--sublink-bg);
             padding: 0.25rem 0.75rem;
             border-radius: 24px;
             text-decoration: none;
-            transition: all 0.2s;
-            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+            border: 1px solid var(--tag-border);
             display: inline-block;
         }
 
         .sublist a:hover {
-            background: #e6edf5;
-            color: #0f172a;
-            border-color: #cbd5e1;
+            background: var(--sublink-hover-bg);
+            color: var(--sublink-hover-text);
+            border-color: var(--border-hover);
             text-decoration: none;
         }
 
@@ -209,36 +288,40 @@
         }
 
         .tag {
-            background-color: #f1f5f9;
-            color: #1e293b;
+            background-color: var(--tag-bg);
+            color: var(--tag-text);
             padding: 0.25rem 0.7rem;
             border-radius: 30px;
             font-size: 0.75rem;
             font-weight: 500;
             font-family: ui-monospace, 'Cascadia Code', monospace;
             letter-spacing: -0.01em;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--tag-border);
             white-space: nowrap;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
         footer {
             margin-top: 3rem;
             padding-top: 1.5rem;
-            border-top: 1px solid #e5e5e5;
-            color: #6c6f78;
+            border-top: 1px solid var(--header-border);
+            color: var(--text-meta);
             font-size: 0.85rem;
             display: flex;
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 0.5rem;
+            transition: border-color 0.3s ease, color 0.3s ease;
         }
 
         .version {
             font-family: monospace;
-            background: #f1f5f9;
+            background: var(--tag-bg);
+            color: var(--tag-text);
             padding: 0.2rem 0.6rem;
             border-radius: 20px;
             font-size: 0.75rem;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         @media (max-width: 720px) {
@@ -498,7 +581,7 @@
                         <a href="md.html?...." class="tool-title">
                             <span class="tool-icon">
                                 <!-- PRESERVE_BINARY_START -->
-                                <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%3Cg%20stroke%3D%22currentColor%22%20fill%3D%22currentColor%22%20stroke-width%3D%224%22%3E%20%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%2280%22%20height%3D%2280%22%20rx%3D%2210%22%20fill%3D%22none%22%2F%3E%20%3Ccircle%20cx%3D%2230%22%20cy%3D%2250%22%20r=%223%22%20%2F%3E%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r=%223%22%20%2F%3E%20%3Ccircle%20cx%3D%2270%22%20cy%3D%2250%22%20r=%223%22%20%2F%3E%20%3C%2Fg%3E%20%3C%2Fsvg%3E" alt="To Be Continued Icon">
+                                <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%3Cg%20stroke%3D%22currentColor%22%20fill%3D%22currentColor%22%20stroke-width%3D%226%22%3E%20%3Crect%20x%3D%2210%22%20y%3D%2210%22%20width%3D%2280%22%20height%3D%2280%22%20rx%3D%2210%22%20fill%3D%22none%22%2F%3E%20%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%2292%22%20height%3D%2292%22%20rx%3D%2216%22%20fill%3D%22none%22%20stroke%3D%22white%22%2F%3E%20%3Ccircle%20cx%3D%2230%22%20cy%3D%2250%22%20r%3D%228%22%20stroke-width%3D%220%22%20fill%3D%22white%22%2F%3E%20%3Ccircle%20cx%3D%2230%22%20cy%3D%2250%22%20r%3D%222%22%20%2F%3E%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%228%22%20stroke-width%3D%220%22%20fill%3D%22white%22%2F%3E%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%222%22%20%2F%3E%20%3Ccircle%20cx%3D%2270%22%20cy%3D%2250%22%20r%3D%228%22%20stroke-width%3D%220%22%20fill%3D%22white%22%2F%3E%20%3Ccircle%20cx%3D%2270%22%20cy%3D%2250%22%20r%3D%222%22%20%2F%3E%20%3C%2Fg%3E%20%3C%2Fsvg%3E" alt="To Be Continued Icon">
                                 <!-- PRESERVE_BINARY_END -->
                             </span>
                             To be continued ....
@@ -516,9 +599,61 @@
 
         <footer>
             <span>📁 Local File Index</span>
-            <span class="version">v1.10.0</span>
+            <span class="version">v1.11.0</span>
         </footer>
     </div>
 
+    <script>
+        (function() {
+            // Configurable preference constant ('auto', 'dark', 'light')
+            const APP_THEME = 'auto';
+
+            const bodyElement = document.body;
+            const appElement = document.getElementById('name-app');
+
+            function applyTheme(isDark) {
+                if (isDark) {
+                    bodyElement.classList.add('theme-dark');
+                    if (appElement) appElement.classList.add('theme-dark');
+                } else {
+                    bodyElement.classList.remove('theme-dark');
+                    if (appElement) appElement.classList.remove('theme-dark');
+                }
+            }
+
+            function initTheme() {
+                if (APP_THEME === 'dark') {
+                    applyTheme(true);
+                } else if (APP_THEME === 'light') {
+                    applyTheme(false);
+                } else {
+                    // 'auto' mode (synchronizing with host browser environment system setting)
+                    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                    
+                    // Apply current preference
+                    applyTheme(mediaQuery.matches);
+
+                    // Dynamic listener to react to real-time dark mode state updates
+                    try {
+                        mediaQuery.addEventListener('change', function(e) {
+                            applyTheme(e.matches);
+                        });
+                    } catch (err) {
+                        // Older browser compatibility
+                        mediaQuery.addListener(function(e) {
+                            applyTheme(e.matches);
+                        });
+                    }
+                }
+            }
+
+            // Execute immediately on document parser safety trigger
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initTheme);
+            } else {
+                initTheme();
+            }
+        })();
+    </script>
 </body>
 </html>

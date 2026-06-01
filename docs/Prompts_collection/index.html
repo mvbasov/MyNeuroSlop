@@ -1,8 +1,11 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- PRESERVE_BINARY_START -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%20width%3D%22100%25%22%20height%3D%22100%25%22%3E%20%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%2290%22%20height%3D%2290%22%20rx%3D%2216%22%20fill%3D%22rgb%2839%2C39%2C42%29%22%20stroke%3D%22rgb%28255%2C255%2C255%29%22%20stroke-width%3D%223%22%2F%3E%20%3Cpath%20d%3D%22M%2025%2C30%20L%2045%2C45%20L%2025%2C60%22%20fill%3D%22none%22%20stroke%3D%22rgb%2837%2C99%2C235%29%22%20stroke-width%3D%227%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%20%3Cline%20x1%3D%2250%22%20y1%3D%2260%22%20x2%3D%2268%22%20y2%3D%2260%22%20stroke%3D%22rgb%2837%2C99%2C235%29%22%20stroke-width%3D%227%22%20stroke-linecap%3D%22round%22%2F%3E%20%3Cpath%20d%3D%22M%2070%2C22%20L%2073%2C35%20L%2086%2C38%20L%2073%2C41%20L%2070%2C54%20L%2067%2C41%20L%2054%2C38%20L%2067%2C35%20Z%22%20fill%3D%22rgb%2822%2C163%2C74%29%22%2F%3E%20%3Cpath%20d%3D%22M%2076%2C56%20L%2077.5%2C62.5%20L%2084%2C64%20L%2077.5%2C65.5%20L%2076%2C72%20L%2074.5%2C65.5%20L%2068%2C64%20L%2074.5%2C62.5%20Z%22%20fill%3D%22rgb%2822%2C163%2C74%29%22%20opacity%3D%220.7%22%2F%3E%20%3C%2Fsvg%3E">
+    <!-- PRESERVE_BINARY_END -->
     <title>Prompts collection</title>
     <style>
         * {
@@ -10,103 +13,228 @@
             padding: 0;
             box-sizing: border-box;
         }
-body {
-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-background: #fafafa;
-color: #111;
-max-width: 640px;
-margin: 48px auto;
-padding: 0 20px;
-}
 
-h2 {
-font-size: 14px;
-font-weight: 600;
-text-transform: uppercase;
-letter-spacing: 0.5px;
-color: #555;
-margin-bottom: 16px;
-padding-bottom: 8px;
-border-bottom: 2px solid #ddd;
-}
+        /* Standalone fallback rules only */
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-ul {
-list-style: none;
-}
+        body:not(.theme-dark) {
+            background-color: #fafafa;
+            color: #111111;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
 
-li {
-border-bottom: 1px solid #eee;
-}
+        body.theme-dark {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
 
-li:last-child {
-border-bottom: none;
-}
+        /* Scoped primary container for embed support */
+        #name-app {
+            --bg-app: #fafafa;
+            --bg-card: #ffffff;
+            --border-color: #dddddd;
+            --border-hover: #cbd5e1;
+            --text-main: #111111;
+            --text-title: #555555;
+            --link-color: #1e3a8a;
+            --link-hover-bg: #f0f0f0;
+            --border-li: #eeeeee;
 
-a {
-display: block;
-padding: 12px 8px;
-text-decoration: none;
-color: #1e3a8a;
-font-size: 15px;
-transition: background 0.15s ease;
-}
+            max-width: 640px;
+            margin: 48px auto;
+            padding: 0 20px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
 
-a:hover {
-background: #f0f0f0;
-border-radius: 4px;
-}
+        #name-app.theme-dark {
+            --bg-app: #0f172a;
+            --bg-card: #1e293b;
+            --border-color: #334155;
+            --border-hover: #475569;
+            --text-main: #e2e8f0;
+            --text-title: #94a3b8;
+            --link-color: #60a5fa;
+            --link-hover-bg: #334155;
+            --border-li: #334155;
+        }
 
-a::before {
-content: "📄 ";
-font-size: 14px;
-}
+        .container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 24px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
 
-.container {
-background: #fff;
-border: 1px solid #ddd;
-border-radius: 6px;
-padding: 24px;
-}
-</style>
+        h2 {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-title);
+            margin-top: 16px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+
+        h2:first-of-type {
+            margin-top: 0;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        li {
+            border-bottom: 1px solid var(--border-li);
+            transition: border-color 0.3s ease;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        a {
+            display: block;
+            padding: 12px 8px;
+            text-decoration: none;
+            color: var(--link-color);
+            font-size: 15px;
+            transition: background 0.15s ease, color 0.3s ease;
+        }
+
+        a:hover {
+            background: var(--link-hover-bg);
+            border-radius: 4px;
+        }
+
+        a::before {
+            content: "📄 ";
+            font-size: 14px;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-title);
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            transition: border-color 0.3s ease, color 0.3s ease;
+        }
+
+        .version {
+            font-family: monospace;
+            background: var(--link-hover-bg);
+            color: var(--text-main);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Prompts collection</h2>
-        <ul>
-            <li>
-                <a href="favicon.ico_for_provided_code_prompt.md">
-                    favicon.ico_for_provided_code_prompt.md
-                </a>
-            </li>
-            <li>
-                <a href="LED_symbol_SVG_prompt.md">
-                    LED_symbol_SVG_prompt.md
-                </a>
-            </li>
-            <li>
-                <a href="dual_theme_prompt.md">
-                    dual_theme_prompt.md
-                </a>
-            </li>
-        </ul>
-        <h2>Usefull unformation</h2>
-        <ul>
-            <li>
-                <a href="../md.html?Prompts_collection/LLM_diff_problem.md">
-                    LLM_diff_problem.md - not prompt but useful information
-                </a>
-            </li>
-            <li>
-                <a href="../md.html?Prompts_collection/hint_collection.md">
-                    hint_collection.md - If somthing goes wrong...
-                </a>
-            </li>
-            <li>
-                <a href="../md.html?Prompts_collection/tools.md">
-                    tools.md - create tools for interaction
-                </a>
-            </li>
-        </ul>
+    <div id="name-app">
+        <div class="container">
+            <h2>Prompts collection</h2>
+            <ul>
+                <li>
+                    <a href="favicon.ico_for_provided_code_prompt.md">
+                        favicon.ico_for_provided_code_prompt.md
+                    </a>
+                </li>
+                <li>
+                    <a href="LED_symbol_SVG_prompt.md">
+                        LED_symbol_SVG_prompt.md
+                    </a>
+                </li>
+                <li>
+                    <a href="dual_theme_prompt.md">
+                        dual_theme_prompt.md
+                    </a>
+                </li>
+            </ul>
+            <h2>Useful information</h2>
+            <ul>
+                <li>
+                    <a href="../md.html?Prompts_collection/LLM_diff_problem.md">
+                        LLM_diff_problem.md - not prompt but useful information
+                    </a>
+                </li>
+                <li>
+                    <a href="../md.html?Prompts_collection/hint_collection.md">
+                        hint_collection.md - If something goes wrong...
+                    </a>
+                </li>
+                <li>
+                    <a href="../md.html?Prompts_collection/tools.md">
+                        tools.md - create tools for interaction
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <footer>
+            <span>📁 Prompts Index</span>
+            <span class="version">v1.0.0</span>
+        </footer>
     </div>
+
+    <script>
+        (function() {
+            // Configurable preference constant ('auto', 'dark', 'light')
+            const APP_THEME = 'auto';
+
+            const bodyElement = document.body;
+            const appElement = document.getElementById('name-app');
+
+            function applyTheme(isDark) {
+                if (isDark) {
+                    bodyElement.classList.add('theme-dark');
+                    if (appElement) appElement.classList.add('theme-dark');
+                } else {
+                    bodyElement.classList.remove('theme-dark');
+                    if (appElement) appElement.classList.remove('theme-dark');
+                }
+            }
+
+            function initTheme() {
+                if (APP_THEME === 'dark') {
+                    applyTheme(true);
+                } else if (APP_THEME === 'light') {
+                    applyTheme(false);
+                } else {
+                    // 'auto' mode
+                    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                    applyTheme(mediaQuery.matches);
+
+                    try {
+                        mediaQuery.addEventListener('change', function(e) {
+                            applyTheme(e.matches);
+                        });
+                    } catch (err) {
+                        mediaQuery.addListener(function(e) {
+                            applyTheme(e.matches);
+                        });
+                    }
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initTheme);
+            } else {
+                initTheme();
+            }
+        })();
+    </script>
 </body>
 </html>
