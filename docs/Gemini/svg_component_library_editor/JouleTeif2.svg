@@ -54,7 +54,7 @@
             </g>
           </symbol>
   </defs>
-        <text x="300" y="36" font-family="sans-serif" font-size="25" text-anchor="middle">Joule theif</text>
+        <text x="300" y="36" font-family="sans-serif" font-size="25" text-anchor="middle" stroke="currentColor" stroke-width="2">Joule theif</text>
         <!-- === WIRING PATHS === -->
         <!-- Positive Rail (V+) -->
         <path d="M 150 205 L 150 70 L 480 70 L 480 200" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round" />
