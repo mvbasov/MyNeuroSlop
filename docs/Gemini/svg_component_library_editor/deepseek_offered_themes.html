@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pastel & Soft Dark Theme — Copy CSS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f0ece4;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-weight: 500;
+            font-size: 1.8rem;
+            color: #3c3a36;
+            margin-bottom: 0.5rem;
+        }
+
+        .sub {
+            color: #6b6359;
+            margin-bottom: 2rem;
+            border-left: 3px solid #c9bead;
+            padding-left: 1rem;
+        }
+
+        .theme-section {
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            margin-bottom: 2.5rem;
+            overflow: hidden;
+        }
+
+        .theme-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5dfd5;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .theme-name {
+            font-weight: 600;
+            font-size: 1.4rem;
+            letter-spacing: -0.3px;
+        }
+
+        .theme-desc {
+            color: #7d6e5c;
+            font-size: 0.85rem;
+            background: #f6f2ea;
+            padding: 0.2rem 0.7rem;
+            border-radius: 20px;
+        }
+
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+            padding: 1.5rem;
+            background: #fefcf8;
+        }
+
+        .color-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            transition: transform 0.1s ease;
+            border: 1px solid #ece2d8;
+            overflow: hidden;
+        }
+
+        .color-swatch {
+            height: 100px;
+            width: 100%;
+        }
+
+        .color-info {
+            padding: 0.75rem;
+        }
+
+        .color-var {
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #4b3e2e;
+            background: #f7f2ea;
+            display: inline-block;
+            padding: 0.2rem 0.4rem;
+            border-radius: 6px;
+            margin-bottom: 0.4rem;
+        }
+
+        .color-value {
+            font-size: 0.85rem;
+            color: #5b554a;
+            word-break: break-all;
+            font-family: monospace;
+        }
+
+        .css-code-block {
+            background: #1e1e2a;
+            margin: 0 1.5rem 1.5rem 1.5rem;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid #d9cfc0;
+        }
+
+        .css-header {
+            background: #2c2c3a;
+            padding: 0.6rem 1rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #ddd;
+            border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copy-btn {
+            background: #3d3f4f;
+            border: none;
+            color: #e2e2e2;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.1s;
+        }
+
+        .copy-btn:hover {
+            background: #6b8a9e;
+            color: white;
+        }
+
+        pre {
+            margin: 0;
+            padding: 1.2rem;
+            overflow-x: auto;
+            font-family: 'Courier New', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            background: #1a1a24;
+            color: #e0dfd8;
+        }
+
+        .note {
+            font-size: 0.8rem;
+            text-align: center;
+            color: #8a7f72;
+            margin-top: 2rem;
+            border-top: 1px solid #e2d8cd;
+            padding-top: 1.5rem;
+        }
+
+        @media (max-width: 700px) {
+            body { padding: 1rem; }
+            .palette-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+            pre { font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎨 Pastel & Soft Dark palette</h1>
+    <div class="sub">Balanced light theme (pastel with deeper editor) + softer dark theme (reduced glare) — ready to copy</div>
+
+    <!-- LIGHT THEME -->
+    <div class="theme-section">
+        <div class="theme-header">
+            <span class="theme-name">🌿 Light Pastel · Balanced</span>
+            <span class="theme-desc">warm cream base, darker editor panel, good contrast</span>
+        </div>
+        <div class="palette-grid" id="light-palette"></div>
+        <div class="css-code-block">
+            <div class="css-header">
+                <span>📋 Light Theme CSS (paste into #svg-editor-app)</span>
+                <button class="copy-btn" data-css="light">Copy CSS</button>
+            </div>
+            <pre id="light-css-pre">#svg-editor-app {
+    /* Balanced light theme — pastel with darker editor background */
+    --bg-color: #E2DCD2;
+    --panel-bg: #C9C0B2;
+    --text-color: #2C2A28;
+    --text-muted: #6E665C;
+    --border: #B7AC9C;
+    --toolbar-bg: #DCD4C8;
+    --preview-bg: #DDD5C9;
+    --primary: #6B7F8E;
+    --primary-hover: #7E92A2;
+    --grid-line: #C9BEAD;
+    --danger: #C98686;
+    --success: #8FAA8A;
+    --font-mono: 'Courier New', Courier, monospace;
+}</pre>
+        </div>
+    </div>
+
+    <!-- DARK THEME (soft, low shine) -->
+    <div class="theme-section">
+        <div class="theme-header">
+            <span class="theme-name">🌙 Soft Dark · Reduced shine</span>
+            <span class="theme-desc">muted primary, comfortable text, deep preview bg</span>
+        </div>
+        <div class="palette-grid" id="dark-palette"></div>
+        <div class="css-code-block">
+            <div class="css-header">
+                <span>📋 Soft Dark Theme CSS (paste into #svg-editor-app.theme-dark)</span>
+                <button class="copy-btn" data-css="dark">Copy CSS</button>
+            </div>
+            <pre id="dark-css-pre">#svg-editor-app.theme-dark {
+    /* Softer dark theme — less shine, more comfortable */
+    --bg-color: #1e1e2e;
+    --panel-bg: #282a36;
+    --text-color: #b8b8b0;
+    --text-muted: #6e6e7a;
+    --border: #3d3f4f;
+    --toolbar-bg: #252530;
+    --preview-bg: #1a1a24;
+    --primary: #6b8a9e;
+    --primary-hover: #7e9aae;
+    --grid-line: #3a3a45;
+    --danger: #cc8888;
+    --success: #88aa88;
+    --font-mono: 'Courier New', Courier, monospace;
+}</pre>
+        </div>
+        <div class="dark-preview-bg" style="background: #1e1e2e; margin: 0 1.5rem 1.5rem 1.5rem; border-radius: 1rem;">
+            <div style="padding: 1rem; color: #b8b8b0; font-size: 0.8rem; text-align: center; background: #282a36; border-radius: 0.75rem;">
+                🌙 Preview area becomes <code style="background:#3d3f4f; padding:2px 6px; border-radius:6px;">--preview-bg: #1a1a24</code> – deeper & comfortable
+            </div>
+        </div>
+    </div>
+
+    <div class="note">
+        ✨ Click "Copy CSS" for each theme to get the exact variable block. Replace inside your existing #svg-editor-app or .theme-dark section.
+    </div>
+</div>
+
+<script>
+    // Light Theme values (visual palette)
+    const lightTheme = {
+        '--bg-color': '#E2DCD2',
+        '--panel-bg': '#C9C0B2',
+        '--text-color': '#2C2A28',
+        '--text-muted': '#6E665C',
+        '--border': '#B7AC9C',
+        '--toolbar-bg': '#DCD4C8',
+        '--preview-bg': '#DDD5C9',
+        '--primary': '#6B7F8E',
+        '--primary-hover': '#7E92A2',
+        '--grid-line': '#C9BEAD',
+        '--danger': '#C98686',
+        '--success': '#8FAA8A'
+    };
+
+    // Dark Theme (soft, reduced shine)
+    const darkTheme = {
+        '--bg-color': '#1e1e2e',
+        '--panel-bg': '#282a36',
+        '--text-color': '#b8b8b0',
+        '--text-muted': '#6e6e7a',
+        '--border': '#3d3f4f',
+        '--toolbar-bg': '#252530',
+        '--preview-bg': '#1a1a24',
+        '--primary': '#6b8a9e',
+        '--primary-hover': '#7e9aae',
+        '--grid-line': '#3a3a45',
+        '--danger': '#cc8888',
+        '--success': '#88aa88'
+    };
+
+    function renderPalette(containerId, themeObj) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        for (const [varName, colorValue] of Object.entries(themeObj)) {
+            const card = document.createElement('div');
+            card.className = 'color-card';
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            swatch.style.backgroundColor = colorValue;
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'color-info';
+            const varSpan = document.createElement('div');
+            varSpan.className = 'color-var';
+            varSpan.textContent = varName;
+            const valueSpan = document.createElement('div');
+            valueSpan.className = 'color-value';
+            valueSpan.textContent = colorValue;
+            infoDiv.appendChild(varSpan);
+            infoDiv.appendChild(valueSpan);
+            card.appendChild(swatch);
+            card.appendChild(infoDiv);
+            container.appendChild(card);
+        }
+    }
+
+    renderPalette('light-palette', lightTheme);
+    renderPalette('dark-palette', darkTheme);
+
+    // Copy functionality
+    const lightCSS = `#svg-editor-app {
+    /* Balanced light theme — pastel with darker editor background */
+    --bg-color: #E2DCD2;
+    --panel-bg: #C9C0B2;
+    --text-color: #2C2A28;
+    --text-muted: #6E665C;
+    --border: #B7AC9C;
+    --toolbar-bg: #DCD4C8;
+    --preview-bg: #DDD5C9;
+    --primary: #6B7F8E;
+    --primary-hover: #7E92A2;
+    --grid-line: #C9BEAD;
+    --danger: #C98686;
+    --success: #8FAA8A;
+    --font-mono: 'Courier New', Courier, monospace;
+}`;
+
+    const darkCSS = `#svg-editor-app.theme-dark {
+    /* Softer dark theme — less shine, more comfortable */
+    --bg-color: #1e1e2e;
+    --panel-bg: #282a36;
+    --text-color: #b8b8b0;
+    --text-muted: #6e6e7a;
+    --border: #3d3f4f;
+    --toolbar-bg: #252530;
+    --preview-bg: #1a1a24;
+    --primary: #6b8a9e;
+    --primary-hover: #7e9aae;
+    --grid-line: #3a3a45;
+    --danger: #cc8888;
+    --success: #88aa88;
+    --font-mono: 'Courier New', Courier, monospace;
+}`;
+
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const type = btn.getAttribute('data-css');
+            let cssToCopy = type === 'light' ? lightCSS : darkCSS;
+            navigator.clipboard.writeText(cssToCopy).then(() => {
+                const originalText = btn.innerText;
+                btn.innerText = '✓ Copied!';
+                setTimeout(() => { btn.innerText = originalText; }, 1500);
+            }).catch(() => {
+                alert('Unable to copy');
+            });
+        });
+    });
+</script>
+</body>
+</html>
