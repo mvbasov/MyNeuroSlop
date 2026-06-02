@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- PRESERVE_BINARY_START -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%22http:%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox=%220%200%20100%20100%22%3E%3Cstyle%3Epath%7Bstroke:%233b82f6;stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round%7Dcircle.o%7Bstroke:%233b82f6;stroke-width:6;fill:none%7Dcircle.d%7Bfill:%23C98686%7Dcircle.s%7Bfill:%238FAA8A%7Dcircle.p%7Bfill:%236B7F8E%7D@media(prefers-color-scheme:dark)%7Bpath%7Bstroke:%233b82f6%7Dcircle.o%7Bstroke:%233b82f6%7Dcircle.d%7Bfill:%23cc8888%7Dcircle.s%7Bfill:%2388aa88%7Dcircle.p%7Bfill:%236b8a9e%7D%7D%3C%2Fstyle%3E%3Cpath%20d=%22M85,50%20C85,75%2070,85%2050,85%20C30,85%2015,70%2015,50%20C15,30%2035,15%2055,15%20C70,15%2085,30%2085,50%20Z%22%2F%3E%3Ccircle%20cx=%2270%22%20cy=%2265%22%20r=%226%22%20class=%22o%22%2F%3E%3Ccircle%20cx=%2235%22%20cy=%2235%22%20r=%228%22%20class=%22d%22%2F%3E%3Ccircle%20cx=%2255%22%20cy=%2230%22%20r=%228%22%20class=%22s%22%2F%3E%3Ccircle%20cx=%2230%22%20cy=%2255%22%20r=%228%22%20class=%22p%22%2F%3E%3C%2Fsvg%3E">
+    <!-- PRESERVE_BINARY_END -->
+    <title>SVG Editor Theme Experimenter</title>
+    <style>
+        /* Standalone Baseline Styles */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100dvh;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        /* --- Theme Experimenter App Scoping --- */
+        #color-schema-app {
+            display: flex;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        #color-schema-app * {
+            box-sizing: border-box;
+        }
+
+        #color-schema-app .sidebar {
+            width: 320px;
+            background-color: #1e1e1e;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        #color-schema-app .sidebar-header {
+            margin-bottom: 20px;
+        }
+
+        #color-schema-app h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            color: #eee;
+        }
+
+        #color-schema-app .preset-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        #color-schema-app .preset-btn {
+            flex: 1;
+            padding: 8px;
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        #color-schema-app .preset-btn:hover {
+            background: #444;
+        }
+
+        #color-schema-app .controls-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex: 1;
+        }
+
+        #color-schema-app .color-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #252526;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+
+        #color-schema-app .color-control label {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #ccc;
+            cursor: pointer;
+        }
+
+        #color-schema-app .color-control input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+        }
+
+        #color-schema-app .color-control input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        #color-schema-app .color-control input[type="color"]::-webkit-color-swatch {
+            border: 1px solid #555;
+            border-radius: 4px;
+        }
+
+        #color-schema-app .output-section {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #color-schema-app textarea {
+            width: 100%;
+            height: 150px;
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 0.75rem;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            resize: none;
+        }
+
+        #color-schema-app .copy-btn {
+            background: #2d5a88;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        #color-schema-app .copy-btn:hover {
+            background: #3b76b3;
+        }
+
+        #color-schema-app .app-version {
+            font-size: 0.7rem;
+            color: #666;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        #color-schema-app .workspace {
+            flex: 1;
+            padding: 20px;
+            background-color: #0d0d0d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+
+        #color-schema-app .mock-app-container {
+            width: 100%;
+            height: 100%;
+            max-width: 1200px;
+            border: 1px dashed #555;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            overflow: hidden;
+            container-type: inline-size; /* Ensure mobile query works within workspace */
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0px rgba(59, 130, 246, 0.8); border-color: #3b82f6; background-color: #2a3a4a; }
+            50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); border-color: #3b82f6; background-color: #2a3a4a; }
+            100% { box-shadow: 0 0 0 0px rgba(59, 130, 246, 0); border-color: #333; background-color: #252526; }
+        }
+
+        #color-schema-app .color-control.highlight-pulse {
+            animation: pulseGlow 1.2s ease-out;
+            border-color: #3b82f6;
+        }
+
+        /* Interactive Element Inspector Cursor */
+        #mock-editor-app * {
+            cursor: crosshair !important;
+        }
+
+        /* ================================================================= */
+        /* EXACT CSS FROM SVG EDITOR (SCOPED TO #mock-editor-app)            */
+        /* ================================================================= */
+
+        #mock-editor-app {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #mock-editor-app *::before,
+        #mock-editor-app *::after {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, stroke 0.3s ease, fill 0.3s ease;
+        }
+
+        #mock-editor-app .svg-editor-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "header header"
+                "preview editor"
+                "footer footer";
+            width: 100%;
+            height: 100%;
+        }
+
+        #mock-editor-app * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        #mock-editor-app header {
+            grid-area: header;
+            background-color: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        #mock-editor-app .badge {
+            color: #ffffff;
+            font-size: 0.95rem;
+            padding: 6px 12px;
+            border-radius: 14px;
+            font-weight: bold;
+        }
+        #mock-editor-app .badge.danger { background-color: var(--danger); }
+        #mock-editor-app .badge.success { background-color: var(--success); color: #111; }
+
+        #mock-editor-app .toolbar-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: var(--panel-bg);
+            padding: 5px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        #mock-editor-app .toolbar-right { margin-left: auto; }
+
+        #mock-editor-app .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        #mock-editor-app button {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid transparent;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #mock-editor-app button:hover { background: var(--border); }
+        #mock-editor-app button.primary { background: var(--primary); color: #ffffff; font-weight: 600; }
+        #mock-editor-app button.primary:hover { background: var(--primary-hover); }
+        #mock-editor-app button.danger { color: var(--danger); }
+        #mock-editor-app button.danger:hover { background: rgba(255, 85, 85, 0.1); }
+
+        #mock-editor-app .toolbar-select {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid transparent;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            outline: none;
+            width: 45px;
+            text-align: center;
+            text-align-last: center;
+        }
+
+        #mock-editor-app .toolbar-select:hover { background: var(--border); }
+        #mock-editor-app .toolbar-select option { background: var(--panel-bg); color: var(--text-color); text-align: left; }
+
+        #mock-editor-app label.toggle {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #mock-editor-app .panel {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+        }
+
+        #mock-editor-app .preview-panel {
+            grid-area: preview;
+            border-right: 1px solid var(--border);
+        }
+
+        #mock-editor-app .editor-panel { grid-area: editor; }
+
+        #mock-editor-app footer {
+            grid-area: footer;
+            background-color: var(--toolbar-bg);
+            border-top: 1px solid var(--border);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+
+        #mock-editor-app .footer-left { display: flex; align-items: center; gap: 15px; flex: 1; }
+        #mock-editor-app .footer-center { display: flex; align-items: center; justify-content: center; gap: 10px; flex: 1; white-space: nowrap; }
+        #mock-editor-app .footer-right { flex: 1; text-align: right; white-space: nowrap; }
+
+        #mock-editor-app #preview-container {
+            flex: 1;
+            background-color: var(--preview-bg);
+            color: var(--text-color);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mock-editor-app #main-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        #mock-editor-app .editor-wrapper {
+            flex: 1;
+            position: relative;
+            background-color: var(--panel-bg);
+            overflow: hidden;
+        }
+
+        #mock-editor-app .mock-textarea, #mock-editor-app .backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            box-sizing: border-box;
+            white-space: pre;
+        }
+
+        #mock-editor-app .backdrop {
+            z-index: 1;
+            color: var(--text-color);
+        }
+
+        #mock-editor-app mark {
+            background-color: rgba(59, 130, 246, 0.3);
+            color: inherit;
+            border-radius: 2px;
+            outline: 1px solid rgba(59, 130, 246, 0.6);
+        }
+
+        #mock-editor-app mark.point-mark {
+            background-color: rgba(255, 85, 85, 0.4);
+            border-radius: 2px;
+            outline: 1px solid rgba(255, 85, 85, 0.8);
+        }
+
+        @container (max-width: 700px) {
+            #mock-editor-app .svg-editor-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto 1fr auto;
+                grid-template-areas: "preview" "header" "editor" "footer";
+            }
+            #mock-editor-app .preview-panel { border-right: none; }
+            #mock-editor-app header {
+                border-top: 1px solid var(--border);
+                border-bottom: 1px solid var(--border);
+                padding: 6px 10px;
+                gap: 6px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="color-schema-app">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>🎨 Theme Editor</h2>
+                <div class="preset-buttons">
+                    <select id="theme-selector" style="width: 100%; padding: 8px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; outline: none; cursor: pointer; font-size: 0.85rem;">
+                        <option value="light">Light Default</option>
+                        <option value="dark">Dark Default</option>
+                        <option value="dracula">Dracula</option>
+                        <option value="solar">Solarized Light</option>
+                        <option value="retro">Retro</option>
+                        <option value="hacker">Amber Terminal</option>
+                        <option value="monokai">Monokai</option>
+                        <option value="nord">Nord</option>
+                        <option value="synthwave">Synthwave '84</option>
+                        <option value="cyberpunk">Cyberpunk</option>
+                        <option value="ocean">Deep Ocean</option>
+                        <option value="pastelLight">Soft Pastel Light</option>
+                        <option value="pastelDark">Soft Pastel Dark</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="controls-container" id="variables-container">
+                <!-- Color inputs injected dynamically via JS -->
+            </div>
+
+            <div class="output-section">
+                <button class="copy-btn" id="btn-copy">📋 Copy CSS Variables</button>
+                <textarea id="css-export" readonly></textarea>
+                <div class="app-version">v2.0.0</div>
+            </div>
+        </div>
+
+        <!-- Workspace Preview -->
+        <div class="workspace">
+            <div class="mock-app-container">
+                
+                <!-- Exact Mock of SVG Editor UI -->
+                <div id="mock-editor-app">
+                    <div class="svg-editor-layout">
+                        <header>
+                            <div class="toolbar-group">
+                                <select class="toolbar-select"><option>➕</option></select>
+                            </div>
+
+                            <div class="toolbar-group">
+                                <button>▲</button><button>▼</button><button>◀</button><button>▶</button>
+                            </div>
+
+                            <div class="toolbar-group">
+                                <select class="toolbar-select"><option>↻</option></select>
+                                <div class="toolbar-divider"></div>
+                                <button class="danger">🗑️</button>
+                            </div>
+
+                            <div class="toolbar-group toolbar-right">
+                                <button>↶</button><button>↷</button>
+                                <button class="primary">📂</button>
+                                <button class="primary">📋</button>
+                                <button class="primary">💾</button>
+                            </div>
+                        </header>
+
+                        <div class="panel preview-panel">
+                            <div id="preview-container">
+                                <svg id="main-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                                    <defs>
+                                        <pattern id="gridPattern" patternUnits="userSpaceOnUse" width="10" height="10">
+                                            <rect width="100%" height="100%" fill="none" />
+                                            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="var(--grid-line)" stroke-width="0.5" />
+                                        </pattern>
+                                    </defs>
+                                    <!-- Grid -->
+                                    <rect x="0" y="0" width="100" height="100" fill="url(#gridPattern)" />
+                                    <!-- Sample Element colored by variables -->
+                                    <circle cx="50" cy="50" r="30" fill="var(--bg-color)" stroke="var(--primary)" stroke-width="4"/>
+                                    <path d="M 30,50 L 70,50 M 50,30 L 50,70" stroke="var(--text-color)" stroke-width="4" stroke-linecap="round"/>
+                                    <!-- Mock Selection Overlay -->
+                                    <circle cx="50" cy="50" r="3" fill="var(--danger)" stroke="#fff" stroke-width="1" />
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="panel editor-panel">
+                            <div class="editor-wrapper">
+                                <div class="backdrop">
+&lt;!-- Editor Mockup --&gt;
+&lt;svg viewBox="0 0 100 100"&gt;
+  &lt;<mark>circle cx="<mark class="point-mark">50</mark>" cy="50" r="30"</mark> /&gt;
+&lt;/svg&gt;</div>
+                            </div>
+                        </div>
+
+                        <footer>
+                            <div class="footer-left">
+                                <span class="badge danger" style="display:inline-block">Error</span>
+                                <span class="badge success" style="display:inline-block">Saved</span>
+                                <label class="toggle"><input type="checkbox" checked> Grid</label>
+                                <span style="margin-left: 5px;">⌨️</span>
+                                <span style="margin-left: 10px;">🌗</span>
+                            </div>
+                            <div class="footer-center">
+                                <label>Step:</label>
+                                <input type="number" class="toolbar-select" value="1" style="font-size: 1rem; padding: 4px 8px; width: 60px;">
+                            </div>
+                            <div class="footer-right">v6.6.0 (Mock)</div>
+                        </footer>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // IIFE Enclosure to protect scope
+        (function() {
+            // Theme Presets derived directly from SVG Editor v6.6.0
+            const PRESETS = {
+                light: {
+                    '--bg-color': '#E2DCD2',
+                    '--panel-bg': '#C9C0B2',
+                    '--text-color': '#2C2A28',
+                    '--text-muted': '#6E665C',
+                    '--border': '#B7AC9C',
+                    '--toolbar-bg': '#DCD4C8',
+                    '--preview-bg': '#DDD5C9',
+                    '--primary': '#6B7F8E',
+                    '--primary-hover': '#7E92A2',
+                    '--grid-line': '#C9BEAD',
+                    '--danger': '#C98686',
+                    '--success': '#8FAA8A'
+                },
+                dark: {
+                    '--bg-color': '#1e1e2e',
+                    '--panel-bg': '#282a36',
+                    '--text-color': '#b8b8b0',
+                    '--text-muted': '#6e6e7a',
+                    '--border': '#3d3f4f',
+                    '--toolbar-bg': '#252530',
+                    '--preview-bg': '#1a1a24',
+                    '--primary': '#6b8a9e',
+                    '--primary-hover': '#7e9aae',
+                    '--grid-line': '#3a3a45',
+                    '--danger': '#cc8888',
+                    '--success': '#88aa88'
+                },
+                dracula: {
+                    '--bg-color': '#282a36',
+                    '--panel-bg': '#44475a',
+                    '--text-color': '#f8f8f2',
+                    '--text-muted': '#6272a4',
+                    '--border': '#6272a4',
+                    '--toolbar-bg': '#21222c',
+                    '--preview-bg': '#282a36',
+                    '--primary': '#bd93f9',
+                    '--primary-hover': '#ff79c6',
+                    '--grid-line': '#44475a',
+                    '--danger': '#ff5555',
+                    '--success': '#50fa7b'
+                },
+                solar: {
+                    '--bg-color': '#fdf6e3',
+                    '--panel-bg': '#eee8d5',
+                    '--text-color': '#657b83',
+                    '--text-muted': '#93a1a1',
+                    '--border': '#ccc8b6',
+                    '--toolbar-bg': '#fdf6e3',
+                    '--preview-bg': '#eee8d5',
+                    '--primary': '#268bd2',
+                    '--primary-hover': '#2aa198',
+                    '--grid-line': '#eaddc5',
+                    '--danger': '#dc322f',
+                    '--success': '#859900'
+                },
+                retro: {
+                    '--bg-color': '#2A211C',
+                    '--panel-bg': '#3A2E25',
+                    '--text-color': '#FFB000',
+                    '--text-muted': '#B07D00',
+                    '--border': '#5C4A3D',
+                    '--toolbar-bg': '#1E1612',
+                    '--preview-bg': '#2A211C',
+                    '--primary': '#00FF41',
+                    '--primary-hover': '#008F11',
+                    '--grid-line': '#4A3B31',
+                    '--danger': '#FF003C',
+                    '--success': '#00FF41'
+                },
+                hacker: {
+                    '--bg-color': '#050505',
+                    '--panel-bg': '#0a0a0a',
+                    '--text-color': '#ff9900',
+                    '--text-muted': '#663300',
+                    '--border': '#442200',
+                    '--toolbar-bg': '#000000',
+                    '--preview-bg': '#000000',
+                    '--primary': '#cc7700',
+                    '--primary-hover': '#ff9900',
+                    '--grid-line': '#221100',
+                    '--danger': '#ff0000',
+                    '--success': '#ff9900'
+                },
+                monokai: {
+                    '--bg-color': '#272822',
+                    '--panel-bg': '#2E2E2E',
+                    '--text-color': '#F8F8F2',
+                    '--text-muted': '#75715E',
+                    '--border': '#3E3D32',
+                    '--toolbar-bg': '#1E1F1C',
+                    '--preview-bg': '#272822',
+                    '--primary': '#FD971F',
+                    '--primary-hover': '#E6DB74',
+                    '--grid-line': '#3E3D32',
+                    '--danger': '#F92672',
+                    '--success': '#A6E22E'
+                },
+                nord: {
+                    '--bg-color': '#2E3440',
+                    '--panel-bg': '#3B4252',
+                    '--text-color': '#ECEFF4',
+                    '--text-muted': '#4C566A',
+                    '--border': '#434C5E',
+                    '--toolbar-bg': '#2E3440',
+                    '--preview-bg': '#3B4252',
+                    '--primary': '#88C0D0',
+                    '--primary-hover': '#81A1C1',
+                    '--grid-line': '#434C5E',
+                    '--danger': '#BF616A',
+                    '--success': '#A3BE8C'
+                },
+                synthwave: {
+                    '--bg-color': '#262335',
+                    '--panel-bg': '#2a2139',
+                    '--text-color': '#ffffff',
+                    '--text-muted': '#848bbd',
+                    '--border': '#34294f',
+                    '--toolbar-bg': '#1b1924',
+                    '--preview-bg': '#262335',
+                    '--primary': '#f92aad',
+                    '--primary-hover': '#ff7edb',
+                    '--grid-line': '#34294f',
+                    '--danger': '#fe4450',
+                    '--success': '#72f1b8'
+                },
+                cyberpunk: {
+                    '--bg-color': '#111019',
+                    '--panel-bg': '#1f1e29',
+                    '--text-color': '#0dfdff',
+                    '--text-muted': '#5c5a77',
+                    '--border': '#ff003c',
+                    '--toolbar-bg': '#09080c',
+                    '--preview-bg': '#111019',
+                    '--primary': '#fcee0a',
+                    '--primary-hover': '#fff87f',
+                    '--grid-line': '#2d2b3d',
+                    '--danger': '#ff003c',
+                    '--success': '#00ff73'
+                },
+                ocean: {
+                    '--bg-color': '#0F111A',
+                    '--panel-bg': '#171B24',
+                    '--text-color': '#8F93A2',
+                    '--text-muted': '#4B5263',
+                    '--border': '#1F2430',
+                    '--toolbar-bg': '#090B10',
+                    '--preview-bg': '#0F111A',
+                    '--primary': '#82AAFF',
+                    '--primary-hover': '#89DDFF',
+                    '--grid-line': '#1F2430',
+                    '--danger': '#F07178',
+                    '--success': '#C3E88D'
+                },
+                pastelLight: {
+                    '--bg-color': '#F2EFE9',
+                    '--panel-bg': '#E2DDD2',
+                    '--text-color': '#5C5651',
+                    '--text-muted': '#A49D94',
+                    '--border': '#D6D0C4',
+                    '--toolbar-bg': '#DFD9CD',
+                    '--preview-bg': '#DDD8CE',
+                    '--primary': '#A3BACC',
+                    '--primary-hover': '#92A9BB',
+                    '--grid-line': '#DFD9CD',
+                    '--danger': '#EAA4A4',
+                    '--success': '#A8D5A8'
+                },
+                pastelDark: {
+                    '--bg-color': '#2A2B32',
+                    '--panel-bg': '#34353E',
+                    '--text-color': '#E2E0D8',
+                    '--text-muted': '#9596A4',
+                    '--border': '#464855',
+                    '--toolbar-bg': '#2D2E37',
+                    '--preview-bg': '#25262D',
+                    '--primary': '#8DA3C4',
+                    '--primary-hover': '#A2B5D3',
+                    '--grid-line': '#3B3D4A',
+                    '--danger': '#E5989B',
+                    '--success': '#A5C4A3'
+                }
+            };
+
+            const container = document.getElementById('variables-container');
+            const mockApp = document.getElementById('mock-editor-app');
+            const cssExport = document.getElementById('css-export');
+            
+            // Hold current active colors
+            let currentTheme = { ...PRESETS.light };
+            let inputsMap = {};
+
+            function initControls() {
+                container.innerHTML = '';
+                
+                Object.keys(currentTheme).forEach(key => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'color-control';
+                    
+                    const label = document.createElement('label');
+                    label.textContent = key;
+                    label.setAttribute('for', key);
+
+                    const input = document.createElement('input');
+                    input.type = 'color';
+                    input.id = key;
+                    input.value = currentTheme[key];
+                    
+                    input.addEventListener('input', (e) => {
+                        currentTheme[key] = e.target.value;
+                        applyToMock();
+                        updateExport();
+                    });
+
+                    wrap.appendChild(label);
+                    wrap.appendChild(input);
+                    container.appendChild(wrap);
+
+                    inputsMap[key] = input;
+                });
+            }
+
+            function applyToMock() {
+                Object.keys(currentTheme).forEach(key => {
+                    mockApp.style.setProperty(key, currentTheme[key]);
+                });
+            }
+
+            function updateExport() {
+                let text = "/* Copy this directly into your App CSS */\n\n";
+                Object.keys(currentTheme).forEach(key => {
+                    text += `    ${key}: ${currentTheme[key]};\n`;
+                });
+                cssExport.value = text;
+            }
+
+            function loadPreset(themeName) {
+                currentTheme = { ...PRESETS[themeName] };
+                Object.keys(currentTheme).forEach(key => {
+                    if(inputsMap[key]) {
+                        inputsMap[key].value = currentTheme[key];
+                    }
+                });
+                applyToMock();
+                updateExport();
+            }
+
+            // Event Bindings
+            document.getElementById('theme-selector').addEventListener('change', (e) => loadPreset(e.target.value));
+            
+            document.getElementById('btn-copy').addEventListener('click', () => {
+                cssExport.select();
+                document.execCommand('copy');
+                const btn = document.getElementById('btn-copy');
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                setTimeout(() => btn.innerHTML = orig, 1500);
+            });
+
+            // --- Interactive Color Inspector ---
+            mockApp.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Clear previous highlights
+                document.querySelectorAll('.highlight-pulse').forEach(el => {
+                    el.classList.remove('highlight-pulse');
+                });
+
+                let target = e.target;
+                let varsToHighlight = new Set();
+
+                // Walk up the DOM tree from the clicked target
+                while (target && target !== mockApp.parentElement) {
+                    const fill = target.getAttribute('fill') || '';
+                    const stroke = target.getAttribute('stroke') || '';
+                    const className = (typeof target.className === 'string') ? target.className : (target.className && target.className.baseVal) || '';
+                    const tagName = target.tagName ? target.tagName.toLowerCase() : '';
+                    const id = target.id || '';
+
+                    // 1. Detect Explicit Inline SVG Variables
+                    if (fill.includes('var(')) {
+                        let m = fill.match(/var\((--[^)]+)\)/);
+                        if (m) varsToHighlight.add(m[1]);
+                    }
+                    if (stroke.includes('var(')) {
+                        let m = stroke.match(/var\((--[^)]+)\)/);
+                        if (m) varsToHighlight.add(m[1]);
+                    }
+                    if (fill.includes('url(#gridPattern)')) varsToHighlight.add('--grid-line');
+
+                    // 2. Detect Component/Class based mappings
+                    if (tagName === 'header' || tagName === 'footer') {
+                        varsToHighlight.add('--toolbar-bg');
+                        varsToHighlight.add('--border');
+                    }
+                    if (className.includes('toolbar-group')) {
+                        varsToHighlight.add('--panel-bg');
+                        varsToHighlight.add('--border');
+                    }
+                    if (className.includes('primary')) {
+                        varsToHighlight.add('--primary');
+                        varsToHighlight.add('--primary-hover');
+                    }
+                    if (className.includes('danger')) {
+                        varsToHighlight.add('--danger');
+                    }
+                    if (className.includes('success')) {
+                        varsToHighlight.add('--success');
+                    }
+                    if (className.includes('badge') && !className.includes('danger') && !className.includes('success')) {
+                        varsToHighlight.add('--danger');
+                    }
+                    if (className.includes('preview-panel')) varsToHighlight.add('--border');
+                    if (className.includes('editor-wrapper')) varsToHighlight.add('--panel-bg');
+                    
+                    // 3. Editor Panel specific mapping
+                    if (tagName === 'mark') {
+                        if (className.includes('point-mark')) {
+                            varsToHighlight.add('--danger');
+                        } else {
+                            varsToHighlight.add('--primary');
+                        }
+                    }
+                    
+                    if (className.includes('backdrop')) {
+                        varsToHighlight.add('--text-color');
+                        varsToHighlight.add('--panel-bg');
+                    } else if (tagName === 'button' || tagName === 'select' || className.includes('toolbar-select') || tagName === 'path') {
+                        if (!varsToHighlight.has('--primary') && !varsToHighlight.has('--danger')) {
+                            varsToHighlight.add('--text-color');
+                        }
+                    }
+                    if (className.includes('footer-left') || className.includes('footer-center') || className.includes('footer-right')) {
+                        varsToHighlight.add('--text-muted');
+                        varsToHighlight.add('--toolbar-bg');
+                    }
+                    if (id === 'preview-container') varsToHighlight.add('--preview-bg');
+                    if (id === 'mock-editor-app') varsToHighlight.add('--bg-color');
+
+                    // If we found variables matching this target layer, stop bubbling
+                    if (varsToHighlight.size > 0) break; 
+                    
+                    target = target.parentElement;
+                }
+
+                // Ultimate fallback
+                if (varsToHighlight.size === 0) varsToHighlight.add('--bg-color');
+
+                // Trigger Highlight and Scroll on Sidebar Controls
+                varsToHighlight.forEach(varName => {
+                    const input = inputsMap[varName];
+                    if (input) {
+                        const controlDiv = input.closest('.color-control');
+                        controlDiv.classList.remove('highlight-pulse');
+                        void controlDiv.offsetWidth; // Force CSS reflow
+                        controlDiv.classList.add('highlight-pulse');
+                        controlDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            });
+
+            // Boot
+            initControls();
+            applyToMock();
+            updateExport();
+        })();
+    </script>
+</body>
+</html>
