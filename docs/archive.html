@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- PRESERVE_BINARY_START -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%238b5cf6'/%3E%3Cstop offset='100%25' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3Cpath d='M32 28L15 50L32 72M68 28L85 50L68 72' fill='none' stroke='%23ffffff' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M50 25Q50 50 35 50Q50 50 50 75Q50 50 65 50Q50 50 50 25Z' fill='%23ffffff'/%3E%3C/svg%3E">
+    <!-- PRESERVE_BINARY_END -->
+    <title>AI Tools Workspace archive</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Standalone fallback rules only */
+        html, body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body:not(.theme-dark) {
+            background-color: #fafafa;
+            color: #1a1a1a;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.theme-dark {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Scoped primary container for embed support */
+        #name-app {
+            --bg-app: #fafafa;
+            --bg-card: #ffffff;
+            --border-color: #eaeef2;
+            --border-hover: #cbd5e1;
+            --text-main: #1a1a1a;
+            --text-title: #000000;
+            --text-muted: #555555;
+            --text-meta: #6c6f78;
+            --tag-bg: #f1f5f9;
+            --tag-text: #1e293b;
+            --tag-border: #e2e8f0;
+            --sublink-bg: #f1f5f9;
+            --sublink-text: #2c3e66;
+            --sublink-hover-bg: #e6edf5;
+            --sublink-hover-text: #0f172a;
+            --header-border: #e5e5e5;
+            --shadow-color: rgba(0,0,0,0.02);
+            --shadow-hover: rgba(0,0,0,0.03);
+            
+            --bg-input: #ffffff;
+            --border-input: #cbd5e1;
+            --text-input: #1a1a1a;
+
+            line-height: 1.5;
+            color: var(--text-main);
+            background-color: var(--bg-app);
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #name-app.theme-dark {
+            --bg-app: #0f172a;
+            --bg-card: #1e293b;
+            --border-color: #334155;
+            --border-hover: #475569;
+            --text-main: #e2e8f0;
+            --text-title: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-meta: #64748b;
+            --tag-bg: #1e293b;
+            --tag-text: #cbd5e1;
+            --tag-border: #334155;
+            --sublink-bg: #334155;
+            --sublink-text: #e2e8f0;
+            --sublink-hover-bg: #475569;
+            --sublink-hover-text: #f8fafc;
+            --header-border: #334155;
+            --shadow-color: rgba(0,0,0,0.2);
+            --shadow-hover: rgba(0,0,0,0.3);
+            
+            --bg-input: #1e293b;
+            --border-input: #475569;
+            --text-input: #f8fafc;
+        }
+
+        header {
+            border-bottom: 2px solid var(--header-border);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+            transition: border-color 0.3s ease;
+        }
+
+        h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--text-title);
+            transition: color 0.3s ease;
+        }
+
+        .description {
+            color: var(--text-muted);
+            margin: 0;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+        }
+
+        .warning {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: #b91c1c;
+            background: #fee2e2;
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        #name-app.theme-dark .warning {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .prompts-link {
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .prompts-link a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        #name-app.theme-dark .prompts-link a {
+            color: #60a5fa;
+        }
+
+        .prompts-link a:hover {
+            text-decoration: underline;
+        }
+
+        ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        li {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 1px 2px var(--shadow-color);
+        }
+
+        li:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 4px 12px var(--shadow-hover);
+        }
+
+        .tool-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .tool-icon {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-icon img {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Align text vertically centered with icon flexbox structure */
+        .tool-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-title);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .tool-title:hover {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+
+        #name-app.theme-dark .tool-title:hover {
+            color: #60a5fa;
+        }
+
+        /* sublist styling */
+        .tool-sublinks {
+            margin-top: 0.75rem;
+            margin-left: 3.75rem;  /* align nicely under title text */
+        }
+
+        .sublist {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding-left: 0;
+        }
+
+        .sublist li {
+            margin: 0;
+            padding: 0;
+            border: none;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .sublist a {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--sublink-text);
+            background: var(--sublink-bg);
+            padding: 0.25rem 0.75rem;
+            border-radius: 24px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 1px solid var(--tag-border);
+            display: inline-block;
+        }
+
+        .sublist a:hover {
+            background: var(--sublink-hover-bg);
+            color: var(--sublink-hover-text);
+            border-color: var(--border-hover);
+            text-decoration: none;
+        }
+
+        .tool-meta {
+            margin-top: 0.75rem;
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        /* List container for aligning meta tags vertically */
+        .tool-meta ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.35rem;
+            padding: 0;
+            margin: 0;
+        }
+
+        .tool-meta li {
+            margin: 0;
+            padding: 0;
+            border: none;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        .tag {
+            background-color: var(--tag-bg);
+            color: var(--tag-text);
+            padding: 0.25rem 0.7rem;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            font-family: ui-monospace, 'Cascadia Code', monospace;
+            letter-spacing: -0.01em;
+            border: 1px solid var(--tag-border);
+            white-space: nowrap;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--header-border);
+            color: var(--text-meta);
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            transition: border-color 0.3s ease, color 0.3s ease;
+        }
+
+        .version {
+            font-family: monospace;
+            background: var(--tag-bg);
+            color: var(--tag-text);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        @media (max-width: 720px) {
+            #name-app {
+                padding: 1.25rem;
+            }
+            .tool-sublinks {
+                margin-left: 0; /* Align clean on tighter viewports */
+            }
+            .sublist {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .tool-meta {
+                justify-content: flex-start;
+            }
+            .tool-meta ul {
+                align-items: flex-start; /* Align tags to the left on mobile viewports */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="name-app">
+        <header>
+            <h1>AI Tools Workspace archive</h1>
+            <p class="description">Not actual. Offline-ready index of single-page utilities, CAD macros, bash scripts e.t.c.</p>
+            <div class="warning">⚠️ Warning! all tools on this page are AI generated :)</div>
+            
+        </header>
+
+        <main>
+            <ul>
+
+                <!-- SVG Data URL Converter (LeoAI) -->
+                <li>
+                    <div class="tool-header">
+                        <a href="Gemini/SVG_to_URI_converter/offline_svg_data_url_converter_1_10_0.html" class="tool-title">
+                            <span class="tool-icon">
+                                <!-- PRESERVE_BINARY_START -->
+                                <img src="data:image/svg+xml,%3Csvg%20xmlns=%22http:%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox=%220%200%20100%20100%22%3E%3Crect%20width=%22100%22%20height=%22100%22%20rx=%2224%22%20fill=%22%230f172a%22%2F%3E%3Crect%20x=%2218%22%20y=%2218%22%20width=%2264%22%20height=%2264%22%20rx=%2214%22%20fill=%22none%22%20stroke=%22%232563eb%22%20stroke-width=%225%22%2F%3E%3Cpath%20d=%22M18%2038%20L82%2038%22%20stroke=%22%232563eb%22%20stroke-width=%223%22%20stroke-dasharray=%224%203%22%2F%3E%3Cpath%20d=%22M40%2018%20L40%2082%22%20stroke=%22%232563eb%22%20stroke-width=%221%22%20opacity=%220.3%22%2F%3E%3Cpath%20d=%22M60%2018%20L60%2082%22%20stroke=%22%232563eb%22%20stroke-width=%221%22%20opacity=%220.3%22%2F%3E%3Cpolygon%20points=%2250,44%2066,68%2034,68%22%20fill=%22none%22%20stroke=%22%2316a34a%22%20stroke-width=%225%22%20stroke-linejoin=%22round%22%20%2F%3E%3Ccircle%20cx=%2250%22%20cy=%2244%22%20r=%224.5%22%20fill=%22%23ffffff%22%20stroke=%22%2316a34a%22%20stroke-width=%222%22%20%2F%3E%3Ccircle%20cx=%2266%22%20cy=%2268%22%20r=%224.5%22%20fill=%22%23ffffff%22%20stroke=%22%2316a34a%22%20stroke-width=%222%22%20%2F%3E%3Ccircle%20cx=%2234%22%20cy=%2268%22%20r=%224.5%22%20fill=%22%23ffffff%22%20stroke=%22%2316a34a%22%20stroke-width=%222%22%20%2F%3E%3Cpath%20d=%22M72%2028%20L78%2028%20L78%2032%22%20fill=%22none%22%20stroke=%22%2394a3b8%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%2F%3E%3C%2Fsvg%3E" alt="SVG URL Converter Icon">
+                                <!-- PRESERVE_BINARY_END -->
+                            </span>
+                            SVG Data URL Converter
+                        </a>
+                    </div>
+ 
+                   <div class="tool-sublinks">
+                        <ul class="sublist">
+                            <li>Function of this programm moved to `SVG to PNG Converter` </li>
+                        </ul>
+                    </div>
+
+                    <div class="tool-meta">
+                        <ul>
+                            <li><span class="tag">Qwen VL 235B via LeoAI</span></li>
+                            <li><span class="tag">Gemini 3.1 Pro</span></li>
+                        </ul>
+                    </div>
+                </li>
+
+            </ul>
+        </main>
+
+        <footer>
+            <span>📁 Local File Index</span>
+            <span class="version">v1.11.0</span>
+        </footer>
+    </div>
+
+    <script>
+        (function() {
+            // Configurable preference constant ('auto', 'dark', 'light')
+            const APP_THEME = 'auto';
+
+            const bodyElement = document.body;
+            const appElement = document.getElementById('name-app');
+
+            function applyTheme(isDark) {
+                if (isDark) {
+                    bodyElement.classList.add('theme-dark');
+                    if (appElement) appElement.classList.add('theme-dark');
+                } else {
+                    bodyElement.classList.remove('theme-dark');
+                    if (appElement) appElement.classList.remove('theme-dark');
+                }
+            }
+
+            function initTheme() {
+                if (APP_THEME === 'dark') {
+                    applyTheme(true);
+                } else if (APP_THEME === 'light') {
+                    applyTheme(false);
+                } else {
+                    // 'auto' mode (synchronizing with host browser environment system setting)
+                    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                    
+                    // Apply current preference
+                    applyTheme(mediaQuery.matches);
+
+                    // Dynamic listener to react to real-time dark mode state updates
+                    try {
+                        mediaQuery.addEventListener('change', function(e) {
+                            applyTheme(e.matches);
+                        });
+                    } catch (err) {
+                        // Older browser compatibility
+                        mediaQuery.addListener(function(e) {
+                            applyTheme(e.matches);
+                        });
+                    }
+                }
+            }
+
+            // Execute immediately on document parser safety trigger
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initTheme);
+            } else {
+                initTheme();
+            }
+        })();
+    </script>
+</body>
+</html>

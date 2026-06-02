@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG to Image Converter</title>
+    
+    <!-- Embedded SVG Favicon -->
+    <link class="favicon-link" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%234A90E2'/%3E%3Ctext x='50' y='65' font-family='sans-serif' font-size='40' font-weight='bold' fill='white' text-anchor='middle'%3EIMG%3C/text%3E%3C/svg%3E">
+
+    <style>
+        /* html, body: Baseline styles for standalone mode */
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-body, #f0f2f5);
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Standalone body theme overrides */
+        body.theme-dark {
+            --bg-body: #0f172a;
+        }
+        body:not(.theme-dark) {
+            --bg-body: #f0f2f5;
+        }
+
+        /* App Container: All application styles are strictly scoped here */
+        #svg-to-png-app {
+            /* Default Light Theme Variables */
+            --primary: #4A90E2;
+            --primary-hover: #357ABD;
+            --bg-color: #ffffff;
+            --border-color: #d1d5db;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --bg-input: #f9fafb;
+            --bg-preview: #fafafa;
+            --checker-color: #e5e5e5;
+            --version-bg: #f3f4f6;
+            --btn-clear-bg: #e5e7eb;
+            --btn-clear-hover: #d1d5db;
+            --status-color: #10b981;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+            background: var(--bg-color);
+            width: 100%;
+            min-height: 100vh;
+            padding: 24px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Scoped Dark Theme Variables Override */
+        #svg-to-png-app.theme-dark {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-color: #1e293b;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --bg-input: #0f172a;
+            --bg-preview: #1e293b;
+            --checker-color: #334155;
+            --version-bg: #334155;
+            --btn-clear-bg: #334155;
+            --btn-clear-hover: #475569;
+            --status-color: #34d399;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        #svg-to-png-app header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+            transition: border-color 0.3s ease;
+        }
+
+        #svg-to-png-app .title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #svg-to-png-app #header-favicon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            object-fit: contain;
+            background: transparent;
+        }
+
+        #svg-to-png-app h2 {
+            margin: 0;
+            color: var(--text-main);
+            font-size: 1.5rem;
+            transition: color 0.3s ease;
+        }
+
+        #svg-to-png-app .version {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-family: monospace;
+            background: var(--version-bg);
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        #svg-to-png-app .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        #svg-to-png-app button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            white-space: normal; /* Enable word wrapping */
+            word-break: keep-all; /* Preserve structural words */
+            line-height: 1.2;
+            min-height: 40px;
+        }
+
+        #svg-to-png-app button:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        #svg-to-png-app button:disabled {
+            background: var(--border-color);
+            cursor: not-allowed;
+            color: var(--text-muted);
+        }
+
+        #svg-to-png-app #btn-clear {
+            background: var(--btn-clear-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        #svg-to-png-app #btn-clear:hover:not(:disabled) {
+            background: var(--btn-clear-hover);
+        }
+
+        #svg-to-png-app #svg-input {
+            width: 100%;
+            min-height: 200px;
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+            box-sizing: border-box;
+            background: var(--bg-input);
+            color: var(--text-main);
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+        
+        #svg-to-png-app #svg-input:focus {
+            outline: 2px solid var(--primary);
+            border-color: transparent;
+        }
+
+        #svg-to-png-app .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex-grow: 1;
+        }
+
+        @media (min-width: 700px) {
+            #svg-to-png-app .main-content {
+                flex-direction: row;
+                align-items: stretch;
+            }
+            #svg-to-png-app .input-section {
+                flex: 6;
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+            }
+            #svg-to-png-app .preview-section {
+                flex: 4;
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+            }
+            #svg-to-png-app #svg-input {
+                min-height: 450px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            #svg-to-png-app .controls {
+                display: flex;
+                gap: 8px;
+                width: 100%;
+                flex-wrap: wrap;
+            }
+            #svg-to-png-app .controls button {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                flex: 1 1 calc(50% - 4px);
+                white-space: normal; /* Support word-wrap natively on mobile */
+                overflow: visible;
+                text-overflow: clip;
+            }
+            #svg-to-png-app #btn-clear {
+                flex: 1 1 100%; /* Clear spans full row when squeezed */
+            }
+            #svg-to-png-app .actions {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                width: 100%;
+            }
+            #svg-to-png-app .toggle-container {
+                width: 100%;
+                justify-content: flex-start;
+                margin-bottom: 4px;
+                order: 1; /* Always at top of block */
+                gap: 16px;
+            }
+            #svg-to-png-app .action-buttons {
+                display: flex;
+                flex-direction: row;
+                gap: 8px;
+                width: 100%;
+                order: 2; /* Always at bottom of block */
+            }
+            #svg-to-png-app .action-buttons button {
+                flex: 1;
+                padding: 8px 12px;
+                font-size: 0.85rem;
+                white-space: normal;
+                overflow: visible;
+            }
+            #svg-to-png-app .status-msg {
+                order: 3;
+                text-align: center;
+                justify-content: center;
+                margin-top: 4px;
+            }
+        }
+
+        /* Extremely narrow screen layout fixes */
+        @media (max-width: 200px) {
+            #svg-to-png-app header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+        }
+
+        #svg-to-png-app .preview-container {
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--bg-preview);
+            background-image: linear-gradient(45deg, var(--checker-color) 25%, transparent 25%), linear-gradient(-45deg, var(--checker-color) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--checker-color) 75%), linear-gradient(-45deg, transparent 75%, var(--checker-color) 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            overflow: hidden;
+            position: relative;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        #svg-to-png-app #canvas-preview {
+            max-width: 100%;
+            max-height: 500px;
+            display: none;
+            box-shadow: var(--shadow);
+            background: transparent;
+            transition: box-shadow 0.3s ease;
+        }
+
+        #svg-to-png-app #empty-state {
+            color: var(--text-muted);
+            font-size: 1rem;
+            pointer-events: none;
+            text-align: center;
+            padding: 12px;
+            transition: color 0.3s ease;
+        }
+
+        #svg-to-png-app .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap; /* Supports clean multi-row wrapping of save/copy action block */
+            align-items: center;
+            justify-content: flex-end;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+            transition: border-color 0.3s ease;
+        }
+
+        #svg-to-png-app .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        #svg-to-png-app .action-buttons button {
+            height: 44px; /* Ensure bottom buttons are always identical height */
+            box-sizing: border-box;
+        }
+
+        #svg-to-png-app .status-msg {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            color: var(--status-color);
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s ease, color 0.3s ease;
+        }
+
+        /* Prefix and Formatting Control group styling */
+        #svg-to-png-app .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            user-select: none;
+            margin-right: auto; /* Push buttons to the right on desktop while maintaining inline flow */
+            transition: color 0.3s ease;
+        }
+
+        #svg-to-png-app .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        #svg-to-png-app .toggle-label input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+            margin: 0;
+        }
+
+        /* Format selector dropdown style */
+        #svg-to-png-app #sel-format {
+            background: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        #svg-to-png-app #sel-format:focus {
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- App Container -->
+    <div id="svg-to-png-app">
+        <header>
+            <div class="title-group">
+                <img id="header-favicon" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%234A90E2'/%3E%3Ctext x='50' y='65' font-family='sans-serif' font-size='40' font-weight='bold' fill='white' text-anchor='middle'%3EIMG%3C/text%3E%3C/svg%3E" alt="Favicon" width="28" height="28">
+                <h2>SVG to Image Converter</h2>
+            </div>
+            <span class="version">v1.23.0</span>
+        </header>
+
+        <div class="controls">
+            <input type="file" id="file-input" accept=".svg, image/svg+xml" style="display: none;">
+            <button id="btn-upload" title="Select an SVG file from your device">
+                Load SVG File
+            </button>
+            <button id="btn-paste" title="Paste raw SVG code directly from your clipboard">
+                Paste from Clipboard
+            </button>
+            <button id="btn-clear" title="Clear text area">Clear</button>
+        </div>
+
+        <div class="main-content">
+            <div class="input-section">
+                <textarea id="svg-input" placeholder="Paste or edit raw SVG code here..."><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="40" fill="#4A90E2" />
+  <text x="50" y="58" font-family="sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">SVG</text>
+</svg></textarea>
+                <div class="data-url-strip" style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+                    <label class="toggle-label" title="Wrap generated data URL in an HTML link tag">
+                        <input type="checkbox" id="chk-wrap-link">
+                        <span>Wrap in &lt;link rel="icon"&gt; tag</span>
+                    </label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="live-data-url" placeholder="Paste Data URL here or edit SVG..." style="flex-grow: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-input); color: var(--text-main); font-family: monospace; font-size: 0.85rem; outline: none; transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;">
+                        <button id="btn-copy-live-data" style="min-height: 40px; padding: 0 16px; white-space: nowrap;">Copy Data URL</button>
+                        <button id="btn-clear-live-data" style="min-height: 40px; padding: 0 16px; white-space: nowrap; background: var(--btn-clear-bg); color: var(--text-main); border: 1px solid var(--border-color); transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;" onmouseover="this.style.backgroundColor='var(--btn-clear-hover)'" onmouseout="this.style.backgroundColor='var(--btn-clear-bg)'">Clear</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-container" id="drop-zone">
+                    <div id="empty-state">No SVG loaded. Click 'Load', 'Paste', drop a file, or type at the left.</div>
+                    <canvas id="canvas-preview"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <span id="status-message" class="status-msg">Success!</span>
+            
+            <!-- Controls Group for Copy Options -->
+            <div class="toggle-container">
+                <label class="toggle-label" title="When checked, prepends format data prefix" id="lbl-prepend-prefix">
+                    <input type="checkbox" id="chk-prepend-prefix" checked>
+                    <span>Prefix</span>
+                </label>
+                <label class="toggle-label" title="When checked, splits copied base64 onto new lines every 80 characters">
+                    <input type="checkbox" id="chk-wrap-80">
+                    <span>Wrap 80</span>
+                </label>
+                <label class="toggle-label" title="Select output image format">
+                    <span>Format</span>
+                    <select id="sel-format">
+                        <option value="image/png">PNG</option>
+                        <option value="image/bmp">BMP</option>
+                        <option value="image/svg+xml">SVG Data URL</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="action-buttons">
+                <button id="btn-download" disabled>Save Image</button>
+                <button id="btn-copy-base64" disabled>Copy Base64</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic Isolated in IIFE -->
+    <script>
+        (function() {
+            // Theme setting configuration.
+            // Options: 
+            //   'auto' - Responds live to the host system preference (prefers-color-scheme)
+            //   'dark' - Forces premium dark mode theme
+            //   'light'- Forces light mode theme
+            const APP_THEME = 'auto';
+
+            // Container Scope
+            const app = document.getElementById('svg-to-png-app');
+            if (!app) return;
+
+            // DOM Elements
+            const fileInput = app.querySelector('#file-input');
+            const btnUpload = app.querySelector('#btn-upload');
+            const btnPaste = app.querySelector('#btn-paste');
+            const btnClear = app.querySelector('#btn-clear');
+            const svgInput = app.querySelector('#svg-input');
+            const dropZone = app.querySelector('#drop-zone');
+            const canvas = app.querySelector('#canvas-preview');
+            const emptyState = app.querySelector('#empty-state');
+            const btnDownload = app.querySelector('#btn-download');
+            const btnCopyBase64 = app.querySelector('#btn-copy-base64');
+            const statusMessage = app.querySelector('#status-message');
+            const chkPrependPrefix = app.querySelector('#chk-prepend-prefix');
+            const chkWrap80 = app.querySelector('#chk-wrap-80');
+            const selFormat = app.querySelector('#sel-format');
+            const lblPrependPrefix = app.querySelector('#lbl-prepend-prefix');
+            const headerFavicon = app.querySelector('#header-favicon');
+            
+            // Live Data URL Elements
+            const liveDataUrlInput = app.querySelector('#live-data-url');
+            const chkWrapLink = app.querySelector('#chk-wrap-link');
+            const btnCopyLiveData = app.querySelector('#btn-copy-live-data');
+            const btnClearLiveData = app.querySelector('#btn-clear-live-data');
+
+            const ctx = canvas.getContext('2d');
+            let currentFileName = 'converted_image.png';
+
+            // Constants
+            const FALLBACK_FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%234A90E2'/%3E%3Ctext x='50' y='65' font-family='sans-serif' font-size='40' font-weight='bold' fill='white' text-anchor='middle'%3EIMG%3C/text%3E%3C/svg%3E";
+
+            // --- Theme Control Logic ---
+            function applyTheme() {
+                let activeTheme = APP_THEME;
+                if (activeTheme === 'auto') {
+                    activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                
+                if (activeTheme === 'dark') {
+                    app.classList.add('theme-dark');
+                    document.body.classList.add('theme-dark');
+                } else {
+                    app.classList.remove('theme-dark');
+                    document.body.classList.remove('theme-dark');
+                }
+            }
+
+            // Bind environment dynamic changes if configured as auto
+            if (APP_THEME === 'auto') {
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+            }
+            applyTheme();
+
+            // --- Utilities ---
+
+            function showStatus(msg, isError = false) {
+                statusMessage.textContent = msg;
+                statusMessage.style.opacity = '1';
+                setTimeout(() => statusMessage.style.opacity = '0', 3000);
+            }
+
+            function resetPreview() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvas.style.display = 'none';
+                emptyState.style.display = 'block';
+                btnDownload.disabled = true;
+                btnCopyBase64.disabled = true;
+
+                // Revert page title and favicon back to defaults
+                document.title = "SVG to Image Converter";
+                let link = document.querySelector("link[rel*='icon']");
+                if (link) {
+                    link.href = FALLBACK_FAVICON;
+                }
+                if (headerFavicon) {
+                    headerFavicon.src = FALLBACK_FAVICON;
+                }
+            }
+
+            // Parses absolute SVG dimensions or calculates dimension aspect from viewBox using lightweight regex (completely eliminates DOMParser)
+            function getSVGDimensions(svgString) {
+                let width = 0;
+                let height = 0;
+                let hasExplicitAbsoluteDims = false;
+                try {
+                    const svgTagMatch = svgString.match(/<svg[\s\S]*?>/i);
+                    if (svgTagMatch) {
+                        const svgTag = svgTagMatch[0];
+                        const wMatch = svgTag.match(/\bwidth\s*=\s*["']([^"']+)["']/i);
+                        const hMatch = svgTag.match(/\bheight\s*=\s*["']([^"']+)["']/i);
+                        
+                        // Check if absolute dimensions are found (no percentages)
+                        if (wMatch && hMatch && !wMatch[1].includes('%') && !hMatch[1].includes('%')) {
+                            width = parseFloat(wMatch[1]);
+                            height = parseFloat(hMatch[1]);
+                            hasExplicitAbsoluteDims = true;
+                        }
+                        
+                        // If dimensions are missing or configured in percent, parse the viewBox attribute
+                        if (!width || !height) {
+                            const vbMatch = svgTag.match(/\bviewBox\s*=\s*["']([^"']+)["']/i);
+                            if (vbMatch) {
+                                const parts = vbMatch[1].trim().split(/[\s,]+/);
+                                if (parts.length === 4) {
+                                    width = parseFloat(parts[2]);
+                                    height = parseFloat(parts[3]);
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Silently absorb errors
+                }
+                return { width: width || 800, height: height || 800, hasExplicitAbsoluteDims };
+            }
+
+            // Syncs browser tab title and conditional tab favicon with parsed SVG
+            function updateDynamicFaviconAndTitle(svgString, fileName, loadedWidth, loadedHeight) {
+                // Update Page Title
+                if (fileName) {
+                    const cleanName = fileName.replace('.png', '').replace('.bmp', '').replace('.svg', '');
+                    document.title = `SVG Converter - ${cleanName}`;
+                }
+
+                // Determine precise picture dimension sizes
+                let width = loadedWidth || 0;
+                let height = loadedHeight || 0;
+
+                if (!width || !height) {
+                    const dims = getSVGDimensions(svgString);
+                    width = dims.width;
+                    height = dims.height;
+                }
+
+                let link = document.querySelector("link[rel*='icon']");
+                if (!link) {
+                    link = document.createElement('link');
+                    link.rel = 'icon';
+                    link.type = 'image/svg+xml';
+                    document.head.appendChild(link);
+                }
+
+                // Condition check: display SVG favicon ONLY if size is less than 200x200
+                const isSmallSize = (width > 0 && height > 0 && width < 200 && height < 200);
+
+                if (isSmallSize && svgString) {
+                    try {
+                        let svgClean = svgString.trim();
+                        if (!svgClean.toLowerCase().includes('xmlns=')) {
+                            svgClean = svgClean.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+                        }
+                        
+                        // URL Encode safely for XML payload
+                        const encoded = encodeURIComponent(svgClean)
+                            .replace(/'/g, "%27")
+                            .replace(/"/g, "%22");
+                        const fullFaviconData = 'data:image/svg+xml;utf8,' + encoded;
+                        
+                        link.href = fullFaviconData;
+                        if (headerFavicon) {
+                            headerFavicon.src = fullFaviconData;
+                        }
+                    } catch (e) {
+                        link.href = FALLBACK_FAVICON;
+                        if (headerFavicon) headerFavicon.src = FALLBACK_FAVICON;
+                    }
+                } else {
+                    // Fallback to initial embedded default icon
+                    link.href = FALLBACK_FAVICON;
+                    if (headerFavicon) {
+                        headerFavicon.src = FALLBACK_FAVICON;
+                    }
+                }
+            }
+
+            // Live Data URL Sync Functionality
+            let isSyncingData = false;
+
+            function formatXML(xmlString) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(xmlString, 'image/svg+xml');
+                if (doc.querySelector('parsererror')) return xmlString;
+                
+                let indentLevel = 0;
+                function serializeNode(node) {
+                    let str = '';
+                    const indent = '  '.repeat(indentLevel);
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        str += indent + '<' + node.tagName;
+                        for (let i = 0; i < node.attributes.length; i++) {
+                            str += ' ' + node.attributes[i].name + '="' + node.attributes[i].value.replace(/"/g, '&quot;') + '"';
+                        }
+                        const hasChildElements = Array.from(node.childNodes).some(n => n.nodeType === Node.ELEMENT_NODE);
+                        if (hasChildElements) {
+                            str += '>\n';
+                            indentLevel++;
+                            for (let i = 0; i < node.childNodes.length; i++) str += serializeNode(node.childNodes[i]);
+                            indentLevel--;
+                            str += indent + '</' + node.tagName + '>\n';
+                        } else if (node.textContent.trim()) {
+                            str += '>' + node.textContent.trim() + '</' + node.tagName + '>\n';
+                        } else {
+                            str += '/>\n';
+                        }
+                    } else if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+                        str += indent + node.textContent.trim() + '\n';
+                    }
+                    return str;
+                }
+                return serializeNode(doc.documentElement).trim();
+            }
+
+            function syncDataUrl() {
+                if (isSyncingData) return;
+                let svgString = svgInput.value.trim();
+                if (!svgString) {
+                    isSyncingData = true;
+                    liveDataUrlInput.value = '';
+                    isSyncingData = false;
+                    return;
+                }
+                
+                try {
+                    let compact = svgString.replace(/\s+/g, ' ').trim();
+                    const encoded = encodeURIComponent(compact)
+                        .replace(/['()]/g, escape)
+                        .replace(/\*/g, '%2A');
+                    
+                    const dataUrl = `data:image/svg+xml,${encoded}`;
+                    
+                    isSyncingData = true;
+                    if (chkWrapLink.checked) {
+                        liveDataUrlInput.value = `<link rel="icon" type="image/svg+xml" href="${dataUrl}">`;
+                    } else {
+                        liveDataUrlInput.value = dataUrl;
+                    }
+                    isSyncingData = false;
+                } catch (e) {
+                    // Fail silently
+                }
+            }
+
+            function syncFromDataUrl() {
+                if (isSyncingData) return;
+                let input = liveDataUrlInput.value.trim();
+                if (!input) {
+                    isSyncingData = true;
+                    svgInput.value = '';
+                    resetPreview();
+                    isSyncingData = false;
+                    return;
+                }
+
+                if (input.toLowerCase().includes('<link')) {
+                    const match = input.match(/href=["'](data:image\/svg\+xml[^"']+)["']/i);
+                    if (match) input = match[1];
+                }
+
+                try {
+                    let svgContent = '';
+                    if (input.startsWith('data:image/svg+xml;base64,')) {
+                        svgContent = atob(input.substring(26));
+                    } else if (input.startsWith('data:image/svg+xml,')) {
+                        svgContent = decodeURIComponent(input.substring(19));
+                    } else {
+                        return; // Ignore incomplete/invalid typing
+                    }
+
+                    isSyncingData = true;
+                    svgInput.value = formatXML(svgContent);
+                    
+                    // Trigger preview update
+                    if (typeof debounceTimer !== 'undefined') clearTimeout(debounceTimer);
+                    loadSVGToCanvas(svgInput.value, 'edited_image.png', true);
+                    isSyncingData = false;
+                } catch (e) {
+                    // Fail silently on typing mid-paste
+                }
+            }
+
+            // Custom uncompressed 24-bit BMP encoder to prevent browser fallbacks to PNG format
+            function canvasToBMP(canvasElement) {
+                const w = canvasElement.width;
+                const h = canvasElement.height;
+                
+                // Draw over an offscreen solid white canvas to flatten SVG alpha transparencies gracefully
+                const offscreen = document.createElement('canvas');
+                offscreen.width = w;
+                offscreen.height = h;
+                const offCtx = offscreen.getContext('2d');
+                offCtx.fillStyle = '#ffffff';
+                offCtx.fillRect(0, 0, w, h);
+                offCtx.drawImage(canvasElement, 0, 0);
+                
+                const imgData = offCtx.getImageData(0, 0, w, h);
+                const data = imgData.data;
+
+                const extraBytes = (4 - (w * 3) % 4) % 4;
+                const rowSize = w * 3 + extraBytes;
+                const pixelDataSize = rowSize * h;
+                const fileSize = 54 + pixelDataSize;
+
+                const buffer = new ArrayBuffer(fileSize);
+                const view = new DataView(buffer);
+
+                // BMP Header Structure
+                view.setUint8(0, 0x42); // 'B'
+                view.setUint8(1, 0x4D); // 'M'
+                view.setUint32(2, fileSize, true); // File Size
+                view.setUint32(6, 0, true); // Reserved
+                view.setUint32(10, 54, true); // Offset to pixel data
+
+                // DIB Header Structure (BITMAPINFOHEADER)
+                view.setUint32(14, 40, true); // Header Size
+                view.setInt32(18, w, true); // Width
+                view.setInt32(22, h, true); // Height
+                view.setUint16(26, 1, true); // Color Planes
+                view.setUint16(28, 24, true); // Bits per Pixel (24-bit BGR)
+                view.setUint32(30, 0, true); // Compression (0 = uncompressed BI_RGB)
+                view.setUint32(34, pixelDataSize, true); // Image data size
+                view.setInt32(38, 2835, true); // H-Res (2835 pixels/meter)
+                view.setInt32(42, 2835, true); // V-Res (2835 pixels/meter)
+                view.setUint32(46, 0, true); // Colors in Palette
+                view.setUint32(50, 0, true); // Important Colors
+
+                let offset = 54;
+                // Pixels in BMP are rendered bottom-to-top
+                for (let y = h - 1; y >= 0; y--) {
+                    const rowStart = y * w * 4;
+                    for (let x = 0; x < w; x++) {
+                        const idx = rowStart + x * 4;
+                        const r = data[idx];
+                        const g = data[idx + 1];
+                        const b = data[idx + 2];
+                        
+                        view.setUint8(offset++, b);
+                        view.setUint8(offset++, g);
+                        view.setUint8(offset++, r);
+                    }
+                    for (let p = 0; p < extraBytes; p++) {
+                        view.setUint8(offset++, 0);
+                    }
+                }
+
+                return new Blob([buffer], { type: 'image/bmp' });
+            }
+
+            // Helper to convert ArrayBuffer safely to Base64 in chunks
+            function arrayBufferToBase64(buffer) {
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                const chunk = 0xffff;
+                for (let i = 0; i < len; i += chunk) {
+                    const slice = bytes.subarray(i, i + chunk);
+                    binary += String.fromCharCode.apply(null, slice);
+                }
+                return window.btoa(binary);
+            }
+
+            // Core Conversion Logic
+            function loadSVGToCanvas(svgString, fileName = 'image.png', fromTextarea = false) {
+                // Basic validation
+                if (!svgString || !svgString.toLowerCase().includes('<svg')) {
+                    if (!fromTextarea) showStatus('Invalid SVG format detected.', true);
+                    return;
+                }
+
+                currentFileName = fileName.replace('.svg', '.png');
+
+                if (!fromTextarea) {
+                    svgInput.value = svgString;
+                    syncDataUrl(); // Sync the live URL strip if loaded externally
+                }
+
+                // Parse dimensions from the SVG string using lightweight regex
+                const parsedDims = getSVGDimensions(svgString);
+
+                // Sanitize and create blob
+                const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                
+                const img = new Image();
+                img.onload = function() {
+                    const loadedWidth = img.naturalWidth || img.width || 0;
+                    const loadedHeight = img.naturalHeight || img.height || 0;
+
+                    // If the original SVG lacks explicit absolute dimensions, always fall back to the
+                    // parsed viewBox dimensions. This prevents the browser from scaling a square
+                    // viewBox=100x100 to fit the default 300x150 replaced-element size (which scales it to 150x150).
+                    const useParsedDims = !parsedDims.hasExplicitAbsoluteDims || loadedWidth === 0;
+                    
+                    canvas.width = useParsedDims ? parsedDims.width : loadedWidth;
+                    canvas.height = useParsedDims ? parsedDims.height : loadedHeight;
+                    
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    URL.revokeObjectURL(url);
+                    
+                    // Update UI
+                    canvas.style.display = 'block';
+                    emptyState.style.display = 'none';
+                    btnDownload.disabled = false;
+                    btnCopyBase64.disabled = false;
+                    
+                    // Sync favicon and document title
+                    updateDynamicFaviconAndTitle(svgString, fileName, canvas.width, canvas.height);
+                    
+                    showStatus('SVG Rendered Successfully!');
+                };
+                
+                img.onerror = function() {
+                    showStatus('Failed to render SVG onto canvas.', true);
+                    URL.revokeObjectURL(url);
+                };
+
+                img.src = url;
+            }
+
+            // Sets up button labels and hover tips corresponding to chosen format
+            function updateFormatUI() {
+                const format = selFormat.value;
+                const selectedText = selFormat.options[selFormat.selectedIndex].text;
+                btnDownload.textContent = `Save ${selectedText.split(' ')[0]}`;
+                
+                if (format === 'image/svg+xml') {
+                    btnCopyBase64.textContent = 'Copy Data URL';
+                    if (lblPrependPrefix) lblPrependPrefix.setAttribute('title', `When checked, prepends 'data:image/svg+xml,' to copied string`);
+                } else {
+                    btnCopyBase64.textContent = 'Copy Base64';
+                    if (lblPrependPrefix) lblPrependPrefix.setAttribute('title', `When checked, prepends 'data:${format};base64,' to copied string`);
+                }
+            }
+
+            // --- Event Listeners ---
+
+            // Format switch listener
+            selFormat.addEventListener('change', updateFormatUI);
+
+            // 0. Textarea Input
+            let debounceTimer;
+            svgInput.addEventListener('input', (e) => {
+                syncDataUrl(); // Immediate sync for Data URL strip
+                
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    const text = e.target.value.trim();
+                    if (!text) {
+                        resetPreview();
+                    } else {
+                        loadSVGToCanvas(text, 'edited_image.png', true);
+                    }
+                }, 400); // 400ms debounce to wait for user to stop typing
+            });
+
+            // Live Data URL strip listeners
+            chkWrapLink.addEventListener('change', syncDataUrl);
+            liveDataUrlInput.addEventListener('input', syncFromDataUrl);
+            
+            btnCopyLiveData.addEventListener('click', async () => {
+                const text = liveDataUrlInput.value;
+                if (!text) return showStatus('No Data URL to copy.', true);
+                
+                try {
+                    await navigator.clipboard.writeText(text);
+                    showStatus('Data URL copied to clipboard!');
+                } catch (err) {
+                    liveDataUrlInput.select();
+                    try {
+                        document.execCommand('copy');
+                        showStatus('Data URL copied to clipboard!');
+                    } catch (ex) {
+                        showStatus('Failed to copy Data URL.', true);
+                    }
+                }
+            });
+
+            btnClearLiveData.addEventListener('click', () => {
+                svgInput.value = '';
+                syncDataUrl();
+                resetPreview();
+            });
+
+            // 1. File Upload
+            btnUpload.addEventListener('click', () => fileInput.click());
+            
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => loadSVGToCanvas(event.target.result, file.name);
+                reader.readAsText(file);
+                
+                // Reset input so same file can be loaded again if needed
+                fileInput.value = '';
+            });
+
+            // 2. Clipboard Paste
+            btnPaste.addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    loadSVGToCanvas(text, 'clipboard_paste.png');
+                } catch (err) {
+                    // Fallback to manual pasting approach if permission is denied
+                    const userInput = prompt("Clipboard read permission denied. Please paste your raw SVG code here:");
+                    if(userInput) loadSVGToCanvas(userInput, 'pasted_data.png');
+                    else showStatus('Failed to read clipboard.', true);
+                }
+            });
+
+            // Global paste listener within app
+            app.addEventListener('paste', (e) => {
+                const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+                if (pasteData) loadSVGToCanvas(pasteData, 'pasted_data.png');
+            });
+
+            // 3. Drag and Drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--primary)';
+            });
+
+            // Drag leave
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.borderColor = 'var(--border-color)';
+            });
+
+            // Drop
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.borderColor = 'var(--border-color)';
+                
+                if (e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => loadSVGToCanvas(event.target.result, file.name);
+                        reader.readAsText(file);
+                    } else {
+                        showStatus('Please drop a valid .svg file', true);
+                    }
+                }
+            });
+
+            // 4. Download file
+            btnDownload.addEventListener('click', () => {
+                const format = selFormat.value;
+                if (format === 'image/svg+xml') {
+                    const svgString = svgInput.value.trim();
+                    if (!svgString) return showStatus('No SVG to save.', true);
+                    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const downloadName = currentFileName.replace(/\.(png|bmp)$/i, '.svg');
+                    a.download = downloadName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showStatus('SVG file downloaded!');
+                } else if (format === 'image/bmp') {
+                    // Trigger manual 24-bit uncompressed BMP exporter Blob
+                    const bmpBlob = canvasToBMP(canvas);
+                    const url = URL.createObjectURL(bmpBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const downloadName = currentFileName.replace(/\.(png|bmp)$/i, '.bmp');
+                    a.download = downloadName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showStatus('BMP Image file downloaded!');
+                } else {
+                    // Trigger native PNG Blob
+                    canvas.toBlob((blob) => {
+                        if (!blob) return showStatus('Failed to generate image blob.', true);
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const downloadName = currentFileName.replace(/\.(png|bmp)$/i, '.png');
+                        a.download = downloadName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        showStatus('PNG Image file downloaded!');
+                    }, 'image/png');
+                }
+            });
+
+            // 5. Copy Base64
+            btnCopyBase64.addEventListener('click', async () => {
+                const format = selFormat.value;
+                let dataUrl;
+                
+                if (format === 'image/svg+xml') {
+                    let svgString = svgInput.value.trim();
+                    if (!svgString) return showStatus('No SVG to copy.', true);
+                    let compact = svgString.replace(/\s+/g, ' ').trim();
+                    const encoded = encodeURIComponent(compact)
+                        .replace(/['()]/g, escape)
+                        .replace(/\*/g, '%2A');
+                    
+                    dataUrl = chkPrependPrefix.checked ? `data:image/svg+xml,${encoded}` : encoded;
+                } else if (format === 'image/bmp') {
+                    const bmpBlob = canvasToBMP(canvas);
+                    const buffer = await bmpBlob.arrayBuffer();
+                    const base64 = arrayBufferToBase64(buffer);
+                    dataUrl = chkPrependPrefix.checked ? `data:image/bmp;base64,${base64}` : base64;
+                } else {
+                    dataUrl = canvas.toDataURL('image/png');
+                    // If prepending data prefix is switched off, strip it
+                    if (!chkPrependPrefix.checked) {
+                        const prefixMatch = dataUrl.match(/^data:image\/png;base64,(.*)$/);
+                        if (prefixMatch && prefixMatch[1]) {
+                            dataUrl = prefixMatch[1];
+                        }
+                    }
+                }
+
+                // If Wrap 80 is checked, segment the copied content with new lines every 80 characters
+                if (chkWrap80.checked) {
+                    const chunkLength = 80;
+                    const chunks = [];
+                    for (let i = 0; i < dataUrl.length; i += chunkLength) {
+                        chunks.push(dataUrl.substring(i, i + chunkLength));
+                    }
+                    dataUrl = chunks.join('\n');
+                }
+
+                try {
+                    await navigator.clipboard.writeText(dataUrl);
+                    showStatus('Base64 copied to clipboard!');
+                } catch (err) {
+                    // Fallback via document.execCommand if clipboard API fails
+                    const textArea = document.createElement("textarea");
+                    textArea.value = dataUrl;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        showStatus('Base64 copied to clipboard!');
+                    } catch (ex) {
+                        showStatus('Failed to copy to clipboard.', true);
+                    }
+                    document.body.removeChild(textArea);
+                }
+            });
+
+            // 6. Clear Button
+            btnClear.addEventListener('click', () => {
+                svgInput.value = '';
+                syncDataUrl();
+                resetPreview();
+            });
+
+            // 7. Initial Load
+            updateFormatUI();
+            if (svgInput.value.trim()) {
+                loadSVGToCanvas(svgInput.value.trim(), 'default_image.png', true);
+                syncDataUrl();
+            }
+
+        })();
+    </script>
+</body>
+</html>
