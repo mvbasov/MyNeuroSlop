@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 Converter Demo</title>
+    <style>
+        /* Minimal global baseline for standalone operation */
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f5f7;
+            font-family: system-ui, sans-serif;
+        }
+
+        /* Fully scoped application styling */
+        #base64-app {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        #base64-app h2 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.2rem;
+            color: #333;
+        }
+
+        #base64-app .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        #base64-app label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        #base64-app textarea {
+            width: 100%;
+            height: 120px;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        #base64-app textarea:focus {
+            outline: none;
+            border-color: #4A90E2;
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
+
+        #base64-app .footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 1rem;
+            border-top: 1px solid #eee;
+            padding-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Embeddable Container -->
+    <div id="base64-app">
+        <h2>Base64 Auto-Converter</h2>
+        
+        <div class="input-group">
+            <label for="plain-text">Plain Text</label>
+            <textarea id="plain-text" placeholder="Type text here..."></textarea>
+        </div>
+
+        <div class="input-group">
+            <label for="base64-text">Base64 Encoded</label>
+            <textarea id="base64-text" placeholder="Type base64 here..."></textarea>
+        </div>
+
+        <div class="footer">
+            <span>Demo Application</span>
+            <span>v1.1.0</span>
+        </div>
+    </div>
+
+    <!-- Application Logic (Isolated) -->
+    <script>
+        (function() {
+            const plainInput = document.getElementById('plain-text');
+            const base64Input = document.getElementById('base64-text');
+
+            // Internal Logic
+            function encodeToBase64(str) {
+                try {
+                    // Safe unicode encoding
+                    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+                } catch (e) {
+                    return "";
+                }
+            }
+
+            function decodeFromBase64(str) {
+                try {
+                    // Safe unicode decoding
+                    return decodeURIComponent(atob(str).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+                } catch (e) {
+                    return "Invalid Base64";
+                }
+            }
+
+            // Event Listeners for Auto-Sync
+            plainInput.addEventListener('input', (e) => {
+                base64Input.value = encodeToBase64(e.target.value);
+            });
+
+            base64Input.addEventListener('input', (e) => {
+                plainInput.value = decodeFromBase64(e.target.value);
+            });
+
+            // =========================================================================
+            // >>> BEGIN OF TESTING ARCHITECTURE <<<
+            // [SAFE TO DELETE]: The following code block is responsible exclusively for 
+            // the micro unit testing architecture. It can be safely removed without 
+            // altering or affecting the original program's functionality.
+            // =========================================================================
+            if (window.location.search.includes('test=')) {
+                window.__TEST_API__ = {
+                    encode: encodeToBase64,
+                    decode: decodeFromBase64
+                };
+                console.log("🧪 Unit Testing API exposed at window.__TEST_API__");
+                
+                // Dynamically inject the external testing framework
+                const script = document.createElement('script');
+                script.src = 'base64_converter_v1_1_0_tests.js';
+                script.onload = () => {
+                    if (window.location.search.includes('test=run') && window.__runTests) {
+                        setTimeout(() => window.__runTests(), 500);
+                    }
+                };
+                script.onerror = () => console.error("❌ Failed to load base64_converter_v1_1_0_tests.js. Ensure it is in the same directory.");
+                document.body.appendChild(script);
+            }
+            // >>> END OF TESTING ARCHITECTURE <<<
+            // =========================================================================
+        })();
+    </script>
+</body>
+</html>

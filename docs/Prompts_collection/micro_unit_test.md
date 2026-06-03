@@ -1,3 +1,38 @@
+The micro unit test system we built for the SVG to PNG Converter is a highly efficient, **zero-dependency testing architecture**. It is specifically designed to work within your strict "standalone/embeddable" and "offline-first" rules.
+
+Because your main application is securely locked inside an IIFE (Immediately Invoked Function Expression) to prevent global scope pollution, a traditional test suite wouldn't be able to access the internal functions.
+
+Here is a breakdown of how this custom architecture works, followed by the exact instructions you can use to ask me to implement it in future projects.
+
+### The 4 Pillars of the Micro Unit Test System
+
+1. **The URL-Triggered Injector (`?test=run`)**
+The main HTML file checks `window.location.search` for the word `test=`. If it's missing, the app runs normally with zero performance overhead. If it is present, the app dynamically creates a `<script>` tag and injects the external `..._tests.js` file.
+2. **The `__TEST_API__` Bridge**
+To test private internal functions (like `formatXML` or `syncDataUrl`) without polluting the global window object for regular users, the app conditionally creates a `window.__TEST_API__` object *only* when test mode is activated. The test script uses this bridge to access internal logic.
+3. **Vanilla JS Asynchronous Assertions**
+Instead of using bulky external libraries like Jest or Mocha, the test file defines its own lightweight `assert()` and `assertTrue()` functions. Because it operates directly in the browser, it uses `async/await` and DOM polling (`setTimeout` loops) to wait for visual elements (like canvas rendering) to finish before asserting.
+4. **The UI Toast "Enforcer"**
+Instead of just logging to the hidden developer console, the test suite hooks directly into the application's native UI (the `#status-toast`). It uses a `setInterval` "enforcer" to aggressively keep the final test score visible on the screen, overriding any internal app timeouts.
+
+---
+
+### How to Request This in the Future
+
+Whenever you create a new application and want me to generate this exact testing framework for it, you can copy and paste this block into your prompt:
+
+> **Add the Vanilla Micro Unit Test System.**
+> Please implement the URL-triggered testing architecture for this application:
+> 1. **The Bridge:** Inside the main app's IIFE, check if the URL contains `?test=`. If true, expose necessary internal functions to a `window.__TEST_API__` object.
+> 2. **The Injector:** Dynamically load a separate `{app_name}_tests.js` script. If the URL contains `?test=run`, automatically execute `window.__runTests()`.
+> 3. **The Test Suite (Separate File):** Generate the companion Javascript test file. Include lightweight vanilla `assert()` and `assertTrue()` functions. Write tests that validate both internal logic (via the API bridge) and DOM UI changes.
+> 4. **Visual Output:** Hook into the app's native UI (e.g., a toast notification) to display the final test pass/fail results. Use an interval enforcer to ensure the final score toast stays visible for 7 seconds without being overwritten by the app's internal timeouts.
+> 
+>
+
+---
+
+
 ## 📋 **Generic Micro Unit Test Suite Specification**  
 *Use this template to request the same testing infrastructure for **any** web application.*
 

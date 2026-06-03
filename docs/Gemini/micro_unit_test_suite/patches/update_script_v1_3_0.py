@@ -1,0 +1,87 @@
+import os
+
+def update_files():
+    html_file = "base64_converter_v1_2_0.html"
+    js_file = "base64_converter_v1_2_0_tests.js"
+    
+    html_out = "base64_converter_v1_3_0.html"
+    js_out = "base64_converter_v1_3_0_tests.js"
+
+    # ---------------------------------------------------------
+    # 1. Update the HTML File
+    # ---------------------------------------------------------
+    if os.path.exists(html_file):
+        with open(html_file, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+
+        html_search_1 = r"""<span>v1.2.0</span>"""
+        html_replace_1 = r"""<span>v1.3.0</span>"""
+        html_content = html_content.replace(html_search_1, html_replace_1)
+
+        html_search_2 = r"""script.src = 'base64_converter_v1_2_0_tests.js';"""
+        html_replace_2 = r"""script.src = 'base64_converter_v1_3_0_tests.js';"""
+        html_content = html_content.replace(html_search_2, html_replace_2)
+
+        html_search_3 = r"""script.onerror = () => console.error("❌ Failed to load base64_converter_v1_2_0_tests.js. Ensure it is in the same directory.");"""
+        html_replace_3 = r"""script.onerror = () => console.error("❌ Failed to load base64_converter_v1_3_0_tests.js. Ensure it is in the same directory.");"""
+        html_content = html_content.replace(html_search_3, html_replace_3)
+
+        # Introduce the artificial mistake
+        html_search_4 = r"""            function encodeToBase64(str) {
+                try {
+                    // Safe unicode encoding
+                    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+                } catch (e) {
+                    return "";
+                }
+            }"""
+
+        html_replace_4 = r"""            function encodeToBase64(str) {
+                try {
+                    // -------------------------------------------------------------------
+                    // [ARTIFICIAL MISTAKE INJECTED FOR TESTING DEMONSTRATION]
+                    // We are intentionally returning an empty string here to cause the 
+                    // 'API Encode' and 'DOM Sync' unit tests to fail.
+                    // 
+                    // TO FIX: Delete this block and uncomment the actual btoa() return below.
+                    // -------------------------------------------------------------------
+                    return ""; 
+                    
+                    // Safe unicode encoding
+                    // return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+                } catch (e) {
+                    return "";
+                }
+            }"""
+        html_content = html_content.replace(html_search_4, html_replace_4)
+
+        with open(html_out, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        print(f"✅ Successfully updated {html_out}")
+    else:
+        print(f"❌ Could not find {html_file}")
+
+
+    # ---------------------------------------------------------
+    # 2. Update the JS Test File
+    # ---------------------------------------------------------
+    if os.path.exists(js_file):
+        with open(js_file, 'r', encoding='utf-8') as f:
+            js_content = f.read()
+
+        js_search_2 = r"""// base64_converter_v1_2_0_tests.js - Micro Unit Test System"""
+        js_replace_2 = r"""// base64_converter_v1_3_0_tests.js - Micro Unit Test System"""
+        js_content = js_content.replace(js_search_2, js_replace_2)
+
+        js_search_3 = r"""console.log("%c💡 base64_converter_v1_2_0_tests.js loaded successfully. Type window.__runTests() to execute, or use '?test=run' in URL.", "color: #4A90E2;");"""
+        js_replace_3 = r"""console.log("%c💡 base64_converter_v1_3_0_tests.js loaded successfully. Type window.__runTests() to execute, or use '?test=run' in URL.", "color: #4A90E2;");"""
+        js_content = js_content.replace(js_search_3, js_replace_3)
+
+        with open(js_out, 'w', encoding='utf-8') as f:
+            f.write(js_content)
+        print(f"✅ Successfully updated {js_out}")
+    else:
+        print(f"❌ Could not find {js_file}")
+
+if __name__ == "__main__":
+    update_files()
