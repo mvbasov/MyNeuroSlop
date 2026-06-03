@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown Viewer with KaTeX · Source mode + Raw link</title>
-    <!-- Minimal custom styles – only layout & non‑markdown elements -->
+    <title>Markdown/Code Viewer with KaTeX · Auto source mode for .js/.sh + raw link</title>
     <style>
         * {
             margin: 0;
@@ -66,7 +65,6 @@
             background: #eef2f5;
             text-decoration: underline;
         }
-        /* source mode badge */
         .source-mode-note {
             background: #f1f8ff;
             border-left: 4px solid #0366d6;
@@ -88,17 +86,17 @@
 </head>
 <body>
 <div id="content" class="markdown-body">
-    <div class="loader">Loading markdown and math engine…</div>
+    <div class="loader">Loading viewer engine…</div>
 </div>
 
 <script>
     // --------------------------------------------------------------
-    // 1. CONFIGURATION & VERSION
+    // 1. CONFIGURATION
     // --------------------------------------------------------------
     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/markdown_example.md';
-    const PAGE_VERSION = '1.5.1';   // ✨ Added persistent raw file download link at page end
+    const PAGE_VERSION = '1.6.0';   // Auto source mode for .js/.sh + clean raw link
 
-    // Marked.js (CDN + local fallback inside fallback_js/)
+    // Marked.js (CDN + local fallback)
     const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
     const MARKED_LOCAL = 'fallback_js/marked.min.js';
 
@@ -106,7 +104,7 @@
     const MD_CSS_CDN = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown.min.css';
     const MD_CSS_LOCAL = 'fallback_js/github-markdown.min.css';
 
-    // KaTeX resources (CSS + core + auto-render) with local fallbacks
+    // KaTeX resources
     const KATEX_CSS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
     const KATEX_CSS_LOCAL = 'fallback_js/katex.min.css';
     const KATEX_JS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js';
@@ -115,7 +113,7 @@
     const KATEX_AUTO_LOCAL = 'fallback_js/auto-render.min.js';
 
     // --------------------------------------------------------------
-    // 2. Helper: load CSS (returns promise)
+    // 2. Helpers: load CSS/JS with fallback
     // --------------------------------------------------------------
     function loadCSS(href, fallbackHref = null) {
         return new Promise((resolve, reject) => {
@@ -135,7 +133,6 @@
         });
     }
 
-    // Helper: load script (returns promise)
     function loadScript(src, fallbackSrc = null) {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
@@ -154,96 +151,110 @@
         });
     }
 
-    // --------------------------------------------------------------
-    // 3. Load Markdown CSS (with fallback)
-    // --------------------------------------------------------------
     async function loadMarkdownCSS() {
         try {
             await loadCSS(MD_CSS_CDN, MD_CSS_LOCAL);
             console.log('✓ Markdown CSS loaded');
         } catch (e) {
-            console.warn('Markdown CSS failed, using fallback styles', e);
+            console.warn('Markdown CSS failed', e);
         }
     }
 
-    // --------------------------------------------------------------
-    // 4. Load KaTeX fully (CSS + core + auto-render)
-    // --------------------------------------------------------------
     async function loadKaTeX() {
         try {
             await loadCSS(KATEX_CSS_CDN, KATEX_CSS_LOCAL);
             console.log('✓ KaTeX CSS loaded');
         } catch (e) {
-            console.warn('KaTeX CSS failed, math may look ugly', e);
+            console.warn('KaTeX CSS failed', e);
         }
-
         try {
             await loadScript(KATEX_JS_CDN, KATEX_JS_LOCAL);
             console.log('✓ KaTeX core loaded');
         } catch (e) {
-            throw new Error(`KaTeX core load failed: ${e.message}`);
+            throw new Error(`KaTeX core failed: ${e.message}`);
         }
-
         try {
             await loadScript(KATEX_AUTO_CDN, KATEX_AUTO_LOCAL);
             console.log('✓ KaTeX auto-render loaded');
         } catch (e) {
             throw new Error(`KaTeX auto-render failed: ${e.message}`);
         }
-
         if (typeof window.renderMathInElement !== 'function') {
-            throw new Error('renderMathInElement not available after loading auto-render');
+            throw new Error('renderMathInElement missing');
         }
         return true;
     }
 
-    // Load marked.js with fallback
     async function loadMarked() {
-        if (window.marked && typeof window.marked.parse === 'function') return window.marked;
+        if (window.marked?.parse) return window.marked;
         try {
             await loadScript(MARKED_CDN, MARKED_LOCAL);
-            if (window.marked && typeof window.marked.parse === 'function') return window.marked;
-            throw new Error('Marked not available after load');
+            if (window.marked?.parse) return window.marked;
+            throw new Error('Marked not available');
         } catch (e) {
             throw new Error(`Marked load failed: ${e.message}`);
         }
     }
 
     // --------------------------------------------------------------
-    // 5. URL helpers: get markdown file, detect source mode
+    // 3. URL helpers: get markdown file, detect source mode, detect file extension
     // --------------------------------------------------------------
     function getMarkdownUrlFromQuery() {
         const search = window.location.search;
         if (!search || search === '?') return null;
-
         const params = new URLSearchParams(search);
         let named = params.get('md') || params.get('file') || params.get('markdown') || params.get('src');
-        if (named && named.trim() !== '') return named.trim();
-
-        if (!search.includes('=')) {
-            return decodeURIComponent(search.slice(1));
-        }
+        if (named?.trim()) return named.trim();
+        if (!search.includes('=')) return decodeURIComponent(search.slice(1));
         return null;
     }
 
-    function isSourceModeActive() {
-        const search = window.location.search;
-        if (!search) return false;
-        const params = new URLSearchParams(search);
+    function isExplicitSourceMode() {
+        const params = new URLSearchParams(window.location.search);
         return params.has('source');
     }
 
-    const rawMarkdownUrl = getMarkdownUrlFromQuery() || DEFAULT_MARKDOWN_URL;
-    const sourceMode = isSourceModeActive();
-
-    if (sourceMode) {
-        console.log('🔧 Source mode active: raw content displayed as code block (wrapped in ```)');
+    // Auto-detect if the file should be shown as source code based on extension
+    // (returns true for .js, .sh, .py, .c, .cpp, .java, .css, .html, .json, etc.)
+    function shouldAutoSourceMode(url) {
+        if (!url) return false;
+        try {
+            const path = new URL(url, window.location.href).pathname;
+            const ext = path.split('.').pop()?.toLowerCase();
+            if (!ext) return false;
+            const sourceExtensions = new Set([
+                'js', 'mjs', 'cjs', 'ts', 'jsx', 'tsx',
+                'sh', 'bash', 'zsh', 'fish',
+                'py', 'rb', 'pl', 'pm', 'lua', 'go', 'rs', 'swift',
+                'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'java', 'kt', 'kts',
+                'css', 'scss', 'sass', 'less',
+                'html', 'htm', 'xml', 'svg', 'xhtml',
+                'json', 'yaml', 'yml', 'toml', 'ini', 'cfg',
+                'txt', 'log', 'csv', 'sql',
+                'php', 'asp', 'aspx', 'jsp',
+                'vue', 'svelte'
+            ]);
+            // markdown files should NOT auto-source (only when ?source is explicit)
+            const markdownExtensions = new Set(['md', 'markdown', 'mdown', 'mkd', 'mkdown']);
+            if (markdownExtensions.has(ext)) return false;
+            return sourceExtensions.has(ext);
+        } catch {
+            return false;
+        }
     }
 
+    const rawMarkdownUrl = getMarkdownUrlFromQuery() || DEFAULT_MARKDOWN_URL;
+    const explicitSource = isExplicitSourceMode();
+    const autoSource = shouldAutoSourceMode(rawMarkdownUrl);
+    const sourceMode = explicitSource || autoSource;
+
+    if (explicitSource) console.log('🔧 Explicit &source mode active');
+    if (autoSource && !explicitSource) console.log('🤖 Auto source mode active (non-markdown file)');
+
     // --------------------------------------------------------------
-    // 6. Fetch markdown content (raw text)
+    // 4. Fetch content
     // --------------------------------------------------------------
-    async function fetchMarkdown(url) {
+    async function fetchContent(url) {
         let absoluteUrl;
         try {
             absoluteUrl = new URL(url, window.location.href).href;
@@ -255,18 +266,15 @@
             throw new Error(`HTTP ${response.status} - ${response.statusText}\nURL: ${absoluteUrl}`);
         }
         const text = await response.text();
-        if (text.length === 0) throw new Error('Markdown file is empty');
+        if (text.length === 0) throw new Error('File is empty');
         return text;
     }
 
     // --------------------------------------------------------------
-    // 7. Render markdown and then apply KaTeX math
+    // 5. Render: either markdown (with math) or source code block
     // --------------------------------------------------------------
-    async function renderMarkdownWithMath(markdownText, markedLib, container) {
-        markedLib.setOptions({ gfm: true, breaks: true, headerIds: true });
-        const html = await markedLib.parse(markdownText);
-        container.innerHTML = html;
-
+    async function renderWithMath(htmlContent, container) {
+        container.innerHTML = htmlContent;
         if (window.renderMathInElement) {
             try {
                 window.renderMathInElement(container, {
@@ -279,88 +287,110 @@
                     throwOnError: false,
                     errorColor: '#cc0000',
                 });
-                console.log('✓ KaTeX math rendered (ignores code blocks automatically)');
-            } catch (mathErr) {
-                console.warn('Math rendering error:', mathErr);
-            }
+                console.log('✓ KaTeX math rendered');
+            } catch (e) { console.warn('Math error:', e); }
         } else {
-            console.warn('renderMathInElement not found; math remains unrendered');
-            const warning = document.createElement('div');
-            warning.className = 'error';
-            warning.style.margin = '1rem 0';
-            warning.style.padding = '0.5rem';
-            warning.style.fontSize = '0.85rem';
-            warning.innerText = '⚠️ KaTeX auto-render not available. Math expressions are shown as raw LaTeX.';
-            container.prepend(warning);
+            const warn = document.createElement('div');
+            warn.className = 'error';
+            warn.innerText = '⚠️ KaTeX auto-render not available. Math shown as raw LaTeX.';
+            container.prepend(warn);
         }
     }
 
+    async function renderMarkdown(markdownText, markedLib, container) {
+        markedLib.setOptions({ gfm: true, breaks: true, headerIds: true });
+        const html = await markedLib.parse(markdownText);
+        await renderWithMath(html, container);
+    }
+
+    async function renderAsSourceCode(rawText, container) {
+        // Escape for safe HTML rendering inside code block
+        const escaped = rawText.replace(/[&<>]/g, m => {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+        // Use a markdown code block (no language spec, but plain)
+        const codeHtml = `<pre><code>${escaped}</code></pre>`;
+        // Wrap in a simple container to respect markdown-body styling
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = codeHtml;
+        container.innerHTML = '';
+        container.appendChild(wrapper);
+        // Also apply any CSS improvements
+        const style = document.createElement('style');
+        style.textContent = `.markdown-body pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow: auto; } .markdown-body code { font-family: 'SF Mono', Consolas, monospace; }`;
+        container.appendChild(style);
+        // No math rendering inside code blocks (ignored automatically)
+    }
+
     // --------------------------------------------------------------
-    // 8. Append persistent raw file download link at the bottom
+    // 6. Append clean raw file download link (no extra ?source)
     // --------------------------------------------------------------
     function appendRawFileLink(container, rawUrl) {
-        // Create a wrapper div for the raw link (below version footer)
         const rawDiv = document.createElement('div');
         rawDiv.className = 'raw-link-container';
         const link = document.createElement('a');
+        // Ensure the raw URL is clean – no viewer parameters
         link.href = rawUrl;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
-        link.innerHTML = '📄 Download raw markdown file';
-        // optional: add a small hint
-        link.title = 'Open or save the original markdown source';
+        link.innerHTML = '📄 Download raw file';
+        link.title = 'Open or save the original source file';
         rawDiv.appendChild(link);
         container.appendChild(rawDiv);
     }
 
     // --------------------------------------------------------------
-    // 9. Main: load deps, fetch, render, then add raw link + version
+    // 7. Main init
     // --------------------------------------------------------------
     async function init() {
         const container = document.getElementById('content');
         try {
-            container.innerHTML = '<div class="loader">Loading dependencies (CSS, marked.js, KaTeX)...</div>';
+            container.innerHTML = '<div class="loader">Loading dependencies (CSS, marked, KaTeX)...</div>';
 
             const [markedLib, katexLoaded] = await Promise.all([
                 loadMarked(),
                 loadKaTeX().catch(e => {
-                    console.error('KaTeX loading failed but continuing without math:', e);
+                    console.error('KaTeX load failed, math disabled:', e);
                     return false;
                 }),
-                loadMarkdownCSS().catch(e => console.warn('Markdown CSS optional:', e))
+                loadMarkdownCSS().catch(e => console.warn('CSS optional:', e))
             ]);
 
-            if (!katexLoaded) {
-                console.warn('KaTeX not fully available, math will be raw');
-            }
+            container.innerHTML = '<div class="loader">Fetching file content...</div>';
+            const rawContent = await fetchContent(rawMarkdownUrl);
 
-            container.innerHTML = '<div class="loader">Fetching markdown content...</div>';
-            let markdownText = await fetchMarkdown(rawMarkdownUrl);
-
-            // ----- SOURCE MODE: wrap raw content in triple backticks -----
+            // Decide render mode
             if (sourceMode) {
-                markdownText = '```\n' + markdownText + '\n```';
-                console.log('📦 Source mode active: raw content inside code fence');
+                // Source mode: always show as raw code block (wrapped in triple backticks equivalent)
+                await renderAsSourceCode(rawContent, container);
+                // Add a visual badge
+                const note = document.createElement('div');
+                note.className = 'source-mode-note';
+                if (explicitSource) {
+                    note.innerHTML = `<strong>Source mode (explicit &source)</strong> — File content displayed as plain code block.`;
+                } else if (autoSource) {
+                    note.innerHTML = `<strong>Auto source mode</strong> — Detected non-markdown file (e.g. .js, .sh). Displayed as raw code. Add <code>&source</code> to force this view for any file.`;
+                } else {
+                    note.innerHTML = `<strong>Source mode active</strong> — Raw file content shown as code block.`;
+                }
+                container.prepend(note);
+            } else {
+                // Normal markdown rendering
+                await renderMarkdown(rawContent, markedLib, container);
             }
 
-            container.innerHTML = '';   // clear loader
-            await renderMarkdownWithMath(markdownText, markedLib, container);
-
-            // ----- Add source mode indicator (if active) -----
-            if (sourceMode) {
-                const sourceNote = document.createElement('div');
-                sourceNote.className = 'source-mode-note';
-                sourceNote.innerHTML = `<strong>Source view active</strong> — The raw file content is displayed as a code block (wrapped in \`\`\`). Markdown, math and HTML are shown literally.`;
-                container.prepend(sourceNote);
-            }
-
-            // ----- Version footer -----
+            // Version footer
             const footer = document.createElement('div');
             footer.className = 'footer-version';
-            footer.innerText = `Version ${PAGE_VERSION}${sourceMode ? ' · 🔍 Source mode' : ''}`;
+            let modeStr = '';
+            if (sourceMode) modeStr = explicitSource ? ' · 🔍 Explicit source mode' : (autoSource ? ' · 🤖 Auto source mode' : ' · 🔍 Source mode');
+            footer.innerText = `Version ${PAGE_VERSION}${modeStr}`;
             container.appendChild(footer);
 
-            // ----- FALLBACK RAW LINK: always present at the end of page -----
+            // Raw file download link – clean, no extra parameters
             appendRawFileLink(container, rawMarkdownUrl);
 
         } catch (err) {
@@ -368,23 +398,14 @@
             let errorMessage = err.message;
             if (window.location.protocol === 'file:' && errorMessage.includes('fetch')) {
                 errorMessage = `Cannot load local file via file:// protocol.\n\n` +
-                    `Your browser blocked the request for security reasons.\n\n` +
-                    `👉 To fix this, start a simple local web server in the folder containing this HTML file:\n\n` +
-                    `   python3 -m http.server 8000\n\n` +
-                    `Then open: http://localhost:8000/` + window.location.pathname.split('/').pop() +
-                    `?${window.location.search.slice(1)}\n\n` +
+                    `👉 Start a local web server:\n   python3 -m http.server 8000\n` +
+                    `Then open: http://localhost:8000/${window.location.pathname.split('/').pop()}${window.location.search}\n\n` +
                     `Original error: ${err.message}`;
             }
 
-            // Show error + still provide raw link (if possible)
-            const rawLink = `<a href="${escapeHtml(rawMarkdownUrl)}" target="_blank" rel="noopener noreferrer" style="background:#f6f8fa; padding:6px 12px; border-radius:20px; text-decoration:none; color:#0969da;">📄 Download raw markdown file</a>`;
-            let sourceNoteFallback = '';
-            if (sourceMode) {
-                sourceNoteFallback = `<div style="background:#f0f4f9; border-left:3px solid #0969da; padding:8px 12px; margin-top:12px; border-radius:6px; font-size:0.85rem;">ℹ️ <strong>Source mode requested</strong> — Content would be shown as code block, but an error occurred.</div>`;
-            }
-            container.innerHTML = `<div class="error">❌ ${escapeHtml(errorMessage)}<br><br>${rawLink}${sourceNoteFallback}</div>`;
-            // Even in error case, we also add a manual wrapper to ensure the link is visible if the error div is shown,
-            // but the error div already contains the raw link. To be thorough we also append a consistent fallback but it's fine.
+            // Fallback error display – raw link remains clean
+            const rawLink = `<a href="${escapeHtml(rawMarkdownUrl)}" target="_blank" rel="noopener noreferrer" style="background:#f6f8fa; padding:6px 12px; border-radius:20px; text-decoration:none; color:#0969da;">📄 Download raw file</a>`;
+            container.innerHTML = `<div class="error">❌ ${escapeHtml(errorMessage)}<br><br>${rawLink}</div>`;
         }
     }
 
