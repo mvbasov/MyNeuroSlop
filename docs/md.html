@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown/Code Viewer with KaTeX · Auto source mode for .js/.sh + raw link</title>
+    <title>Markdown/Code Viewer · Auto source mode + clean empty lines & escaped HTML</title>
     <style>
         * {
             margin: 0;
@@ -94,7 +94,7 @@
     // 1. CONFIGURATION
     // --------------------------------------------------------------
     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/markdown_example.md';
-    const PAGE_VERSION = '1.6.0';   // Auto source mode for .js/.sh + clean raw link
+    const PAGE_VERSION = '1.6.1';   // Source mode: delete empty lines + escape <>
 
     // Marked.js (CDN + local fallback)
     const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
@@ -197,7 +197,7 @@
     }
 
     // --------------------------------------------------------------
-    // 3. URL helpers: get markdown file, detect source mode, detect file extension
+    // 3. URL helpers: get markdown file, detect source mode
     // --------------------------------------------------------------
     function getMarkdownUrlFromQuery() {
         const search = window.location.search;
@@ -214,8 +214,7 @@
         return params.has('source');
     }
 
-    // Auto-detect if the file should be shown as source code based on extension
-    // (returns true for .js, .sh, .py, .c, .cpp, .java, .css, .html, .json, etc.)
+    // Auto-detect source files (.js, .sh, etc.) – no markdown extensions
     function shouldAutoSourceMode(url) {
         if (!url) return false;
         try {
@@ -234,7 +233,6 @@
                 'php', 'asp', 'aspx', 'jsp',
                 'vue', 'svelte'
             ]);
-            // markdown files should NOT auto-source (only when ?source is explicit)
             const markdownExtensions = new Set(['md', 'markdown', 'mdown', 'mkd', 'mkdown']);
             if (markdownExtensions.has(ext)) return false;
             return sourceExtensions.has(ext);
@@ -271,7 +269,7 @@
     }
 
     // --------------------------------------------------------------
-    // 5. Render: either markdown (with math) or source code block
+    // 5. Render: markdown (with math) or source code (delete empty lines + escape <>)
     // --------------------------------------------------------------
     async function renderWithMath(htmlContent, container) {
         container.innerHTML = htmlContent;
@@ -303,36 +301,44 @@
         await renderWithMath(html, container);
     }
 
-    async function renderAsSourceCode(rawText, container) {
-        // Escape for safe HTML rendering inside code block
-        const escaped = rawText.replace(/[&<>]/g, m => {
+    // Core: delete empty lines, then escape < > & (safe for HTML)
+    function processSourceText(rawText) {
+        // Split lines, remove lines that are empty or contain only whitespace
+        const lines = rawText.split(/\r?\n/);
+        const nonEmptyLines = lines.filter(line => line.trim() !== '');
+        const trimmedContent = nonEmptyLines.join('\n');
+        // Escape HTML special characters: &, <, >
+        return trimmedContent.replace(/[&<>]/g, (m) => {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
             if (m === '>') return '&gt;';
             return m;
         });
-        // Use a markdown code block (no language spec, but plain)
-        const codeHtml = `<pre><code>${escaped}</code></pre>`;
-        // Wrap in a simple container to respect markdown-body styling
+    }
+
+    async function renderAsSourceCode(rawText, container) {
+        // Step 1: delete empty lines
+        // Step 2: escape < and > (and & for safety)
+        const processed = processSourceText(rawText);
+        // Build pre/code block
+        const codeHtml = `<pre><code>${processed}</code></pre>`;
         const wrapper = document.createElement('div');
         wrapper.innerHTML = codeHtml;
         container.innerHTML = '';
         container.appendChild(wrapper);
-        // Also apply any CSS improvements
+        // Additional monospace styling
         const style = document.createElement('style');
         style.textContent = `.markdown-body pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow: auto; } .markdown-body code { font-family: 'SF Mono', Consolas, monospace; }`;
         container.appendChild(style);
-        // No math rendering inside code blocks (ignored automatically)
     }
 
     // --------------------------------------------------------------
-    // 6. Append clean raw file download link (no extra ?source)
+    // 6. Append clean raw file download link (no extra parameters)
     // --------------------------------------------------------------
     function appendRawFileLink(container, rawUrl) {
         const rawDiv = document.createElement('div');
         rawDiv.className = 'raw-link-container';
         const link = document.createElement('a');
-        // Ensure the raw URL is clean – no viewer parameters
         link.href = rawUrl;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
@@ -362,23 +368,21 @@
             container.innerHTML = '<div class="loader">Fetching file content...</div>';
             const rawContent = await fetchContent(rawMarkdownUrl);
 
-            // Decide render mode
             if (sourceMode) {
-                // Source mode: always show as raw code block (wrapped in triple backticks equivalent)
+                // SOURCE MODE: delete empty lines + escape <>
                 await renderAsSourceCode(rawContent, container);
-                // Add a visual badge
                 const note = document.createElement('div');
                 note.className = 'source-mode-note';
                 if (explicitSource) {
-                    note.innerHTML = `<strong>Source mode (explicit &source)</strong> — File content displayed as plain code block.`;
+                    note.innerHTML = `<strong>Source mode (explicit &source)</strong> — Empty lines removed, HTML special characters escaped.`;
                 } else if (autoSource) {
-                    note.innerHTML = `<strong>Auto source mode</strong> — Detected non-markdown file (e.g. .js, .sh). Displayed as raw code. Add <code>&source</code> to force this view for any file.`;
+                    note.innerHTML = `<strong>Auto source mode</strong> — Detected non-markdown file. Empty lines removed, <code>&lt;</code> and <code>&gt;</code> escaped. Add <code>&source</code> to force this view.`;
                 } else {
-                    note.innerHTML = `<strong>Source mode active</strong> — Raw file content shown as code block.`;
+                    note.innerHTML = `<strong>Source mode active</strong> — Blank lines deleted, angle brackets escaped.`;
                 }
                 container.prepend(note);
             } else {
-                // Normal markdown rendering
+                // Normal markdown rendering (preserve original content, no line deletion)
                 await renderMarkdown(rawContent, markedLib, container);
             }
 
@@ -386,11 +390,11 @@
             const footer = document.createElement('div');
             footer.className = 'footer-version';
             let modeStr = '';
-            if (sourceMode) modeStr = explicitSource ? ' · 🔍 Explicit source mode' : (autoSource ? ' · 🤖 Auto source mode' : ' · 🔍 Source mode');
+            if (sourceMode) modeStr = explicitSource ? ' · 🔍 Explicit source mode (no empty lines, escaped <>)' : (autoSource ? ' · 🤖 Auto source mode (no empty lines, escaped <>)' : ' · 🔍 Source mode');
             footer.innerText = `Version ${PAGE_VERSION}${modeStr}`;
             container.appendChild(footer);
 
-            // Raw file download link – clean, no extra parameters
+            // Raw file download link – clean URL (no ?source)
             appendRawFileLink(container, rawMarkdownUrl);
 
         } catch (err) {
@@ -402,8 +406,6 @@
                     `Then open: http://localhost:8000/${window.location.pathname.split('/').pop()}${window.location.search}\n\n` +
                     `Original error: ${err.message}`;
             }
-
-            // Fallback error display – raw link remains clean
             const rawLink = `<a href="${escapeHtml(rawMarkdownUrl)}" target="_blank" rel="noopener noreferrer" style="background:#f6f8fa; padding:6px 12px; border-radius:20px; text-decoration:none; color:#0969da;">📄 Download raw file</a>`;
             container.innerHTML = `<div class="error">❌ ${escapeHtml(errorMessage)}<br><br>${rawLink}</div>`;
         }
