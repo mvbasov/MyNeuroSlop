@@ -1,0 +1,130 @@
+--- md_2_1_0.html	2026-06-05 01:21:23.377205102 +0300
++++ md_2_2_0.html	2026-06-05 01:21:44.245225862 +0300
+@@ -3,16 +3,17 @@
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Markdown/Code Viewer · KaTeX fixed + local-first</title>
++    <title>Markdown/Code Viewer · KaTeX (auto + manual render)</title>
+     <style>
+         * { margin: 0; padding: 0; box-sizing: border-box; }
+         body { background: #fafafa; padding: 2rem 1rem; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+         .markdown-body { max-width: 900px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+         .loader, .error { text-align: center; padding: 3rem 1rem; }
+         .error { color: #d73a49; background: #ffeef0; border-radius: 6px; white-space: pre-wrap; }
+-        .warning-banner { background: #fff5b0; border-left: 4px solid #f5a623; padding: 0.6rem 1rem; margin-bottom: 1rem; border-radius: 6px; color: #5c3c00; }
++        .warning-banner { background: #fff5b0; border-left: 4px solid #f5a623; padding: 0.6rem 1rem; margin-bottom: 1rem; border-radius: 6px; color: #5c3c00; font-size: 0.85rem; }
++        .math-error-banner { background: #f8d7da; border-left: 4px solid #dc3545; color: #721c24; }
+         .footer-version { margin-top: 2rem; text-align: center; font-size: 0.75rem; color: #6a737d; border-top: 1px solid #eaecef; padding-top: 1rem; }
+-        .math-status { display: inline-block; margin-left: 1rem; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.7rem; font-weight: normal; }
++        .math-status { display: inline-block; margin-left: 1rem; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.7rem; }
+         .math-status.ok { background: #d4edda; color: #155724; }
+         .math-status.fail { background: #f8d7da; color: #721c24; }
+         .raw-link-container { text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #eaecef; }
+@@ -24,10 +25,10 @@
+ <div id="content" class="markdown-body"><div class="loader">Loading viewer…</div></div>
+ 
+ <script>
+-    // ---------- CONFIGURATION ----------
++    // ---------- CONFIGURATION (local-first) ----------
+     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/docs/markdown_example.md';
+-    const PAGE_VERSION = '2.1.0';
+-    // local first
++    const PAGE_VERSION = '2.2.0 (manual math fallback)';
++
+     const MARKED_LOCAL = 'fallback_js/marked.min.js';
+     const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+     const MD_CSS_LOCAL = 'fallback_js/github-markdown.min.css';
+@@ -120,27 +121,68 @@
+         return txt;
+     }
+ 
+-    // ---------- FIXED MATH RENDERER (unescape only inside math) ----------
+-    function unescapeMath(html) {
+-        // Replace &lt; &gt; &amp; inside $$...$$ and $...$ only
+-        return html.replace(/\$\$([\s\S]*?)\$\$|\$([^\$]+?)\$/g, (match, dbl, single) => {
+-            let inner = (dbl !== undefined) ? dbl : single;
+-            inner = inner.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+-            return match.startsWith('$$') ? `$$${inner}$$` : `$${inner}$`;
++    // ---------- ROBUST MATH RENDERING (auto + manual fallback) ----------
++    async function renderMathInContainer(container) {
++        const errors = [];
++        // Step 1: Auto-render (handles most cases)
++        if (window.renderMathInElement) {
++            try {
++                window.renderMathInElement(container, {
++                    delimiters: [
++                        { left: '$$', right: '$$', display: true },
++                        { left: '$', right: '$', display: false },
++                        { left: '\\(', right: '\\)', display: false },
++                        { left: '\\[', right: '\\]', display: true }
++                    ],
++                    throwOnError: false,
++                    errorColor: '#cc0000'
++                });
++                console.log('✓ Auto-render completed');
++            } catch (e) {
++                console.warn('Auto-render error:', e);
++            }
++        }
++
++        // Step 2: Manual fallback – find any leftover raw math blocks and render them
++        const html = container.innerHTML;
++        const mathRegex = /\$\$([\s\S]*?)\$\$|\$([^\$]+?)\$/g;
++        let hasLeftover = false;
++        const newHtml = html.replace(mathRegex, (match, dbl, single) => {
++            const tex = (dbl !== undefined) ? dbl : single;
++            // Skip if already wrapped in a KaTeX span (rendered)
++            if (match.includes('katex')) return match;
++            hasLeftover = true;
++            try {
++                const rendered = katex.renderToString(tex, {
++                    displayCaught: !!dbl,
++                    throwOnError: true
++                });
++                return rendered;
++            } catch (err) {
++                errors.push({ tex, error: err.message });
++                console.error(`KaTeX manual render failed: ${tex}\n`, err);
++                // Return raw tex wrapped in error span
++                return `<span style="color:#cc0000; background:#ffeef0; padding:0 2px;">⚠️ ${escapeHtml(tex)}</span>`;
++            }
+         });
++        if (hasLeftover) {
++            container.innerHTML = newHtml;
++            console.log(`✓ Manual fallback rendered ${errors.length === 0 ? 'all' : 'some'} leftover math blocks`);
++        }
++        return errors;
+     }
+ 
+     async function renderMarkdown(text, marked, container) {
+         marked.setOptions({ gfm: true, breaks: true });
+-        let html = await marked.parse(text);
++        const html = await marked.parse(text);
+         container.innerHTML = html;
+-        // Unescape math entities before KaTeX
+-        container.innerHTML = unescapeMath(container.innerHTML);
+-        if (window.renderMathInElement) {
+-            window.renderMathInElement(container, {
+-                delimiters: [{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
+-                throwOnError: false
+-            });
++        const mathErrors = await renderMathInContainer(container);
++        if (mathErrors.length) {
++            const errorDiv = document.createElement('div');
++            errorDiv.className = 'warning-banner math-error-banner';
++            errorDiv.innerHTML = `<strong>⚠️ Math rendering errors for ${mathErrors.length} block(s):</strong><br>` +
++                mathErrors.map(e => `• <code>${escapeHtml(e.tex.substring(0, 80))}</code> → ${escapeHtml(e.error)}`).join('<br>');
++            container.prepend(errorDiv);
+         }
+     }
+ 
+@@ -166,7 +208,7 @@
+                 loadKaTeX().then(()=>true).catch(e=>{console.error(e); return false;})
+             ]);
+             katexOk = katexLoaded;
+-            mathStatusMsg = katexOk ? '✅ Math: KaTeX active' : '❌ Math: KaTeX NOT loaded (missing fallback_js/ files or offline)';
++            mathStatusMsg = katexOk ? '✅ Math: KaTeX active (auto + manual)' : '❌ Math: KaTeX NOT loaded';
+ 
+             let hljsOk = false;
+             if (sourceMode) {
