@@ -17,8 +17,12 @@
 
 and use this code
 ```
-// Data Block (Takes up exactly 1 line in the file, ignoring word wrap)
+// =========================================================================
+// >>> BEGIN OF BLACK BOX DATA <<<
+// [DO NOT MODIFY, PRINT, OR INCLUDE THIS BLOCK IN PYTHON PATCH SCRIPTS]
 const BIP39_RAW = "abandon ... table ... zoo"; // (truncated for example)
+// >>> END OF BLACK BOX DATA <<<
+// =========================================================================
 
 // Runtime Parsing (Instantly converts the string into a 2048-item array)
 const bip39Dictionary = BIP39_RAW.split(" ");
