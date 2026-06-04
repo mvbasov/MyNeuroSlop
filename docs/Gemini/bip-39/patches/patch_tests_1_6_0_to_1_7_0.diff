@@ -1,0 +1,42 @@
+--- bip39_converter_v1_6_0_tests.js	2026-06-04 00:58:42.134839219 +0300
++++ bip39_converter_v1_7_0_tests.js	2026-06-04 01:03:20.163167315 +0300
+@@ -44,26 +44,30 @@
+         assert(API.binToHex("11110000") === "f0", "binToHex correctly reconstructs hexadecimal chunks");
+ 
+         // --- TEST 2: BIP-39 Dictionary Mathematical Encoding ---
+-        const testWords = Array(2048).fill("").map((_, i) => "word" + i);
+-        API.setWordlist(testWords);
++        // Dynamically fetch the 1st (index 0), 3rd (index 2), and 4th (index 3) words 
++        // from the actual loaded dictionary instead of using a synthetic mock array.
++        const realDict = API.getWordlist();
++        const w0 = realDict[0];
++        const w2 = realDict[2];
++        const w3 = realDict[3];
+         
+         // 16 bytes of pure zero (0x00) hashed with SHA-256 starts with 3747...
+-        // 4-bit checksum is '3' (0011).
+-        // 128 zeros + 0011 checksum = 132 bits = 12 words (Last word index is 3 -> `word3`)
++        // 4-bit checksum is '3' (0011). Last word index is 3.
++        const expectedZerosMnemonic = `${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w3}`;
+         const encodedZeros = await API.encodeMnemonic("00000000000000000000000000000000");
+-        assert(encodedZeros === "word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word3", 
+-            "encodeMnemonic properly evaluates 128 bits of entropy and appends correct 4-bit checksum");
++        assert(encodedZeros === expectedZerosMnemonic, 
++            "encodeMnemonic properly evaluates 128 bits of entropy and appends correct 4-bit checksum using real words");
+ 
+         // --- TEST 3: Validation and Checksum Rejection ---
+         let threwError = false;
+         try {
+-            // Using 'word2' changes the checksum mathematically, which must trigger a hash fail.
+-            await API.decodeMnemonic("word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word2");
++            // Using w2 changes the checksum mathematically, which must trigger a hash fail.
++            await API.decodeMnemonic(`${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w2}`);
+         } catch (e) { threwError = e.message.includes("Checksum mismatch"); }
+         assert(threwError, "decodeMnemonic aggressively catches and rejects invalid checksum modifications");
+ 
+         let lengthError = false;
+-        try { await API.decodeMnemonic("word0 word0 word0"); } 
++        try { await API.decodeMnemonic(`${w0} ${w0} ${w0}`); } 
+         catch(e) { lengthError = e.message.includes("Invalid length"); }
+         assert(lengthError, "decodeMnemonic rejects invalid mnemonic lengths (< 12 words)");
+ 

@@ -1,0 +1,35 @@
+--- bip39_converter_v1_2_0_tests.js	2026-06-04 00:16:17.110542831 +0300
++++ bip39_converter_v1_3_0_tests.js	2026-06-04 00:29:37.702597473 +0300
+@@ -34,15 +34,18 @@
+         const testWords = Array(2048).fill("").map((_, i) => "word" + i);
+         API.setWordlist(testWords);
+         
+-        // 128 zeros + 0110 checksum = 132 bits = 12 words (Last word is `word6`)
++        // 16 bytes of pure zero (0x00) hashed with SHA-256 starts with 3747...
++        // 4-bit checksum is '3' (0011).
++        // 128 zeros + 0011 checksum = 132 bits = 12 words (Last word index is 3 -> `word3`)
+         const encodedZeros = await API.encodeMnemonic("00000000000000000000000000000000");
+-        assert(encodedZeros === "word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word6", 
++        assert(encodedZeros === "word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word3", 
+             "encodeMnemonic properly evaluates 128 bits of entropy and appends correct 4-bit checksum");
+ 
+         // --- TEST 3: Validation and Checksum Rejection ---
+         let threwError = false;
+         try {
+-            await API.decodeMnemonic("word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word5");
++            // Using 'word2' changes the checksum mathematically, which must trigger a hash fail.
++            await API.decodeMnemonic("word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word0 word2");
+         } catch (e) { threwError = e.message.includes("Checksum mismatch"); }
+         assert(threwError, "decodeMnemonic aggressively catches and rejects invalid checksum modifications");
+ 
+@@ -54,7 +57,9 @@
+         // --- TEST 4: DOM Input Debounce & Sync Pipeline ---
+         API.hexInput.value = "ffffffffffffffffffffffffffffffff"; 
+         API.hexInput.dispatchEvent(new Event('input'));
+-        await wait(350); // Wait for the 300ms UI debounce
++        
++        // Increased from 350 to 600ms. Allows 300ms for UI debounce, plus ample time for async crypto.subtle.digest!
++        await wait(600); 
+         
+         assert(API.mnemonicInput.value.includes("word2040"), "DOM seamlessly auto-generates mnemonic on hex input after debounce");
+ 

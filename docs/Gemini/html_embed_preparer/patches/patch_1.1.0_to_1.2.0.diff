@@ -1,0 +1,121 @@
+--- html_embed_preparer_v1.1.0.html	2026-05-31 19:17:26.517529928 +0300
++++ html_embed_preparer_v1.2.0.html	2026-05-31 19:17:26.521529942 +0300
+@@ -3,7 +3,8 @@
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>HTML Embed Preparer v1.1.0</title>
++    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231e293b'/%3E%3Cpolyline points='35,35 20,50 35,65' fill='none' stroke='%232563eb' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpolyline points='65,35 80,50 65,65' fill='none' stroke='%232563eb' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='58' y1='25' x2='42' y2='75' stroke='%23ffffff' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E">
++    <title>HTML Embed Preparer v1.2.0</title>
+     <style>
+         :root {
+             /* Color Palette */
+@@ -248,13 +249,6 @@
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+             HTML Embed Preparer
+         </h1>
+-        <div class="header-actions">
+-            <input type="file" id="file-upload" class="hidden" accept=".html,.htm,.txt,.md">
+-            <label for="file-upload" class="btn btn-md btn-load">
+-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+-                Load File
+-            </label>
+-        </div>
+     </header>
+ 
+     <main class="main-container">
+@@ -287,12 +281,19 @@
+             <div class="card editor-card">
+                 <div class="card-header">
+                     <h2 class="card-title">Input Source <span id="input-char-count" class="char-count">0 B</span></h2>
+-                    <button id="clear-btn" class="btn btn-sm btn-clear">
+-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+-                        Clear
+-                    </button>
++                    <div class="header-actions" style="gap: 0.5rem;">
++                        <input type="file" id="file-upload" class="hidden" accept=".html,.htm,.txt,.md">
++                        <label for="file-upload" class="btn btn-sm btn-load" title="Load source from file">
++                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
++                            Load File
++                        </label>
++                        <button id="clear-btn" class="btn btn-sm btn-clear">
++                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
++                            Clear
++                        </button>
++                    </div>
+                 </div>
+-                <textarea id="input-text" class="editor-textarea textarea-input" placeholder="Paste your HTML document here..."></textarea>
++                <textarea id="input-text" class="editor-textarea textarea-input" placeholder="Paste your HTML document here or drag & drop a file..."></textarea>
+             </div>
+         </div>
+ 
+@@ -316,7 +317,7 @@
+     </main>
+ 
+     <footer class="app-footer">
+-        mvb HTML Embed Preparer v1.1.0
++        mvb HTML Embed Preparer v1.2.0
+     </footer>
+ 
+     <script>
+@@ -497,9 +498,8 @@
+             processContent();
+         });
+ 
+-        // File upload logic
+-        fileUpload.addEventListener('change', (e) => {
+-            const file = e.target.files[0];
++        // Helper function to read file content
++        function handleFile(file) {
+             if (!file) return;
+ 
+             const reader = new FileReader();
+@@ -507,12 +507,40 @@
+                 inputTextArea.value = event.target.result;
+                 processContent();
+                 showToast(`Loaded ${file.name} successfully.`);
+-                fileUpload.value = ''; // Reset input so same file can be loaded again if needed
++                if (fileUpload) fileUpload.value = ''; // Reset input so same file can be loaded again if needed
+             };
+             reader.onerror = () => {
+                 showToast('Failed to read file.', 'error');
+             };
+             reader.readAsText(file);
++        }
++
++        // File upload logic (Button click)
++        fileUpload.addEventListener('change', (e) => {
++            handleFile(e.target.files[0]);
++        });
++
++        // Drag and Drop logic for textarea
++        inputTextArea.addEventListener('dragover', (e) => {
++            e.preventDefault();
++            inputTextArea.style.borderColor = 'var(--primary)';
++            inputTextArea.style.background = '#fff';
++        });
++
++        inputTextArea.addEventListener('dragleave', (e) => {
++            e.preventDefault();
++            inputTextArea.style.borderColor = '';
++            inputTextArea.style.background = '';
++        });
++
++        inputTextArea.addEventListener('drop', (e) => {
++            e.preventDefault();
++            inputTextArea.style.borderColor = '';
++            inputTextArea.style.background = '';
++            
++            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
++                handleFile(e.dataTransfer.files[0]);
++            }
+         });
+ 
+         // Copy to clipboard logic
+@@ -574,4 +602,4 @@
+         processContent();
+     </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>

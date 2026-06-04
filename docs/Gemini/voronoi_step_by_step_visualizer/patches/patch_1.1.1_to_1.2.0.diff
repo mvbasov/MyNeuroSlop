@@ -1,0 +1,342 @@
+--- voronoi_step_by_step_visualizer_v1.1.1.html	2026-05-31 19:17:26.537529998 +0300
++++ voronoi_step_by_step_visualizer_v1.2.0.html	2026-05-31 19:17:26.537529998 +0300
+@@ -1,43 +1,142 @@
+ <!DOCTYPE html>
+-<!-- Voronoi Step-by-Step Visualizer v1.1.1 -->
++<!-- Voronoi Step-by-Step Visualizer v1.2.0 -->
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
++    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='10' y='10' width='80' height='80' fill='%23ffffff' stroke='%23e5e7eb' stroke-width='4' rx='8'/%3E%3Cpath d='M 10 10 L 10 90 L 90 90 Z' fill='%23dbeafe' stroke='%233b82f6' stroke-width='4' stroke-linejoin='round'/%3E%3Cline x1='10' y1='10' x2='90' y2='90' stroke='%23ef4444' stroke-width='4' stroke-dasharray='6,6' stroke-linecap='round'/%3E%3Cline x1='50' y1='50' x2='62' y2='38' stroke='%23f97316' stroke-width='4' stroke-linecap='round'/%3E%3Cpolygon points='68,32 57,37 63,43' fill='%23f97316'/%3E%3Ccircle cx='30' cy='70' r='6' fill='%233b82f6'/%3E%3Ccircle cx='70' cy='30' r='6' fill='%23ef4444'/%3E%3C/svg%3E">
+     <title>Voronoi Generation Step-by-Step</title>
+-    <script src="https://cdn.tailwindcss.com"></script>
+     <style>
+-        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f0f2f5; }
+-        .svg-container {
+-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+-            background: #ffffff;
+-            /* Ensures SVG scales nicely while keeping the 100x100 aspect ratio */
+-            width: 100%;
++        /* Base Reset & Core Typography */
++        * { box-sizing: border-box; margin: 0; padding: 0; }
++        body { 
++            font-family: system-ui, -apple-system, sans-serif; 
++            background-color: #f0f2f5; 
++            color: #1f2937; 
++            line-height: 1.5; 
++            min-height: 100vh; 
++            padding: 1rem; 
++            display: flex; 
++            flex-direction: column; 
++            align-items: center; 
++        }
++        @media (min-width: 768px) { body { padding: 2rem; } }
++
++        /* Layout & Containers */
++        .app-container { width: 100%; max-width: 72rem; }
++        .main-layout { display: flex; flex-direction: column; gap: 2rem; }
++        @media (min-width: 1024px) { .main-layout { flex-direction: row; } }
++        .col-left { flex: 1; display: flex; flex-direction: column; align-items: center; }
++        .col-right { flex: 1; display: flex; flex-direction: column; gap: 1rem; }
++        .panel { 
++            background-color: #ffffff; 
++            padding: 1.5rem; 
++            border-radius: 0.5rem; 
++            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); 
++            border: 1px solid #e5e7eb; 
++            width: 100%; 
++            display: flex;
++            flex-direction: column;
++        }
++
++        /* Header & Controls */
++        .header { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 1rem; justify-content: space-between; }
++        @media (min-width: 768px) { .header { flex-direction: row; align-items: center; } }
++        .header-title-wrapper { display: flex; flex-direction: column; }
++        .header-title { font-size: 1.875rem; font-weight: 700; color: #111827; display: flex; align-items: center; gap: 0.5rem; line-height: 1.2; }
++        .version-badge { font-size: 0.75rem; font-weight: 500; background-color: #dbeafe; color: #1e40af; padding: 0.125rem 0.5rem; border-radius: 9999px; border: 1px solid #bfdbfe; }
++        .header-subtitle { font-size: 0.875rem; color: #4b5563; margin-top: 0.25rem; }
++        
++        .controls-group { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
++        .control-item { display: flex; align-items: center; gap: 0.5rem; }
++        .control-label { font-size: 0.875rem; font-weight: 500; color: #374151; }
++        .control-select { border: 1px solid #d1d5db; border-radius: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.875rem; background-color: #ffffff; outline: none; cursor: pointer; }
++        
++        .btn-primary { background-color: #2563eb; color: #ffffff; font-weight: 500; padding: 0.5rem 1rem; border-radius: 0.375rem; transition: background-color 0.2s; border: none; cursor: pointer; font-size: 1rem; }
++        .btn-primary:hover { background-color: #1d4ed8; }
++
++        /* SVG Visualization Area */
++        .svg-container { 
++            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
++            background: #ffffff; 
++            width: 100%; 
+             max-width: 500px; 
+-            aspect-ratio: 1 / 1;
++            aspect-ratio: 1 / 1; 
++            border-radius: 0.5rem; 
++            overflow: hidden; 
++            position: relative; 
++            border: 1px solid #d1d5db; 
++        }
++        svg { width: 100%; height: 100%; display: block; }
++
++        /* Playback UI */
++        .playback-panel { max-width: 500px; margin-top: 1.5rem; padding: 1rem; }
++        .playback-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
++        .btn-icon { padding: 0.5rem; background-color: #f3f4f6; color: #374151; border-radius: 9999px; transition: background-color 0.2s; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
++        .btn-icon:hover { background-color: #e5e7eb; }
++        .btn-icon svg { width: 1.5rem; height: 1.5rem; }
++        .btn-play { flex: 1; background-color: #22c55e; color: #ffffff; font-weight: 700; padding: 0.5rem 1rem; border-radius: 0.25rem; transition: background-color 0.2s; border: none; cursor: pointer; font-size: 1rem; }
++        .btn-play:hover { background-color: #16a34a; }
++        .btn-play.playing { background-color: #eab308; }
++        .btn-play.playing:hover { background-color: #ca8a04; }
++
++        .slider-row { display: flex; align-items: center; gap: 1rem; }
++        .step-counter { font-size: 0.875rem; font-weight: 500; width: 4rem; text-align: right; color: #374151; }
++        .slider { flex: 1; height: 0.5rem; background-color: #e5e7eb; border-radius: 0.5rem; -webkit-appearance: none; appearance: none; cursor: pointer; outline: none; }
++        .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 1rem; height: 1rem; background: #2563eb; cursor: pointer; border-radius: 50%; }
++
++        /* Legend */
++        .legend { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.75rem; justify-content: center; color: #4b5563; }
++        .legend-item { display: flex; align-items: center; gap: 0.25rem; }
++        .legend-dot { width: 0.75rem; height: 0.75rem; border-radius: 9999px; }
++        .dot-pa { background-color: #3b82f6; }
++        .dot-pb { background-color: #ef4444; }
++        .dot-curr { background-color: #facc15; }
++        .dot-next { background-color: #a855f7; }
++        .dot-int { background-color: #22c55e; }
++        .dot-norm { background-color: #f97316; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #ffffff; font-weight: bold; }
++
++        /* Explanation & Math Terminal */
++        .step-info-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: #1f2937; margin-top: 0; }
++        .step-info-desc { color: #4b5563; margin-bottom: 1rem; margin-top: 0; }
++        .terminal { background-color: #111827; border-radius: 0.5rem; padding: 1rem; overflow: hidden; display: flex; flex-direction: column; min-height: 280px; flex: 1; }
++        .terminal-header { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin-bottom: 0.5rem; font-weight: 600; margin-top: 0; }
++        
++        .math-panel { 
++            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
++            font-size: 0.875rem; 
++            color: #4ade80; 
++            white-space: pre-wrap; 
++            flex: 1; 
++            overflow-y: auto; 
+         }
+-        svg { width: 100%; height: 100%; }
+-        /* Custom scrollbar for math panel */
+         .math-panel::-webkit-scrollbar { width: 8px; }
+         .math-panel::-webkit-scrollbar-track { background: #1f2937; }
+         .math-panel::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
++        
++        .math-hl-white { color: #ffffff; font-weight: 700; }
++        .math-hl-yellow { color: #facc15; font-weight: 700; }
++        .math-comment { color: #93c5fd; }
++        .math-empty { color: #6b7280; font-style: italic; }
++
++        .app-footer { margin-top: 2rem; margin-bottom: 1rem; text-align: center; font-size: 0.75rem; color: #9ca3af; width: 100%; }
+     </style>
+ </head>
+-<body class="min-h-screen text-gray-800 p-4 md:p-8 flex flex-col items-center">
++<body class="app-body">
+ 
+-    <div class="max-w-6xl w-full">
+-        <header class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+-            <div>
+-                <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-2">
++    <div class="app-container">
++        <header class="header">
++            <div class="header-title-wrapper">
++                <h1 class="header-title">
+                     Voronoi Step-by-Step
+-                    <span class="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full border border-blue-200">v1.1.1</span>
++                    <span class="version-badge">v1.2.0</span>
+                 </h1>
+-                <p class="text-sm text-gray-600 mt-1">Watch how half-plane intersections are calculated.</p>
++                <p class="header-subtitle">Watch how half-plane intersections are calculated.</p>
+             </div>
+-            <div class="flex items-center gap-4 flex-wrap">
+-                <div class="flex items-center gap-2">
+-                    <label for="point-count" class="text-sm font-medium text-gray-700">Sites:</label>
+-                    <select id="point-count" class="border border-gray-300 rounded px-2 py-1 text-sm bg-white outline-none cursor-pointer">
++            <div class="controls-group">
++                <div class="control-item">
++                    <label for="point-count" class="control-label">Sites:</label>
++                    <select id="point-count" class="control-select">
+                         <option value="2">2</option>
+                         <option value="3" selected>3</option>
+                         <option value="4">4</option>
+@@ -49,66 +148,66 @@
+                         <option value="10">10</option>
+                     </select>
+                 </div>
+-                <div class="flex items-center gap-2">
+-                    <label for="grid-size" class="text-sm font-medium text-gray-700">Grid:</label>
+-                    <select id="grid-size" class="border border-gray-300 rounded px-2 py-1 text-sm bg-white outline-none cursor-pointer">
++                <div class="control-item">
++                    <label for="grid-size" class="control-label">Grid:</label>
++                    <select id="grid-size" class="control-select">
+                         <option value="20">20x20</option>
+                         <option value="50">50x50</option>
+                         <option value="100" selected>100x100</option>
+                     </select>
+                 </div>
+-                <button onclick="generateNew()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition">
++                <button onclick="generateNew()" class="btn-primary">
+                     Generate New Points
+                 </button>
+             </div>
+         </header>
+ 
+-        <div class="flex flex-col lg:flex-row gap-8">
++        <div class="main-layout">
+             <!-- Left Side: SVG Visualization -->
+-            <div class="flex-1 flex flex-col items-center">
+-                <div class="svg-container rounded-lg overflow-hidden relative border border-gray-300" id="svg-wrapper">
++            <div class="col-left">
++                <div class="svg-container" id="svg-wrapper">
+                     <!-- SVG gets injected here -->
+                 </div>
+ 
+                 <!-- Playback Controls -->
+-                <div class="w-full max-w-[500px] mt-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+-                    <div class="flex items-center gap-4 mb-4">
+-                        <button onclick="stepPrev()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition">
+-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
++                <div class="panel playback-panel">
++                    <div class="playback-row">
++                        <button onclick="stepPrev()" class="btn-icon">
++                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                         </button>
+-                        <button id="play-btn" onclick="togglePlay()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition">
++                        <button id="play-btn" onclick="togglePlay()" class="btn-play">
+                             Play
+                         </button>
+-                        <button onclick="stepNext()" class="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition">
+-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
++                        <button onclick="stepNext()" class="btn-icon">
++                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                         </button>
+                     </div>
+-                    <div class="flex items-center gap-4">
+-                        <span id="step-counter" class="text-sm font-medium w-16 text-right">0 / 0</span>
+-                        <input type="range" id="step-slider" min="0" max="0" value="0" class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" oninput="goToStep(this.value)">
++                    <div class="slider-row">
++                        <span id="step-counter" class="step-counter">0 / 0</span>
++                        <input type="range" id="step-slider" min="0" max="0" value="0" class="slider" oninput="goToStep(this.value)">
+                     </div>
+                     <!-- Legend -->
+-                    <div class="mt-4 flex flex-wrap gap-3 text-xs justify-center text-gray-600">
+-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-500"></span> Target (pA)</span>
+-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-500"></span> Compare (pB)</span>
+-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-400"></span> Curr Point</span>
+-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-purple-500"></span> Next Point</span>
+-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-500"></span> Intersect</span>
+-                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-orange-500 flex items-center justify-center text-[8px] text-white font-bold">n</span> Normal Vector</span>
++                    <div class="legend">
++                        <span class="legend-item"><span class="legend-dot dot-pa"></span> Target (pA)</span>
++                        <span class="legend-item"><span class="legend-dot dot-pb"></span> Compare (pB)</span>
++                        <span class="legend-item"><span class="legend-dot dot-curr"></span> Curr Point</span>
++                        <span class="legend-item"><span class="legend-dot dot-next"></span> Next Point</span>
++                        <span class="legend-item"><span class="legend-dot dot-int"></span> Intersect</span>
++                        <span class="legend-item"><span class="legend-dot dot-norm">n</span> Normal Vector</span>
+                     </div>
+                 </div>
+             </div>
+ 
+             <!-- Right Side: Explanation and Math Panel -->
+-            <div class="flex-1 flex flex-col gap-4">
+-                <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex-1">
+-                    <h2 class="text-xl font-bold mb-2 text-gray-800" id="step-title">Initialization</h2>
+-                    <p class="text-gray-600 mb-4" id="step-desc">Generating random points and creating the base 100x100 bounding box.</p>
++            <div class="col-right">
++                <div class="panel">
++                    <h2 class="step-info-title" id="step-title">Initialization</h2>
++                    <p class="step-info-desc" id="step-desc">Generating random points and creating the base bounding box.</p>
+                     
+                     <!-- Math Live View -->
+-                    <div class="bg-gray-900 rounded-lg p-4 overflow-hidden flex flex-col" style="min-height: 280px;">
+-                        <h3 class="text-xs uppercase tracking-wider text-gray-400 mb-2 font-semibold">Live Math Calculations</h3>
+-                        <div id="math-details" class="font-mono text-sm text-green-400 whitespace-pre-wrap flex-1 math-panel overflow-y-auto">
++                    <div class="terminal">
++                        <h3 class="terminal-header">Live Math Calculations</h3>
++                        <div id="math-details" class="math-panel">
+                             <!-- Math injected here -->
+                         </div>
+                     </div>
+@@ -371,7 +470,7 @@
+     function updateMathPanel(step) {
+         const p = document.getElementById('math-details');
+         if (!['CHECK_EDGE', 'KEEP_CURRENT', 'INTERSECTION'].includes(step.type)) {
+-            p.innerHTML = `<span class="text-gray-500 italic">// Math calculations are only active during edge clipping.</span>`;
++            p.innerHTML = `<span class="math-empty">// Math calculations are only active during edge clipping.</span>`;
+             return;
+         }
+ 
+@@ -383,31 +482,31 @@
+         t += `// Dot Product Distances (dist <= 0 is kept)\n`;
+         t += `currDist = (curr.x - mid.x)*n.x + (curr.y - mid.y)*n.y\n`;
+         t += `         = (${c.x.toFixed(1)} - ${m.x.toFixed(1)})*${n.x.toFixed(1)} + (${c.y.toFixed(1)} - ${m.y.toFixed(1)})*${n.y.toFixed(1)}\n`;
+-        t += `         = <span class="text-white font-bold">${step.currDist.toFixed(2)}</span>\n\n`;
++        t += `         = <span class="math-hl-white">${step.currDist.toFixed(2)}</span>\n\n`;
+ 
+         t += `nextDist = (next.x - mid.x)*n.x + (next.y - mid.y)*n.y\n`;
+         t += `         = (${nxt.x.toFixed(1)} - ${m.x.toFixed(1)})*${n.x.toFixed(1)} + (${nxt.y.toFixed(1)} - ${m.y.toFixed(1)})*${n.y.toFixed(1)}\n`;
+-        t += `         = <span class="text-white font-bold">${step.nextDist.toFixed(2)}</span>\n\n`;
++        t += `         = <span class="math-hl-white">${step.nextDist.toFixed(2)}</span>\n\n`;
+ 
+         if (step.type === 'KEEP_CURRENT') {
+-            t += `<span class="text-blue-300">// Action: currDist <= 0, keeping current vertex.</span>`;
++            t += `<span class="math-comment">// Action: currDist <= 0, keeping current vertex.</span>`;
+         }
+ 
+         if (step.type === 'INTERSECTION') {
+             t += `// Signs differ! Calculating exact intersection 't' ratio:\n`;
+             t += `t = currDist / (currDist - nextDist)\n`;
+             t += `  = ${step.currDist.toFixed(2)} / (${step.currDist.toFixed(2)} - ${step.nextDist.toFixed(2)})\n`;
+-            t += `  = <span class="text-yellow-400 font-bold">${step.t.toFixed(3)}</span>\n\n`;
++            t += `  = <span class="math-hl-yellow">${step.t.toFixed(3)}</span>\n\n`;
+ 
+             t += `intX = curr.x + t * (next.x - curr.x)\n`;
+             t += `     = ${c.x.toFixed(1)} + ${step.t.toFixed(3)} * (${nxt.x.toFixed(1)} - ${c.x.toFixed(1)})\n`;
+-            t += `     = <span class="text-white font-bold">${step.intersect.x.toFixed(1)}</span>\n\n`;
++            t += `     = <span class="math-hl-white">${step.intersect.x.toFixed(1)}</span>\n\n`;
+ 
+             t += `intY = curr.y + t * (next.y - curr.y)\n`;
+             t += `     = ${c.y.toFixed(1)} + ${step.t.toFixed(3)} * (${nxt.y.toFixed(1)} - ${c.y.toFixed(1)})\n`;
+-            t += `     = <span class="text-white font-bold">${step.intersect.y.toFixed(1)}</span>\n`;
++            t += `     = <span class="math-hl-white">${step.intersect.y.toFixed(1)}</span>\n`;
+             
+-            t += `\n<span class="text-blue-300">// Action: Added new intersection vertex.</span>`;
++            t += `\n<span class="math-comment">// Action: Added new intersection vertex.</span>`;
+         }
+ 
+         p.innerHTML = t;
+@@ -461,13 +560,11 @@
+         if (isPlaying) {
+             if(currentStepIdx >= recordedSteps.length - 1) currentStepIdx = 0; // restart if at end
+             btn.innerText = 'Pause';
+-            btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+-            btn.classList.add('bg-yellow-500', 'hover:bg-yellow-600');
++            btn.classList.add('playing');
+             playInterval = setInterval(stepNext, 800); // 800ms per step
+         } else {
+             btn.innerText = 'Play';
+-            btn.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+-            btn.classList.add('bg-green-500', 'hover:bg-green-600');
++            btn.classList.remove('playing');
+             clearInterval(playInterval);
+         }
+     }
+@@ -478,8 +575,8 @@
+     };
+ </script>
+ 
+-<footer class="mt-8 mb-4 text-center text-xs text-gray-400 w-full">
+-    Voronoi Step-by-Step Visualizer v1.1.1
++<footer class="app-footer">
++    Voronoi Step-by-Step Visualizer v1.2.0
+ </footer>
+ </body>
+-</html>
+\ No newline at end of file
++</html>

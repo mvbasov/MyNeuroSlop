@@ -1,0 +1,53 @@
+--- base64_converter_v1_2_0.html	2026-06-03 19:17:42.010477524 +0300
++++ base64_converter_v1_3_0.html	2026-06-03 19:29:44.650605066 +0300
+@@ -91,7 +91,7 @@
+ 
+         <div class="footer">
+             <span>Demo Application</span>
+-            <span>v1.2.0</span>
++            <span>v1.3.0</span>
+         </div>
+     </div>
+ 
+@@ -104,8 +104,17 @@
+             // Internal Logic
+             function encodeToBase64(str) {
+                 try {
++                    // -------------------------------------------------------------------
++                    // [ARTIFICIAL MISTAKE INJECTED FOR TESTING DEMONSTRATION]
++                    // We are intentionally returning an empty string here to cause the 
++                    // 'API Encode' and 'DOM Sync' unit tests to fail.
++                    // 
++                    // TO FIX: Delete this block and uncomment the actual btoa() return below.
++                    // -------------------------------------------------------------------
++                    return ""; 
++                    
+                     // Safe unicode encoding
+-                    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
++                    // return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+                 } catch (e) {
+                     return "";
+                 }
+@@ -144,13 +153,13 @@
+                 
+                 // Dynamically inject the external testing framework
+                 const script = document.createElement('script');
+-                script.src = 'base64_converter_v1_2_0_tests.js';
++                script.src = 'base64_converter_v1_3_0_tests.js';
+                 script.onload = () => {
+                     if (window.location.search.includes('test=run') && window.__runTests) {
+                         setTimeout(() => window.__runTests(), 500);
+                     }
+                 };
+-                script.onerror = () => console.error("❌ Failed to load base64_converter_v1_2_0_tests.js. Ensure it is in the same directory.");
++                script.onerror = () => console.error("❌ Failed to load base64_converter_v1_3_0_tests.js. Ensure it is in the same directory.");
+                 document.body.appendChild(script);
+             }
+             // >>> END OF TESTING ARCHITECTURE <<<
+@@ -158,4 +167,4 @@
+         })();
+     </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>

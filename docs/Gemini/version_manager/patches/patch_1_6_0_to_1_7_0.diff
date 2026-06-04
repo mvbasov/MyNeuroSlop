@@ -1,0 +1,185 @@
+--- version_manager_v1_6_0.sh	2026-06-04 21:36:49.682401199 +0300
++++ version_manager_v1_7_0.sh	2026-06-04 21:40:33.349115174 +0300
+@@ -1,23 +1,28 @@
+ #!/bin/bash
+ 
+-# BIP39 Converter Version Management Script
+-# Version: 1.6.0
++# Project Version Management Script
++# Version: 1.7.0
+ # Usage:
+-#   ./manage_bip39.sh diff      - Create patches, keep latest
+-#   ./manage_bip39.sh restore   - Interactively select version to restore to ./restored
+-#   ./manage_bip39.sh clean     - Safely clean restored files if recoverable from patches
+-#   ./manage_bip39.sh add <new_version> - Run update script and generate new patches
+-#   ./manage_bip39.sh version   - Show current script version
++#   ./manage_versions.sh diff      - Create patches, keep latest
++#   ./manage_versions.sh restore   - Interactively select version to restore to ./restored
++#   ./manage_versions.sh clean     - Safely clean restored files if recoverable from patches
++#   ./manage_versions.sh add <new_version> - Run update script and generate new patches
++#   ./manage_versions.sh version   - Show current script version
+ 
+ set -e
+ 
+-SCRIPT_VERSION="1.6.0"
++SCRIPT_VERSION="1.7.0"
++
++# Read project name from environment variable; default to generic "converter" if not set
++PROJECT_NAME="${PROJECT_NAME:-converter}"
++
++echo "Using Project Name: $PROJECT_NAME"
+ 
+ # Extracts clean version strings, completely filtering out raw file paths
+ get_versions() {
+     (
+-        # Extract version from converter files: e.g. bip39_converter_v1_14_1.html -> 1_14_1
+-        ls bip39_converter_v* 2>/dev/null | sed -n -E 's/.*v([0-9_]+)(\.(html|htm)|_tests\.js)$/\1/p'
++        # Extract version from converter files: e.g. converter_v1_14_1.html -> 1_14_1
++        ls ${PROJECT_NAME}_v* 2>/dev/null | sed -n -E 's/.*v([0-9_]+)(\.(html|htm)|_tests\.js)$/\1/p'
+         # Extract versions from patch files: e.g. patches/patch_1_1_0_to_1_2_0.diff -> 1_1_0 and 1_2_0
+         ls patches/patch_*.diff 2>/dev/null | sed -n -E 's|.*/patch_(tests_)?([0-9_]+)_to_([0-9_]+)\.diff$|\2\n\3|p'
+     ) | sort -V | uniq
+@@ -31,7 +36,7 @@
+     # Find the highest existing version file in the root directory to act as the source base
+     local base_version=""
+     for v in "${versions[@]}"; do
+-        if ls "bip39_converter_v$v."* 2>/dev/null | grep -q -E '\.(html|htm)$'; then
++        if ls "${PROJECT_NAME}_v$v."* 2>/dev/null | grep -q -E '\.(html|htm)$'; then
+             base_version="$v"
+         fi
+     done
+@@ -95,17 +100,17 @@
+         v1="${versions[$i]}"
+         v2="${versions[$i+1]}"
+         
+-        ext=$(ls "bip39_converter_v$v1."* 2>/dev/null | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
++        ext=$(ls "${PROJECT_NAME}_v$v1."* 2>/dev/null | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
+         
+-        if [ -n "$ext" ] && [ -f "bip39_converter_v$v1.$ext" ]; then
++        if [ -n "$ext" ] && [ -f "${PROJECT_NAME}_v$v1.$ext" ]; then
+             echo "Creating patch: v$v1 -> v$v2"
+-            diff -u "bip39_converter_v$v1.$ext" "bip39_converter_v$v2.$ext" > "patches/patch_${v1}_to_${v2}.diff"
+-            if [ $? -eq 0 ] || [ $? -eq 1 ]; then rm -f "bip39_converter_v$v1.$ext"; fi
++            diff -u "${PROJECT_NAME}_v$v1.$ext" "${PROJECT_NAME}_v$v2.$ext" > "patches/patch_${v1}_to_${v2}.diff"
++            if [ $? -eq 0 ] || [ $? -eq 1 ]; then rm -f "${PROJECT_NAME}_v$v1.$ext"; fi
+         fi
+         
+-        if [ -f "bip39_converter_v$v1""_tests.js" ]; then
+-            diff -u "bip39_converter_v$v1""_tests.js" "bip39_converter_v$v2""_tests.js" > "patches/patch_tests_${v1}_to_${v2}.diff"
+-            if [ $? -eq 0 ] || [ $? -eq 1 ]; then rm -f "bip39_converter_v$v1""_tests.js"; fi
++        if [ -f "${PROJECT_NAME}_v${v1}_tests.js" ]; then
++            diff -u "${PROJECT_NAME}_v${v1}_tests.js" "${PROJECT_NAME}_v${v2}_tests.js" > "patches/patch_tests_${v1}_to_${v2}.diff"
++            if [ $? -eq 0 ] || [ $? -eq 1 ]; then rm -f "${PROJECT_NAME}_v${v1}_tests.js"; fi
+         fi
+     done
+     set -e
+@@ -118,7 +123,7 @@
+     local base_version=""
+     local ext=""
+     for v in "${versions[@]}"; do
+-        local found_ext=$(ls "bip39_converter_v$v."* 2>/dev/null | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
++        local found_ext=$(ls "${PROJECT_NAME}_v$v."* 2>/dev/null | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
+         if [ -n "$found_ext" ]; then
+             base_version="$v"
+             ext="$found_ext"
+@@ -126,7 +131,7 @@
+     done
+ 
+     if [ -z "$base_version" ]; then
+-        echo "Error: No base bip39_converter_v*.html/htm file found in the root directory to use as a restoration base."
++        echo "Error: No base ${PROJECT_NAME}_v*.html/htm file found in the root directory to use as a restoration base."
+         exit 1
+     fi
+ 
+@@ -141,9 +146,9 @@
+         echo "Restoring v$target to ./${dest_dir} using existing base v$base_version..."
+         
+         # Copy the physical base files directly into the restoration directory
+-        cp "bip39_converter_v$base_version.$ext" "$dest_dir/bip39_converter_v$target.$ext"
+-        if [ -f "bip39_converter_v${base_version}_tests.js" ]; then
+-            cp "bip39_converter_v${base_version}_tests.js" "$dest_dir/bip39_converter_v$target""_tests.js"
++        cp "${PROJECT_NAME}_v$base_version.$ext" "$dest_dir/${PROJECT_NAME}_v$target.$ext"
++        if [ -f "${PROJECT_NAME}_v${base_version}_tests.js" ]; then
++            cp "${PROJECT_NAME}_v${base_version}_tests.js" "$dest_dir/${PROJECT_NAME}_v${target}_tests.js"
+         fi
+         
+         # Determine index locations
+@@ -167,11 +172,11 @@
+                 local v_from="${versions[$i+1]}"
+                 echo "Applying reverse patch: $v_from -> $v_to"
+                 if [ -f "patches/patch_${v_to}_to_${v_from}.diff" ]; then
+-                    patch -R "$dest_dir/bip39_converter_v$target.$ext" < "patches/patch_${v_to}_to_${v_from}.diff"
++                    patch -R "$dest_dir/${PROJECT_NAME}_v$target.$ext" < "patches/patch_${v_to}_to_${v_from}.diff"
+                 fi
+                 if [ -f "patches/patch_tests_${v_to}_to_${v_from}.diff" ]; then
+-                    [ ! -f "$dest_dir/bip39_converter_v$target""_tests.js" ] && touch "$dest_dir/bip39_converter_v$target""_tests.js"
+-                    patch -R "$dest_dir/bip39_converter_v$target""_tests.js" < "patches/patch_tests_${v_to}_to_${v_from}.diff"
++                    [ ! -f "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" ] && touch "$dest_dir/${PROJECT_NAME}_v${target}_tests.js"
++                    patch -R "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" < "patches/patch_tests_${v_to}_to_${v_from}.diff"
+                 fi
+             done
+         elif [ $idx_base -lt $idx_target ]; then
+@@ -181,21 +186,21 @@
+                 local v_to="${versions[$i+1]}"
+                 echo "Applying forward patch: $v_from -> $v_to"
+                 if [ -f "patches/patch_${v_from}_to_${v_to}.diff" ]; then
+-                    patch "$dest_dir/bip39_converter_v$target.$ext" < "patches/patch_${v_from}_to_${v_to}.diff"
++                    patch "$dest_dir/${PROJECT_NAME}_v$target.$ext" < "patches/patch_${v_from}_to_${v_to}.diff"
+                 fi
+                 if [ -f "patches/patch_tests_${v_from}_to_${v_to}.diff" ]; then
+-                    [ ! -f "$dest_dir/bip39_converter_v$target""_tests.js" ] && touch "$dest_dir/bip39_converter_v$target""_tests.js"
+-                    patch "$dest_dir/bip39_converter_v$target""_tests.js" < "patches/patch_tests_${v_from}_to_${v_to}.diff"
++                    [ ! -f "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" ] && touch "$dest_dir/${PROJECT_NAME}_v${target}_tests.js"
++                    patch "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" < "patches/patch_tests_${v_from}_to_${v_to}.diff"
+                 fi
+             done
+         fi
+ 
+         # Prune target test file if it ended up empty
+-        if [ -f "$dest_dir/bip39_converter_v$target""_tests.js" ] && [ ! -s "$dest_dir/bip39_converter_v$target""_tests.js" ]; then
+-            rm -f "$dest_dir/bip39_converter_v$target""_tests.js"
++        if [ -f "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" ] && [ ! -s "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" ]; then
++            rm -f "$dest_dir/${PROJECT_NAME}_v${target}_tests.js"
+         fi
+ 
+-        echo "Successfully restored v$target to ./${dest_dir}/bip39_converter_v$target.$ext"
++        echo "Successfully restored v$target to ./${dest_dir}/${PROJECT_NAME}_v$target.$ext"
+         break
+     done
+ }
+@@ -218,7 +223,7 @@
+         if check_recoverable "$ver"; then
+             echo "Version v$ver is fully recoverable. Deleting $file_path..."
+             rm -f "$file_path"
+-            rm -f "$dest_dir/bip39_converter_v${ver}_tests.js"
++            rm -f "$dest_dir/${PROJECT_NAME}_v${ver}_tests.js"
+         else
+             echo "WARNING: Version v$ver is NOT fully recoverable (broken patch chain)! Keeping files in ./${dest_dir} to prevent data loss."
+         fi
+@@ -227,7 +232,7 @@
+     if [ -n "$target_ver" ]; then
+         # Clean up a single specified version
+         local found=false
+-        for f in "$dest_dir"/bip39_converter_v"$target_ver".*; do
++        for f in "$dest_dir"/${PROJECT_NAME}_v"$target_ver".*; do
+             if [ -f "$f" ]; then
+                 found=true
+                 delete_if_recoverable "$target_ver" "$f"
+@@ -239,7 +244,7 @@
+     else
+         # Clean up all files in the restored folder
+         echo "Scanning ./${dest_dir} for restored versions..."
+-        local files=($(ls "$dest_dir"/bip39_converter_v* 2>/dev/null | grep -E '\.(html|htm)$' || true))
++        local files=($(ls "$dest_dir"/${PROJECT_NAME}_v* 2>/dev/null | grep -E '\.(html|htm)$' || true))
+         if [ ${#files[@]} -eq 0 ]; then
+             echo "No restored HTML/HTM files found in ./${dest_dir}"
+             rm -rf "$dest_dir"/*_tests.js 2>/dev/null || true
+@@ -278,6 +283,6 @@
+     restore) restore_version ;;
+     clean)   clean_restored "$2" ;;
+     add)     add_new_version "$2" ;;
+-    version) echo "BIP39 Manager Script v$SCRIPT_VERSION" ;;
++    version) echo "${PROJECT_NAME} Manager Script v$SCRIPT_VERSION" ;;
+     *)       echo "Usage: $0 {diff|restore|clean [ver]|add <ver>|version}" ;;
+ esac
+\ No newline at end of file

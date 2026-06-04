@@ -1,0 +1,91 @@
+--- version_manager_v1_2_2.sh	2026-06-04 21:07:30.572448874 +0300
++++ version_manager_v1_3_0.sh	2026-06-04 21:10:02.100655017 +0300
+@@ -1,7 +1,7 @@
+ #!/bin/bash
+ 
+ # BIP39 Converter Version Management Script
+-# Version: 1.2.2
++# Version: 1.3.0
+ # Usage:
+ #   ./manage_bip39.sh diff      - Create patches, keep latest
+ #   ./manage_bip39.sh restore   - Interactively select version to restore
+@@ -10,9 +10,8 @@
+ 
+ set -e
+ 
+-SCRIPT_VERSION="1.2.2"
++SCRIPT_VERSION="1.3.0"
+ 
+-# Get versions from files OR patch filenames
+ get_versions() {
+     (
+         ls bip39_converter_v* 2>/dev/null | sed -E 's/.*v([0-9_]+)(\..*|_tests\.js)/\1/'
+@@ -33,24 +32,17 @@
+         v1="${versions[$i]}"
+         v2="${versions[$i+1]}"
+         
+-        # Check if v1 file exists before diffing
+         ext=$(ls "bip39_converter_v$v1."* 2>/dev/null | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
+         
+         if [ -n "$ext" ] && [ -f "bip39_converter_v$v1.$ext" ]; then
+             echo "Creating patch: v$v1 -> v$v2"
+             diff -u "bip39_converter_v$v1.$ext" "bip39_converter_v$v2.$ext" > "patches/patch_${v1}_to_${v2}.diff"
+-            
+-            if [ $? -eq 0 ] || [ $? -eq 1 ]; then
+-                rm -f "bip39_converter_v$v1.$ext"
+-            fi
++            if [ $? -eq 0 ] || [ $? -eq 1 ]; then rm -f "bip39_converter_v$v1.$ext"; fi
+         fi
+         
+-        # Diff Test File
+         if [ -f "bip39_converter_v$v1""_tests.js" ]; then
+             diff -u "bip39_converter_v$v1""_tests.js" "bip39_converter_v$v2""_tests.js" > "patches/patch_tests_${v1}_to_${v2}.diff"
+-            if [ $? -eq 0 ] || [ $? -eq 1 ]; then
+-                rm -f "bip39_converter_v$v1""_tests.js"
+-            fi
++            if [ $? -eq 0 ] || [ $? -eq 1 ]; then rm -f "bip39_converter_v$v1""_tests.js"; fi
+         fi
+     done
+     set -e
+@@ -58,16 +50,32 @@
+ 
+ restore_version() {
+     local versions=($(get_versions))
++    local latest="${versions[-1]}"
++    
+     echo "Available versions for restoration:"
+-    select v in "${versions[@]}"; do
+-        if [ -n "$v" ]; then
+-            echo "Restoring v$v... (Note: This assumes the patch chain exists from latest to $v)"
+-            # This is a placeholder for the reverse patch application
+-            echo "Please apply patches in reverse order from latest manually or implement patch -R logic."
+-            break
+-        else
+-            echo "Invalid selection."
+-        fi
++    select target in "${versions[@]}"; do
++        if [ -z "$target" ]; then echo "Invalid selection."; continue; fi
++        
++        echo "Restoring v$target from v$latest..."
++        local ext=$(ls "bip39_converter_v$latest."* 2>/dev/null | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
++        
++        cp "bip39_converter_v$latest.$ext" "bip39_converter_v$target.$ext"
++        [ -f "bip39_converter_v${latest}_tests.js" ] && cp "bip39_converter_v${latest}_tests.js" "bip39_converter_v$target""_tests.js"
++        
++        # Reverse apply patches from latest down to target
++        for ((i=${#versions[@]}-2; i>=0; i--)); do
++            v1="${versions[$i]}"
++            v2="${versions[$i+1]}"
++            
++            # Stop if we've reached the target version
++            if [[ "$v2" == "$target" ]]; then break; fi
++            
++            echo "Applying reverse patch: v$v2 -> v$v1"
++            [ -f "patches/patch_${v1}_to_${v2}.diff" ] && patch -R "bip39_converter_v$target.$ext" < "patches/patch_${v1}_to_${v2}.diff"
++            [ -f "patches/patch_tests_${v1}_to_${v2}.diff" ] && patch -R "bip39_converter_v$target""_tests.js" < "patches/patch_tests_${v1}_to_${v2}.diff"
++        done
++        echo "Successfully restored v$target"
++        break
+     done
+ }
+ 

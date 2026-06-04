@@ -1,0 +1,27 @@
+--- base64_converter_v1_0_0.html	2026-06-03 19:10:29.814418943 +0300
++++ base64_converter_v1_1_0.html	2026-06-03 19:14:36.274449662 +0300
+@@ -91,7 +91,7 @@
+ 
+         <div class="footer">
+             <span>Demo Application</span>
+-            <span>v1.0.0</span>
++            <span>v1.1.0</span>
+         </div>
+     </div>
+ 
+@@ -144,13 +144,13 @@
+                 
+                 // Dynamically inject the external testing framework
+                 const script = document.createElement('script');
+-                script.src = 'base64_converter_v1_0_0_tests.js';
++                script.src = 'base64_converter_v1_1_0_tests.js';
+                 script.onload = () => {
+                     if (window.location.search.includes('test=run') && window.__runTests) {
+                         setTimeout(() => window.__runTests(), 500);
+                     }
+                 };
+-                script.onerror = () => console.error("❌ Failed to load test_suite_v1_0_0.js. Ensure it is in the same directory.");
++                script.onerror = () => console.error("❌ Failed to load base64_converter_v1_1_0_tests.js. Ensure it is in the same directory.");
+                 document.body.appendChild(script);
+             }
+             // >>> END OF TESTING ARCHITECTURE <<<

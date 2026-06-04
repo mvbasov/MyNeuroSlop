@@ -1,0 +1,19 @@
+--- bip39_converter_v1_4_1_tests.js	2026-06-04 00:44:35.382641401 +0300
++++ bip39_converter_v1_5_0_tests.js	2026-06-04 00:47:46.190663116 +0300
+@@ -61,12 +61,11 @@
+         // Increased from 350 to 600ms. Allows 300ms for UI debounce, plus ample time for async crypto.subtle.digest!
+         await wait(600); 
+         
+-        // The SHA256 of 32 'f's dictates the last word index will ALWAYS be mathematically 2040.
+-        const expectedWord = window.WORDLIST ? window.WORDLIST[2040] : "youth";
+-        const generatedPhrase = API.mnemonicInput.value.trim().split(/\s+/);
+-        const lastWord = generatedPhrase[generatedPhrase.length - 1];
++        // Dynamically ask the internal cryptographic engine what the phrase SHOULD be, 
++        // completely eliminating the need to hardcode index guesses or dictionary words.
++        const expectedPhrase = await API.encodeMnemonic("ffffffffffffffffffffffffffffffff");
+         
+-        assert(lastWord === expectedWord || API.mnemonicInput.value.includes("word2040"), "DOM seamlessly auto-generates mnemonic on hex input after debounce");
++        assert(API.mnemonicInput.value === expectedPhrase, "DOM seamlessly auto-generates mnemonic on hex input after debounce");
+ 
+         document.getElementById('btn-clear-hex').click();
+         assert(API.mnemonicInput.value === "", "DOM clearing safely resets both input buffers instantly");

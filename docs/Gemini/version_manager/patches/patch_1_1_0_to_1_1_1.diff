@@ -1,0 +1,64 @@
+--- version_manager_v1_1_0.sh	2026-06-04 20:51:26.182476996 +0300
++++ version_manager_v1_1_1.sh	2026-06-04 20:59:33.203643607 +0300
+@@ -1,7 +1,7 @@
+-#!/bin/bash -x
++#!/bin/bash
+ 
+ # BIP39 Converter Version Management Script
+-# Version: 1.1.0
++# Version: 1.1.1
+ # Usage:
+ #   ./manage_bip39.sh diff      - Create patches and keep only the latest version
+ #   ./manage_bip39.sh restore   - Interactively select version to restore
+@@ -10,7 +10,7 @@
+ 
+ set -e
+ 
+-SCRIPT_VERSION="1.1.0"
++SCRIPT_VERSION="1.1.1"
+ 
+ get_versions() {
+     ls bip39_converter_v*.html | sed -E 's/.*v([0-9_]+)\.html/\1/' | sort -V
+@@ -23,12 +23,24 @@
+         echo "Need at least two versions to create a patch."
+         return
+     fi
++
++    # Temporarily disable 'set -e' to handle diff exit codes gracefully
++    set +e
+     for ((i=0; i<$count-1; i++)); do
+         v1="${versions[$i]}"
+         v2="${versions[$i+1]}"
+-        diff -u "bip39_converter_v$v1.html" "bip39_converter_v$v2.html" > "patches/patch_${v1}_to_${v2}.diff"
+-        rm "bip39_converter_v$v1.html"
++        
++        echo "Creating patch: v$v1 -> v$v2"
++        # Only diff if the file exists
++        if [ -f "bip39_converter_v$v1.html" ]; then
++            diff -u "bip39_converter_v$v1.html" "bip39_converter_v$v2.html" > "patches/patch_${v1}_to_${v2}.diff"
++            # Remove only after successful creation
++            if [ $? -eq 0 ]; then
++                rm "bip39_converter_v$v1.html"
++            fi
++        fi
+     done
++    set -e
+     echo "Patches created. Latest version: v${versions[-1]}"
+ }
+ 
+@@ -38,8 +50,6 @@
+     select v in "${versions[@]}"; do
+         if [ -n "$v" ]; then
+             echo "Restoring v$v..."
+-            # Logic: In a full implementation, you would apply patches sequentially
+-            # Here we simulate restoring by checking out the relevant file
+             cp "bip39_converter_v${versions[-1]}.html" "bip39_converter_v$v.html"
+             break
+         else
+@@ -65,4 +75,4 @@
+     add)     add_new_version "$2" ;;
+     version) echo "BIP39 Manager Script v$SCRIPT_VERSION" ;;
+     *)       echo "Usage: $0 {diff|restore|add <ver>|version}" ;;
+-esac
++esac
+\ No newline at end of file

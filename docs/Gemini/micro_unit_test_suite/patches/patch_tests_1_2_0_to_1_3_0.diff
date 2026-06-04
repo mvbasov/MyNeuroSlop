@@ -1,0 +1,16 @@
+--- base64_converter_v1_2_0_tests.js	2026-06-03 19:17:42.010477524 +0300
++++ base64_converter_v1_3_0_tests.js	2026-06-03 19:23:08.914532552 +0300
+@@ -1,4 +1,4 @@
+-// base64_converter_v1_2_0_tests.js - Micro Unit Test System
++// base64_converter_v1_3_0_tests.js - Micro Unit Test System
+ 
+ window.__runTests = async function() {
+     console.log("%c🚀 Starting Automated Unit Tests...", "color: #4A90E2; font-weight: bold; font-size: 14px;");
+@@ -130,4 +130,4 @@
+     }, 800);
+ };
+ 
+-console.log("%c💡 base64_converter_v1_2_0_tests.js loaded successfully. Type window.__runTests() to execute, or use '?test=run' in URL.", "color: #4A90E2;");
+\ No newline at end of file
++console.log("%c💡 base64_converter_v1_3_0_tests.js loaded successfully. Type window.__runTests() to execute, or use '?test=run' in URL.", "color: #4A90E2;");
+\ No newline at end of file

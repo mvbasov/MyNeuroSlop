@@ -1,0 +1,181 @@
+--- html_embed_preparer_v1.0.0.html	2026-05-31 19:17:26.517529928 +0300
++++ html_embed_preparer_v1.1.0.html	2026-05-31 19:17:26.517529928 +0300
+@@ -3,7 +3,7 @@
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>HTML Embed Preparer</title>
++    <title>HTML Embed Preparer v1.1.0</title>
+     <style>
+         :root {
+             /* Color Palette */
+@@ -103,6 +103,20 @@
+             color: var(--text-muted); 
+             text-transform: uppercase; 
+             letter-spacing: 0.05em; 
++            display: flex;
++            align-items: center;
++        }
++        .char-count {
++            text-transform: none;
++            font-weight: 600;
++            color: var(--text-muted);
++            margin-left: 0.5rem;
++            font-size: 0.65rem;
++            letter-spacing: normal;
++            background: var(--bg-body);
++            padding: 0.125rem 0.375rem;
++            border-radius: 9999px;
++            border: 1px solid var(--border-color);
+         }
+         .editor-card { flex: 1; min-height: 400px; }
+         
+@@ -205,6 +219,15 @@
+         .toast-success { background: var(--dark-bg); }
+         .toast-error { background: var(--danger-hover); }
+ 
++        /* Footer */
++        .app-footer { 
++            text-align: center; 
++            padding: 1rem 1.5rem 1.5rem; 
++            font-size: 0.75rem; 
++            color: var(--text-muted); 
++            font-weight: 500;
++        }
++
+         /* Custom Scrollbars */
+         ::-webkit-scrollbar { width: 8px; height: 8px; }
+         ::-webkit-scrollbar-track { background: var(--bg-body); border-radius: 4px; }
+@@ -263,7 +286,7 @@
+             <!-- Input Card -->
+             <div class="card editor-card">
+                 <div class="card-header">
+-                    <h2 class="card-title">Input Source</h2>
++                    <h2 class="card-title">Input Source <span id="input-char-count" class="char-count">0 B</span></h2>
+                     <button id="clear-btn" class="btn btn-sm btn-clear">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                         Clear
+@@ -276,7 +299,7 @@
+         <!-- Right Panel: Output -->
+         <div class="card editor-card">
+             <div class="card-header">
+-                <h2 class="card-title">Prepared Output</h2>
++                <h2 class="card-title">Prepared Output <span id="output-char-count" class="char-count">0 B</span></h2>
+                 <div class="header-actions" style="gap: 0.5rem;">
+                     <button id="copy-btn" class="btn btn-md btn-copy">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+@@ -292,6 +315,10 @@
+         </div>
+     </main>
+ 
++    <footer class="app-footer">
++        mvb HTML Embed Preparer v1.1.0
++    </footer>
++
+     <script>
+         // DOM Elements
+         const inputTextArea = document.getElementById('input-text');
+@@ -302,6 +329,16 @@
+         const clearBtn = document.getElementById('clear-btn');
+         const copyBtn = document.getElementById('copy-btn');
+         const saveBtn = document.getElementById('save-btn');
++        const inputCharCount = document.getElementById('input-char-count');
++        const outputCharCount = document.getElementById('output-char-count');
++
++        // Size Formatter Helper
++        function formatSize(text) {
++            const bytes = new Blob([text]).size;
++            if (bytes === 0) return '0 B';
++            if (bytes < 1024) return bytes + ' B';
++            return (bytes / 1024).toFixed(2) + ' KB';
++        }
+ 
+         // Toast Notification System
+         function showToast(message, type = 'success') {
+@@ -335,15 +372,18 @@
+             const removeTags = optRemoveTags.checked;
+             const removeEmpty = optRemoveEmpty.checked;
+ 
++            inputCharCount.textContent = formatSize(text);
++
+             if (!text) {
+                 outputTextArea.value = '';
++                outputCharCount.textContent = '0 B';
+                 return;
+             }
+ 
+             // Normalize newlines to prevent \r matching issues
+             let resultText = text.replace(/\r\n/g, '\n');
+ 
+-            // 0. Protect <script> and <style> blocks from internal modification
++            // 1. Protection Phase: Protect <script> and <style> blocks from internal modification
+             // We only protect angled brackets. Empty lines will now be processed normally.
+             resultText = resultText.replace(/(<(script|style)\b[^>]*>)([\s\S]*?)(<\/\2>)/gi, (match, open, type, content, close) => {
+                 let protectedContent = content.replace(/</g, '__PRTCT_LT__').replace(/>/g, '__PRTCT_GT__');
+@@ -351,7 +391,7 @@
+             });
+ 
+             if (removeTags) {
+-                // 1. Globally remove DOCTYPE and meta tags (handles multiline edge-cases cleanly)
++                // Remove DOCTYPE and meta tags globally
+                 resultText = resultText.replace(/<!DOCTYPE[\s\S]*?>/gi, '');
+                 resultText = resultText.replace(/<meta[\s\S]*?>/gi, '');
+ 
+@@ -359,7 +399,7 @@
+                 const resultLines = [];
+                 const indentStack = [];
+ 
+-                // 2. Process Line by Line for smart indentation
++                // Process Line by Line for smart indentation
+                 for (let i = 0; i < lines.length; i++) {
+                     let line = lines[i];
+ 
+@@ -373,7 +413,6 @@
+                     line = line.substring(dropCount);
+ 
+                     // Scan left-to-right for structural tags to update the stack
+-                    // Matches closing tags OR opening tags for html/head/body
+                     const structuralTagRegex = /(<\/(html|head|body)\s*>|<(html|head|body)\b[^>]*>)/i;
+                     
+                     while (true) {
+@@ -391,10 +430,8 @@
+                             // Opening Tag detected. Check its leading whitespace.
+                             let prefix = line.substring(0, match.index);
+                             if (prefix.trim() === '') {
+-                                // If it's preceded only by space, record that space amount
+                                 indentStack.push(prefix.length);
+                             } else {
+-                                // If it's inline with other text, it contributes 0 to structural outdent
+                                 indentStack.push(0);
+                             }
+                         }
+@@ -414,16 +451,15 @@
+                 resultText = resultText.split('\n').filter(line => line.trim().length > 0).join('\n');
+             }
+ 
+-            // 1. Convert <title> tag content to a Markdown header
+-            // Doing this before restoring protections ensures <title> tags inside <script> aren't affected
++            // Convert <title> tag content to a Markdown header
+             resultText = resultText.replace(/<title\b[^>]*>([\s\S]*?)<\/title>/gi, (match, titleContent) => {
+                 return '# ' + titleContent.trim();
+             });
+ 
+-            // 2. Restore protected characters inside scripts/styles BEFORE global outdent
++            // Unprotect Phase: Restore protected characters inside scripts/styles BEFORE global outdent
+             resultText = resultText.replace(/__PRTCT_LT__/g, '<').replace(/__PRTCT_GT__/g, '>');
+ 
+-            // 3. Remove common minimal indent from all lines
++            // Global Indent Cleanup
+             let processedLines = resultText.split('\n');
+             let minIndent = Infinity;
+ 
+@@ -446,8 +482,8 @@
+             }
+             
+             resultText = processedLines.join('\n');
+-
+             outputTextArea.value = resultText;
++            outputCharCount.textContent = formatSize(resultText);
+         }
+ 
+         // Event Listeners for real-time processing

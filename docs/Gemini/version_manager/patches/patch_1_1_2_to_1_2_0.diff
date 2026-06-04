@@ -1,0 +1,84 @@
+--- version_manager_v1_1_2.sh	2026-06-04 21:01:11.587836485 +0300
++++ version_manager_v1_2_0.sh	2026-06-04 21:03:27.076075706 +0300
+@@ -1,19 +1,20 @@
+ #!/bin/bash
+ 
+ # BIP39 Converter Version Management Script
+-# Version: 1.1.2
++# Version: 1.2.0
+ # Usage:
+-#   ./manage_bip39.sh diff      - Create patches and keep only the latest version
++#   ./manage_bip39.sh diff      - Create patches for .html/.htm and _tests.js, keep latest
+ #   ./manage_bip39.sh restore   - Interactively select version to restore
+ #   ./manage_bip39.sh add <new_version> - Run update script and generate new patches
+ #   ./manage_bip39.sh version   - Show current script version
+ 
+ set -e
+ 
+-SCRIPT_VERSION="1.1.2"
++SCRIPT_VERSION="1.2.0"
+ 
+ get_versions() {
+-    ls bip39_converter_v*.html | sed -E 's/.*v([0-9_]+)\.html/\1/' | sort -V
++    # Match both .html and .htm files
++    ls bip39_converter_v* | grep -E '\.(html|htm)$' | sed -E 's/.*v([0-9_]+)\.(html|htm)/\1/' | sort -V | uniq
+ }
+ 
+ make_patches() {
+@@ -24,25 +25,29 @@
+         return
+     fi
+ 
+-    # Temporarily disable 'set -e' to handle diff exit codes
+     set +e
+     for ((i=0; i<$count-1; i++)); do
+         v1="${versions[$i]}"
+         v2="${versions[$i+1]}"
+         
+-        echo "Creating patch: v$v1 -> v$v2"
+-        if [ -f "bip39_converter_v$v1.html" ]; then
+-            diff -u "bip39_converter_v$v1.html" "bip39_converter_v$v2.html" > "patches/patch_${v1}_to_${v2}.diff"
+-            
+-            # diff returns 0 if no differences, 1 if differences found.
+-            # We accept 0 or 1 as a successful patch generation.
+-            EXIT_CODE=$?
+-            if [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 1 ]; then
+-                rm "bip39_converter_v$v1.html"
+-                echo "File bip39_converter_v$v1.html deleted."
+-            else
+-                echo "Error: Failed to create patch for $v1. Keeping file."
+-            fi
++        # Determine current extension
++        ext=$(ls "bip39_converter_v$v1."* | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
++        
++        echo "Creating patches: v$v1 -> v$v2"
++        
++        # Diff Main File
++        diff -u "bip39_converter_v$v1.$ext" "bip39_converter_v$v2.$ext" > "patches/patch_${v1}_to_${v2}.diff"
++        
++        # Diff Test File
++        if [ -f "bip39_converter_v$v1""_tests.js" ]; then
++            diff -u "bip39_converter_v$v1""_tests.js" "bip39_converter_v$v2""_tests.js" > "patches/patch_tests_${v1}_to_${v2}.diff"
++        fi
++        
++        # Cleanup if successful
++        if [ $? -eq 0 ] || [ $? -eq 1 ]; then
++            rm "bip39_converter_v$v1.$ext"
++            rm -f "bip39_converter_v$v1""_tests.js"
++            echo "Files for $v1 cleaned up."
+         fi
+     done
+     set -e
+@@ -55,7 +60,11 @@
+     select v in "${versions[@]}"; do
+         if [ -n "$v" ]; then
+             echo "Restoring v$v..."
+-            cp "bip39_converter_v${versions[-1]}.html" "bip39_converter_v$v.html"
++            local ext=$(ls "bip39_converter_v${versions[-1]}."* | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
++            cp "bip39_converter_v${versions[-1]}.$ext" "bip39_converter_v$v.$ext"
++            if [ -f "bip39_converter_v${versions[-1]}_tests.js" ]; then
++                cp "bip39_converter_v${versions[-1]}_tests.js" "bip39_converter_v$v""_tests.js"
++            fi
+             break
+         else
+             echo "Invalid selection."

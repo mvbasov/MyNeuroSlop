@@ -1,0 +1,21 @@
+--- bip39_converter_v1_9_0_tests.js	2026-06-04 01:16:25.323670995 +0300
++++ bip39_converter_v1_10_0_tests.js	2026-06-04 01:25:01.235874329 +0300
+@@ -95,17 +95,7 @@
+     // --- UI ENFORCER TOAST ---
+     const t = document.getElementById('app-toast');
+     const total = passed + failed;
+-    
+-    // --- CONSOLE SUMMARY ---
+-    console.log("\n=======================================");
+-    console.log("          BIP-39 TEST SUMMARY          ");
+-    console.log("=======================================");
+-    console.log(`  Total Tests : ${total}`);
+-    console.log(`  Passed      : ${passed} ✅`);
+-    console.log(`  Failed      : ${failed} ${failed > 0 ? '❌' : ' '}`);
+-    console.log("=======================================\n");
+-    
+-    console.table({"Total Tests": total, "Passed": passed, "Failed": failed});
++    console.table({"Total Tests": total, "Passed": `${passed} ✅`, "Failed": `${failed}${failed > 0 ? ' ❌' : ' ✅'}`});
+     
+     t.textContent = `Tests Complete! Passed: ${passed}/${total}`;
+     t.className = 'toast show test-toast' + (failed > 0 ? ' failed' : '');

@@ -1,0 +1,239 @@
+--- version_manager_v1_5_0.sh	2026-06-04 21:32:45.140442606 +0300
++++ version_manager_v1_6_0.sh	2026-06-04 21:36:49.682401199 +0300
+@@ -1,7 +1,7 @@
+ #!/bin/bash
+ 
+ # BIP39 Converter Version Management Script
+-# Version: 1.5.0
++# Version: 1.6.0
+ # Usage:
+ #   ./manage_bip39.sh diff      - Create patches, keep latest
+ #   ./manage_bip39.sh restore   - Interactively select version to restore to ./restored
+@@ -11,7 +11,7 @@
+ 
+ set -e
+ 
+-SCRIPT_VERSION="1.5.0"
++SCRIPT_VERSION="1.6.0"
+ 
+ # Extracts clean version strings, completely filtering out raw file paths
+ get_versions() {
+@@ -23,41 +23,62 @@
+     ) | sort -V | uniq
+ }
+ 
+-# Verifies if a specific version has a complete patch chain up to the latest version
++# Verifies if a specific version has a complete patch chain up to any existing base version
+ check_recoverable() {
+     local target=$1
+     local versions=($(get_versions))
+-    local latest="${versions[-1]}"
+     
+-    # The latest version is the source base, so it is always inherently "recoverable"
+-    if [[ "$target" == "$latest" ]]; then
++    # Find the highest existing version file in the root directory to act as the source base
++    local base_version=""
++    for v in "${versions[@]}"; do
++        if ls "bip39_converter_v$v."* 2>/dev/null | grep -q -E '\.(html|htm)$'; then
++            base_version="$v"
++        fi
++    done
++    
++    # If no base file exists, we can't recover anything
++    if [ -z "$base_version" ]; then
++        return 1
++    fi
++    
++    # The base version itself is inherently "recoverable" (it's already there)
++    if [[ "$target" == "$base_version" ]]; then
+         return 0
+     fi
+     
+-    local found_target=false
+-    for ((j=0; j<${#versions[@]}-1; j++)); do
+-        local v1="${versions[$j]}"
+-        local v2="${versions[$j+1]}"
+-        
+-        if [[ "$v1" == "$target" ]]; then
+-            found_target=true
+-        fi
+-        
+-        if [ "$found_target" = true ]; then
+-            # Verify the main HTML patch exists
++    # Determine indices of base and target in the versions array
++    local idx_base=-1
++    local idx_target=-1
++    for idx in "${!versions[@]}"; do
++        if [[ "${versions[$idx]}" == "$base_version" ]]; then idx_base=$idx; fi
++        if [[ "${versions[$idx]}" == "$target" ]]; then idx_target=$idx; fi
++    done
++    
++    if [ $idx_base -eq -1 ] || [ $idx_target -eq -1 ]; then
++        return 1
++    fi
++    
++    # Check the completeness of the patch chain
++    if [ $idx_base -gt $idx_target ]; then
++        # Going backward: check patches from target up to base
++        for ((j=idx_target; j<idx_base; j++)); do
++            local v1="${versions[$j]}"
++            local v2="${versions[$j+1]}"
+             if [ ! -f "patches/patch_${v1}_to_${v2}.diff" ]; then
+-                return 1 # Chain is broken
++                return 1
+             fi
+-            # Verify the tests patch also exists if the latest version uses tests
+-            if [ -f "bip39_converter_v${latest}_tests.js" ] && [ ! -f "patches/patch_tests_${v1}_to_${v2}.diff" ]; then
+-                return 1 # Tests chain is broken
++        done
++    else
++        # Going forward: check patches from base up to target
++        for ((j=idx_base; j<idx_target; j++)); do
++            local v1="${versions[$j]}"
++            local v2="${versions[$j+1]}"
++            if [ ! -f "patches/patch_${v1}_to_${v2}.diff" ]; then
++                return 1
+             fi
+-        fi
+-    done
+-    
+-    if [ "$found_target" = false ]; then
+-        return 1 # Version doesn't exist in our known sequence
++        done
+     fi
++    
+     return 0
+ }
+ 
+@@ -92,51 +113,88 @@
+ 
+ restore_version() {
+     local versions=($(get_versions))
+-    local latest="${versions[-1]}"
+-    local dest_dir="restored"
+     
++    # 1. Dynamically locate the highest physical version file in the root directory to act as base
++    local base_version=""
++    local ext=""
++    for v in "${versions[@]}"; do
++        local found_ext=$(ls "bip39_converter_v$v."* 2>/dev/null | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
++        if [ -n "$found_ext" ]; then
++            base_version="$v"
++            ext="$found_ext"
++        fi
++    done
++
++    if [ -z "$base_version" ]; then
++        echo "Error: No base bip39_converter_v*.html/htm file found in the root directory to use as a restoration base."
++        exit 1
++    fi
++
+     echo "Select a version to restore:"
+     select target in "${versions[@]}"; do
+         if [ -z "$target" ]; then echo "Invalid selection."; continue; fi
+         
++        local dest_dir="restored"
+         echo "Creating restoration directory: ./${dest_dir}"
+         mkdir -p "$dest_dir"
+         
+-        echo "Restoring v$target to ./${dest_dir} from latest v$latest..."
+-        local ext=$(ls "bip39_converter_v$latest."* 2>/dev/null | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
++        echo "Restoring v$target to ./${dest_dir} using existing base v$base_version..."
+         
+-        # Copy the latest base files directly into the restoration directory
+-        cp "bip39_converter_v$latest.$ext" "$dest_dir/bip39_converter_v$target.$ext"
+-        if [ -f "bip39_converter_v${latest}_tests.js" ]; then
+-            cp "bip39_converter_v${latest}_tests.js" "$dest_dir/bip39_converter_v$target""_tests.js"
+-        fi
+-        
+-        # Convert target underscores to dots for reliable version-sorting comparison
+-        local target_dots=$(echo "$target" | tr '_' '.')
+-
+-        # Apply patches in reverse directly to the files in the restored folder
+-        for ((i=${#versions[@]}-2; i>=0; i--)); do
+-            local v_from="${versions[i+1]}"
+-            local v_to="${versions[i]}"
+-            
+-            # Convert current version loop target to dots
+-            local v_to_dots=$(echo "$v_to" | tr '_' '.')
+-
+-            # Skip if this patch isn't in our backwards path to the target
+-            if [ "$(printf '%s\n%s' "$target_dots" "$v_to_dots" | sort -V | head -n1)" != "$target_dots" ]; then
+-                continue
+-            fi
+-            
+-            echo "Applying reverse patch: $v_from -> $v_to"
+-            if [ -f "patches/patch_${v_to}_to_${v_from}.diff" ]; then
+-                patch -R "$dest_dir/bip39_converter_v$target.$ext" < "patches/patch_${v_to}_to_${v_from}.diff"
+-            fi
+-            if [ -f "patches/patch_tests_${v_to}_to_${v_from}.diff" ]; then
+-                patch -R "$dest_dir/bip39_converter_v$target""_tests.js" < "patches/patch_tests_${v_to}_to_${v_from}.diff"
+-            fi
+-            
+-            if [[ "$v_to" == "$target" ]]; then break; fi
++        # Copy the physical base files directly into the restoration directory
++        cp "bip39_converter_v$base_version.$ext" "$dest_dir/bip39_converter_v$target.$ext"
++        if [ -f "bip39_converter_v${base_version}_tests.js" ]; then
++            cp "bip39_converter_v${base_version}_tests.js" "$dest_dir/bip39_converter_v$target""_tests.js"
++        fi
++        
++        # Determine index locations
++        local idx_base=-1
++        local idx_target=-1
++        for idx in "${!versions[@]}"; do
++            if [[ "${versions[$idx]}" == "$base_version" ]]; then idx_base=$idx; fi
++            if [[ "${versions[$idx]}" == "$target" ]]; then idx_target=$idx; fi
+         done
++
++        if [ $idx_base -eq -1 ] || [ $idx_target -eq -1 ]; then
++            echo "Error: Could not determine version indices."
++            break
++        fi
++
++        # Apply appropriate forward or backward patch chains
++        if [ $idx_base -gt $idx_target ]; then
++            # Target is older: apply REVERSE patches backwards from base index down to target index
++            for ((i=idx_base-1; i>=idx_target; i--)); do
++                local v_to="${versions[$i]}"
++                local v_from="${versions[$i+1]}"
++                echo "Applying reverse patch: $v_from -> $v_to"
++                if [ -f "patches/patch_${v_to}_to_${v_from}.diff" ]; then
++                    patch -R "$dest_dir/bip39_converter_v$target.$ext" < "patches/patch_${v_to}_to_${v_from}.diff"
++                fi
++                if [ -f "patches/patch_tests_${v_to}_to_${v_from}.diff" ]; then
++                    [ ! -f "$dest_dir/bip39_converter_v$target""_tests.js" ] && touch "$dest_dir/bip39_converter_v$target""_tests.js"
++                    patch -R "$dest_dir/bip39_converter_v$target""_tests.js" < "patches/patch_tests_${v_to}_to_${v_from}.diff"
++                fi
++            done
++        elif [ $idx_base -lt $idx_target ]; then
++            # Target is newer: apply FORWARD patches from base index up to target index
++            for ((i=idx_base; i<idx_target; i++)); do
++                local v_from="${versions[$i]}"
++                local v_to="${versions[$i+1]}"
++                echo "Applying forward patch: $v_from -> $v_to"
++                if [ -f "patches/patch_${v_from}_to_${v_to}.diff" ]; then
++                    patch "$dest_dir/bip39_converter_v$target.$ext" < "patches/patch_${v_from}_to_${v_to}.diff"
++                fi
++                if [ -f "patches/patch_tests_${v_from}_to_${v_to}.diff" ]; then
++                    [ ! -f "$dest_dir/bip39_converter_v$target""_tests.js" ] && touch "$dest_dir/bip39_converter_v$target""_tests.js"
++                    patch "$dest_dir/bip39_converter_v$target""_tests.js" < "patches/patch_tests_${v_from}_to_${v_to}.diff"
++                fi
++            done
++        fi
++
++        # Prune target test file if it ended up empty
++        if [ -f "$dest_dir/bip39_converter_v$target""_tests.js" ] && [ ! -s "$dest_dir/bip39_converter_v$target""_tests.js" ]; then
++            rm -f "$dest_dir/bip39_converter_v$target""_tests.js"
++        fi
++
+         echo "Successfully restored v$target to ./${dest_dir}/bip39_converter_v$target.$ext"
+         break
+     done
+@@ -160,7 +218,6 @@
+         if check_recoverable "$ver"; then
+             echo "Version v$ver is fully recoverable. Deleting $file_path..."
+             rm -f "$file_path"
+-            # Delete corresponding test suite file if it exists
+             rm -f "$dest_dir/bip39_converter_v${ver}_tests.js"
+         else
+             echo "WARNING: Version v$ver is NOT fully recoverable (broken patch chain)! Keeping files in ./${dest_dir} to prevent data loss."

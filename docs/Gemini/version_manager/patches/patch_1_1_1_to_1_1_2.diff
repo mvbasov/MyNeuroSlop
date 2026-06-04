@@ -1,0 +1,49 @@
+--- version_manager_v1_1_1.sh	2026-06-04 20:59:33.203643607 +0300
++++ version_manager_v1_1_2.sh	2026-06-04 21:01:11.587836485 +0300
+@@ -1,7 +1,7 @@
+ #!/bin/bash
+ 
+ # BIP39 Converter Version Management Script
+-# Version: 1.1.1
++# Version: 1.1.2
+ # Usage:
+ #   ./manage_bip39.sh diff      - Create patches and keep only the latest version
+ #   ./manage_bip39.sh restore   - Interactively select version to restore
+@@ -10,7 +10,7 @@
+ 
+ set -e
+ 
+-SCRIPT_VERSION="1.1.1"
++SCRIPT_VERSION="1.1.2"
+ 
+ get_versions() {
+     ls bip39_converter_v*.html | sed -E 's/.*v([0-9_]+)\.html/\1/' | sort -V
+@@ -24,19 +24,24 @@
+         return
+     fi
+ 
+-    # Temporarily disable 'set -e' to handle diff exit codes gracefully
++    # Temporarily disable 'set -e' to handle diff exit codes
+     set +e
+     for ((i=0; i<$count-1; i++)); do
+         v1="${versions[$i]}"
+         v2="${versions[$i+1]}"
+         
+         echo "Creating patch: v$v1 -> v$v2"
+-        # Only diff if the file exists
+         if [ -f "bip39_converter_v$v1.html" ]; then
+             diff -u "bip39_converter_v$v1.html" "bip39_converter_v$v2.html" > "patches/patch_${v1}_to_${v2}.diff"
+-            # Remove only after successful creation
+-            if [ $? -eq 0 ]; then
++            
++            # diff returns 0 if no differences, 1 if differences found.
++            # We accept 0 or 1 as a successful patch generation.
++            EXIT_CODE=$?
++            if [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 1 ]; then
+                 rm "bip39_converter_v$v1.html"
++                echo "File bip39_converter_v$v1.html deleted."
++            else
++                echo "Error: Failed to create patch for $v1. Keeping file."
+             fi
+         fi
+     done

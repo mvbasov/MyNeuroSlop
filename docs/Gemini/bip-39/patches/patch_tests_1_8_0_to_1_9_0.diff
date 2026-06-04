@@ -1,0 +1,14 @@
+--- bip39_converter_v1_8_0_tests.js	2026-06-04 01:05:35.639287030 +0300
++++ bip39_converter_v1_9_0_tests.js	2026-06-04 01:16:25.323670995 +0300
+@@ -119,7 +119,9 @@
+         if (enforcementTicks > 14) { // 14 ticks * 500ms = 7 seconds
+             clearInterval(enforcer);
+             t.classList.remove('show');
++            t.style.opacity = ''; // Clean up inline opacity so CSS fade can execute
++            t.style.transform = ''; // Clean up inline transform
+             API.isTesting = false; // Release the internal toast blocker
+         }
+     }, 500);
+-})();
+\ No newline at end of file
++})();

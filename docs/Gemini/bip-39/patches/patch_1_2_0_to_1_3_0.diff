@@ -1,0 +1,22 @@
+--- bip39_converter_v1_2_0.html	2026-06-04 00:21:23.230622498 +0300
++++ bip39_converter_v1_3_0.html	2026-06-04 00:29:50.586596777 +0300
+@@ -223,7 +223,7 @@
+ 
+     <div class="footer">
+         <span id="theme-status">Theme: Auto</span>
+-        <span class="version">v1.2.0</span>
++        <span class="version">v1.3.0</span>
+     </div>
+ 
+     <div id="app-toast" class="toast"></div>
+@@ -481,8 +481,8 @@
+         };
+         
+         const script = document.createElement('script');
+-        script.src = 'bip39_converter_v1_2_0_tests.js';
+-        script.onerror = () => console.error("Test suite file not found: bip39_converter_v1_2_0_tests.js");
++        script.src = 'bip39_converter_v1_3_0_tests.js';
++        script.onerror = () => console.error("Test suite file not found: bip39_converter_v1_3_0_tests.js");
+         document.body.appendChild(script);
+     }
+ })();

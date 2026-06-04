@@ -1,0 +1,21 @@
+--- bip39_converter_v1_11_0_tests.js	2026-06-04 01:25:08.391876880 +0300
++++ bip39_converter_v1_12_0_tests.js	2026-06-04 01:31:35.828008905 +0300
+@@ -58,6 +58,18 @@
+         assert(encodedZeros === expectedZerosMnemonic, 
+             "encodeMnemonic properly evaluates 128 bits of entropy and appends correct 4-bit checksum using real words");
+ 
++        // Validate specific exact vector (Safe check: only run if the actual English dictionary is loaded)
++        if (realDict.includes("shell") && realDict.includes("hungry")) {
++            const specificHex = "c56de84beafca421bc44284c89580321";
++            const expectedSpecific = "shell hungry base sting ski awkward valve lunar erode enlist absorb drive";
++            
++            const encodedSpecific = await API.encodeMnemonic(specificHex);
++            assert(encodedSpecific === expectedSpecific, "encodeMnemonic correctly translates specific standard entropy vector to exact expected phrase");
++            
++            const decodedSpecific = await API.decodeMnemonic(expectedSpecific);
++            assert(decodedSpecific === specificHex, "decodeMnemonic correctly recovers exact standard hex vector from specific phrase");
++        }
++
+         // --- TEST 3: Validation and Checksum Rejection ---
+         let threwError = false;
+         try {

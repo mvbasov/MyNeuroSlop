@@ -1,0 +1,35 @@
+--- bip39_converter_v1_10_0_tests.js	2026-06-04 01:25:01.235874329 +0300
++++ bip39_converter_v1_11_0_tests.js	2026-06-04 01:25:08.391876880 +0300
+@@ -71,7 +71,31 @@
+         catch(e) { lengthError = e.message.includes("Invalid length"); }
+         assert(lengthError, "decodeMnemonic rejects invalid mnemonic lengths (< 12 words)");
+ 
+-        // --- TEST 4: DOM Input Debounce & Sync Pipeline ---
++        // --- TEST 4: Entropy Length Validation ---
++        let tooShortError = false;
++        try { await API.encodeMnemonic("ff"); }
++        catch(e) { tooShortError = e.message.includes("Invalid entropy"); }
++        assert(tooShortError, "encodeMnemonic rejects entropy shorter than 32 hex chars (128 bits)");
++        
++        let tooLongError = false;
++        try { await API.encodeMnemonic("f".repeat(66)); }
++        catch(e) { tooLongError = e.message.includes("Invalid entropy"); }
++        assert(tooLongError, "encodeMnemonic rejects entropy longer than 64 hex chars (256 bits)");
++
++        let nonHexError = false;
++        try { await API.encodeMnemonic("invalidhexstring0000000000000000"); }
++        catch(e) { nonHexError = e.message.includes("Invalid hex"); }
++        assert(nonHexError, "encodeMnemonic rejects non-hexadecimal characters immediately");
++
++        // --- TEST 5: Parser Case & Whitespace Normalization ---
++        // Ensure decodeMnemonic handles mixed case, extra spaces, and newlines correctly without failing
++        const messyPhrase = `  ${w0.toUpperCase()}   \n  ${w0} \t ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w0} ${w2}  `;
++        let normalizedError = false;
++        try { await API.decodeMnemonic(messyPhrase); }
++        catch(e) { normalizedError = e.message.includes("Checksum mismatch"); }
++        assert(normalizedError, "decodeMnemonic normalizes extreme whitespace and mixed-case inputs before processing");
++
++        // --- TEST 6: DOM Input Debounce & Sync Pipeline ---
+         API.hexInput.value = "ffffffffffffffffffffffffffffffff"; 
+         API.hexInput.dispatchEvent(new Event('input'));
+         

@@ -1,0 +1,50 @@
+--- bash_patch_creator_v1_0_0.sh	2026-06-01 13:50:56.782232107 +0300
++++ bash_patch_creator_v1_2_0.sh	2026-06-01 13:56:17.845818383 +0300
+@@ -1,6 +1,28 @@
+ #!/bin/bash
+ 
+-# Directory to search (default to current directory)
++# Script version
++SCRIPT_VERSION="1.2.0"
++
++# Function to show usage
++show_help() {
++    echo "Usage: ./generate_patches_named.sh [DIRECTORY]"
++    echo "Finds files matching *_vX_Y_Z.html and generates diff patches."
++    echo ""
++    echo "Options:"
++    echo "  -v, --version    Show script version"
++    echo "  -h, --help       Show this help message"
++}
++
++# Handle flags
++if [[ "$1" == "-v" || "$1" == "--version" ]]; then
++    echo "Patch Generator Script v$SCRIPT_VERSION"
++    exit 0
++elif [[ "$1" == "-h" || "$1" == "--help" ]]; then
++    show_help
++    exit 0
++fi
++
++# Directory to search
+ DIR="${1:-.}"
+ 
+ # Find files, sort by version
+@@ -17,17 +39,12 @@
+     f1="${files[$i]}"
+     f2="${files[$i+1]}"
+     
+-    # Extract filename without path
+     base_name=$(basename "$f1")
+-    
+-    # Extract the common part (everything before '_v')
+     common_part="${base_name%%_v*}"
+     
+-    # Extract version strings
+     v1=$(echo "$base_name" | grep -o 'v[0-9]*_[0-9]*_[0-9]*')
+     v2=$(echo "$(basename "$f2")" | grep -o 'v[0-9]*_[0-9]*_[0-9]*')
+     
+-    # Create name: common_v1_to_v2.patch
+     patch_name="${common_part}_${v1}_to_${v2}.patch"
+     
+     echo "Generating: $patch_name"

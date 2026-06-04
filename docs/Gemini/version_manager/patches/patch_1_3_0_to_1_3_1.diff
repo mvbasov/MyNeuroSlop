@@ -1,0 +1,56 @@
+--- version_manager_v1_3_0.sh	2026-06-04 21:10:02.100655017 +0300
++++ version_manager_v1_3_1.sh	2026-06-04 21:12:28.744841214 +0300
+@@ -1,7 +1,7 @@
+ #!/bin/bash
+ 
+ # BIP39 Converter Version Management Script
+-# Version: 1.3.0
++# Version: 1.3.1
+ # Usage:
+ #   ./manage_bip39.sh diff      - Create patches, keep latest
+ #   ./manage_bip39.sh restore   - Interactively select version to restore
+@@ -10,7 +10,7 @@
+ 
+ set -e
+ 
+-SCRIPT_VERSION="1.3.0"
++SCRIPT_VERSION="1.3.1"
+ 
+ get_versions() {
+     (
+@@ -59,20 +59,27 @@
+         echo "Restoring v$target from v$latest..."
+         local ext=$(ls "bip39_converter_v$latest."* 2>/dev/null | grep -E '\.(html|htm)$' | head -1 | sed 's/.*\.//')
+         
++        # Copy latest as the base for restoration
+         cp "bip39_converter_v$latest.$ext" "bip39_converter_v$target.$ext"
+         [ -f "bip39_converter_v${latest}_tests.js" ] && cp "bip39_converter_v${latest}_tests.js" "bip39_converter_v$target""_tests.js"
+         
+-        # Reverse apply patches from latest down to target
++        # Apply patches in reverse: from latest down to target
++        # Loop backwards through versions
+         for ((i=${#versions[@]}-2; i>=0; i--)); do
+-            v1="${versions[$i]}"
+-            v2="${versions[$i+1]}"
++            local v_from="${versions[i+1]}"
++            local v_to="${versions[i]}"
+             
+-            # Stop if we've reached the target version
+-            if [[ "$v2" == "$target" ]]; then break; fi
++            # Check if this patch is needed to reach the target
++            # If current 'v_to' is numerically >= target, we continue reversing
++            if [ "$(printf '%s\n%s' "$target" "$v_to" | sort -V | head -n1)" != "$target" ]; then
++                continue
++            fi
+             
+-            echo "Applying reverse patch: v$v2 -> v$v1"
+-            [ -f "patches/patch_${v1}_to_${v2}.diff" ] && patch -R "bip39_converter_v$target.$ext" < "patches/patch_${v1}_to_${v2}.diff"
+-            [ -f "patches/patch_tests_${v1}_to_${v2}.diff" ] && patch -R "bip39_converter_v$target""_tests.js" < "patches/patch_tests_${v1}_to_${v2}.diff"
++            echo "Applying reverse patch: $v_from -> $v_to"
++            [ -f "patches/patch_${v_to}_to_${v_from}.diff" ] && patch -R "bip39_converter_v$target.$ext" < "patches/patch_${v_to}_to_${v_from}.diff"
++            [ -f "patches/patch_tests_${v_to}_to_${v_from}.diff" ] && patch -R "bip39_converter_v$target""_tests.js" < "patches/patch_tests_${v_to}_to_${v_from}.diff"
++            
++            if [[ "$v_to" == "$target" ]]; then break; fi
+         done
+         echo "Successfully restored v$target"
+         break

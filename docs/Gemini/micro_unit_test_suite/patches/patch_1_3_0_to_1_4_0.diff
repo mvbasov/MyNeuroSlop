@@ -1,0 +1,33 @@
+--- base64_converter_v1_3_0.html	2026-06-03 19:29:44.650605066 +0300
++++ base64_converter_v1_4_0.html	2026-06-03 19:29:35.146603276 +0300
+@@ -91,7 +91,13 @@
+ 
+         <div class="footer">
+             <span>Demo Application</span>
+-            <span>v1.3.0</span>
++            <span>v1.4.0</span>
++        </div>
++        
++        <div style="margin-top: 1rem; padding: 1rem; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; font-size: 0.85rem; color: #856404;">
++            <strong>🧪 Testing Demonstration:</strong><br>
++            To run the automated micro unit tests, append <code>?test=run</code> to this page's URL and refresh.<br><br>
++            <em>Note:</em> The tests will intentionally <strong>fail</strong> because an artificial bug was injected into the <code>encodeToBase64()</code> function to demonstrate the UI enforcer. Open the HTML source code and look for the <code>[ARTIFICIAL MISTAKE INJECTED FOR TESTING DEMONSTRATION]</code> comment to fix it!
+         </div>
+     </div>
+ 
+@@ -153,13 +159,13 @@
+                 
+                 // Dynamically inject the external testing framework
+                 const script = document.createElement('script');
+-                script.src = 'base64_converter_v1_3_0_tests.js';
++                script.src = 'base64_converter_v1_4_0_tests.js';
+                 script.onload = () => {
+                     if (window.location.search.includes('test=run') && window.__runTests) {
+                         setTimeout(() => window.__runTests(), 500);
+                     }
+                 };
+-                script.onerror = () => console.error("❌ Failed to load base64_converter_v1_3_0_tests.js. Ensure it is in the same directory.");
++                script.onerror = () => console.error("❌ Failed to load base64_converter_v1_4_0_tests.js. Ensure it is in the same directory.");
+                 document.body.appendChild(script);
+             }
+             // >>> END OF TESTING ARCHITECTURE <<<

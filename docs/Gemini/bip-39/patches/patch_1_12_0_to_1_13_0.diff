@@ -1,0 +1,31 @@
+--- bip39_converter_v1_12_0.html	2026-06-04 01:31:35.828008905 +0300
++++ bip39_converter_v1_13_0.html	2026-06-04 01:43:06.681689192 +0300
+@@ -4,6 +4,8 @@
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>BIP-39 Offline Converter</title>
++    <!-- 100% Offline SVG Favicon -->
++    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cG9seWdvbiBwb2ludHM9IjUwLDUgOTAsMjUgOTAsNzUgNTAsOTUgMTAsNzUgMTAsMjUiIGZpbGw9IiMwMDdiZmYiLz48dGV4dCB4PSI1MCIgeT0iNjUiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZmZmZmZmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4zOTwvdGV4dD48L3N2Zz4=">
+     <style>
+         /* 1. Minimal Global CSS for Standalone Operation */
+         html, body {
+@@ -223,7 +225,7 @@
+ 
+     <div class="footer">
+         <span id="theme-status">Theme: Auto</span>
+-        <span class="version">v1.12.0</span>
++        <span class="version">v1.13.0</span>
+     </div>
+ 
+     <div id="app-toast" class="toast"></div>
+@@ -482,8 +484,8 @@
+         };
+         
+         const script = document.createElement('script');
+-        script.src = 'bip39_converter_v1_12_0_tests.js';
+-        script.onerror = () => console.error("Test suite file not found: bip39_converter_v1_12_0_tests.js");
++        script.src = 'bip39_converter_v1_13_0_tests.js';
++        script.onerror = () => console.error("Test suite file not found: bip39_converter_v1_13_0_tests.js");
+         document.body.appendChild(script);
+     }
+ })();
