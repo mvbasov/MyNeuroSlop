@@ -1,0 +1,2661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- PRESERVE_BINARY_START -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%233b82f6' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='50' cy='50' r='40' /%3E%3Cline x1='10' y1='50' x2='35' y2='50' /%3E%3Cline x1='35' y1='30' x2='35' y2='70' stroke-width='7' /%3E%3Cpath d='M 35 40 L 60 20 L 60 10' /%3E%3Cpath d='M 35 60 L 60 80 L 60 90' /%3E%3Cpolygon points='58,78 46,76 54,67' fill='%233b82f6' /%3E%3C/g%3E%3C/svg%3E">
+    <!-- PRESERVE_BINARY_END -->
+    <title>SVG Component Editor</title>
+    <style>
+        html, body {
+          margin: 0;
+          padding: 0;
+          height: 100dvh;
+          overflow: hidden;
+          transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        body:not(.theme-dark) {
+          background-color: #f3f4f6;
+        }
+        body.theme-dark {
+          background-color: #1e1e2e;
+        }
+        
+        /* Embed-Safe Scoped CSS */
+        #svg-editor-app {
+            /* CSS Variables scoped only to the app - Default Light Theme */
+
+	    /* Balanced light theme with darker editor background */
+	    --bg-color: #E2DCD2;       /* Muted warm gray-beige for main app bg */
+	    --panel-bg: #C9C0B2;       /* Darker, balanced panel bg (editor area) */
+	    --text-color: #2C2A28;     /* Dark but soft black for text */
+	    --text-muted: #6E665C;     /* Harmonized muted gray-brown */
+	    --border: #B7AC9C;         /* Balanced, not too dark or light */
+	    --toolbar-bg: #DCD4C8;     /* In-between toolbar bg */
+	    --preview-bg: #DDD5C9;     /* Slightly lighter than editor for contrast */
+	    --primary: #6B7F8E;        /* Muted slate blue, balanced */
+	    --primary-hover: #7E92A2;  /* Softer on hover */
+	    --grid-line: #C9BEAD;      /* Visible but subtle grid */
+	    --danger: #C98686;         /* Muted rose, not harsh */
+	    --success: #8FAA8A;        /* Soft sage green */
+	    --font-mono: 'Courier New', Courier, monospace;
+
+            /* Base App Styling */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            
+            /* CSS Container Query */
+            container-type: inline-size;
+        }
+
+	#svg-editor-app.theme-dark {
+	    /* Softer dark theme — less shine, more comfortable */
+	    --bg-color: #1e1e2e;          /* Keep deep background */
+	    --panel-bg: #282a36;          /* Keep panel base */
+	    --text-color: #b8b8b0;        /* Softer, less bright than #f8f8f2 */
+	    --text-muted: #6e6e7a;        /* Muted, comfortable */
+	    --primary: #6b8a9e;           /* Dusty blue instead of bright #3b82f6 */
+	    --primary-hover: #7e9aae;     /* Softer hover */
+	    --danger: #cc8888;            /* Muted red instead of #ff5555 */
+	    --success: #88aa88;           /* Muted green instead of #50fa7b */
+	    --border: #3d3f4f;            /* Slightly darker than #44475a for less contrast */
+	    --toolbar-bg: #252530;        /* Slightly darker */
+	    --preview-bg: #1a1a24;        /* Deeper preview background */
+	    --grid-line: #3a3a45;         /* Softer grid lines */
+	}
+
+	#svg-editor-app *::before,
+        #svg-editor-app *::after {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, stroke 0.3s ease, fill 0.3s ease;
+        }
+
+        #svg-editor-app .svg-editor-layout {
+            /* CSS Grid Layout */
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "header header"
+                "preview editor"
+                "footer footer";
+            width: 100%;
+            height: 100%;
+        }
+
+        #svg-editor-app * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* --- Header & Toolbar --- */
+        #svg-editor-app header {
+            grid-area: header;
+            background-color: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        #svg-editor-app .badge {
+            background-color: var(--danger);
+            color: white;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            display: none;
+        }
+
+        #svg-editor-app .toolbar-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            background: var(--panel-bg);
+            padding: 5px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        #svg-editor-app .toolbar-right {
+            margin-left: auto;
+        }
+
+        #svg-editor-app .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: var(--border);
+            margin: 0 4px;
+        }
+
+        #svg-editor-app button {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid transparent;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        #svg-editor-app button:hover {
+            background: var(--border);
+        }
+
+        #svg-editor-app button.primary {
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        #svg-editor-app button.primary:hover {
+            background: var(--primary-hover);
+        }
+
+        #svg-editor-app button.danger {
+            color: var(--danger);
+        }
+        #svg-editor-app button.danger:hover {
+            background: rgba(255, 85, 85, 0.1);
+        }
+
+        #svg-editor-app .toolbar-select {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid transparent;
+            padding: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            width: 32px;
+            text-align: center;
+            text-align-last: center;
+        }
+
+        #svg-editor-app .toolbar-select:hover {
+            background: var(--border);
+        }
+
+        #svg-editor-app .toolbar-select option {
+            background: var(--panel-bg);
+            color: var(--text-color);
+            text-align: left;
+        }
+
+        #svg-editor-app button:focus-visible, 
+        #svg-editor-app .toolbar-select:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: -1px;
+            border-radius: 4px;
+        }
+
+        #svg-editor-app label.toggle {
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* --- Main Layout Panels --- */
+        #svg-editor-app .panel {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+        }
+
+        #svg-editor-app .preview-panel {
+            grid-area: preview;
+            border-right: 1px solid var(--border);
+        }
+
+        #svg-editor-app .editor-panel {
+            grid-area: editor;
+        }
+
+        /* --- Footer --- */
+        #svg-editor-app footer {
+            grid-area: footer;
+            background-color: var(--toolbar-bg);
+            border-top: 1px solid var(--border);
+            padding: 4px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        #svg-editor-app .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        #svg-editor-app .footer-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            flex: 1;
+            white-space: nowrap;
+        }
+
+        #svg-editor-app .footer-right {
+            flex: 1;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        /* --- Preview Area --- */
+        #svg-editor-app #preview-container {
+            flex: 1;
+            background-color: var(--preview-bg);
+            color: var(--text-color);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #svg-editor-app #main-svg {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* --- Editor Area --- */
+        #svg-editor-app .editor-wrapper {
+            flex: 1;
+            position: relative;
+            background-color: var(--panel-bg);
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+
+        #svg-editor-app .editor-wrapper.drag-over {
+            box-shadow: inset 0 0 0 2px var(--primary);
+        }
+
+        #svg-editor-app textarea, #svg-editor-app .backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 15px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.5;
+            border: none;
+            outline: none;
+            resize: none;
+            white-space: pre;       
+            overflow-wrap: normal;  
+            box-sizing: border-box;
+            tab-size: 2;
+        }
+
+        #svg-editor-app textarea {
+            color: transparent;
+            background: transparent;
+            caret-color: var(--primary);
+            z-index: 2;
+            overflow: auto; 
+        }
+
+        #svg-editor-app .backdrop {
+            z-index: 1;
+            color: var(--text-color);
+            overflow: auto; 
+            pointer-events: none;
+        }
+
+        #svg-editor-app mark {
+            background-color: rgba(59, 130, 246, 0.3);
+            color: inherit;
+            border-radius: 2px;
+            outline: 1px solid rgba(59, 130, 246, 0.6);
+        }
+
+        #svg-editor-app mark.point-mark {
+            background-color: rgba(255, 85, 85, 0.4);
+            border-radius: 2px;
+            outline: 1px solid rgba(255, 85, 85, 0.8);
+        }
+
+        /* Embed-Safe Mobile Layout Modifications via Container Queries */
+        @container (max-width: 700px) {
+            #svg-editor-app .svg-editor-layout {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto 1fr auto;
+                grid-template-areas:
+                    "preview"
+                    "header"
+                    "editor"
+                    "footer";
+            }
+            #svg-editor-app .preview-panel {
+                border-right: none;
+            }
+            #svg-editor-app header {
+                border-top: 1px solid var(--border);
+                border-bottom: 1px solid var(--border);
+                padding: 6px 10px;
+                gap: 6px;
+                justify-content: center;
+            }
+            #svg-editor-app .toolbar-group {
+                padding: 3px;
+                gap: 4px;
+            }
+            #svg-editor-app .toolbar-right {
+                margin-left: 0;
+            }
+            #svg-editor-app button {
+                padding: 4px 8px;
+                font-size: 0.8rem;
+            }
+            #svg-editor-app .toolbar-select {
+                padding: 2px;
+                width: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="svg-editor-app">
+        <div class="svg-editor-layout">
+            <header>
+                <div class="toolbar-group">
+                    <select class="toolbar-select" id="tool-insert" title="Add Element">
+                        <option value="" disabled selected>➕</option>
+                        <option value="circle">⭕ Circle</option>
+                        <option value="line">📏 Line</option>
+                        <option value="path">〰️ Path</option>
+                        <option value="polygon">⬠ Polygon</option>
+                        <option value="polyline">📈 Polyline</option>
+                        <option value="rect">🟦 Rectangle</option>
+                        <option value="text">🔤 Text</option>
+                        <option value="comment_start">💬 &lt;!--</option>
+                        <option value="comment_end">💬 --&gt;</option>
+                    </select>
+                </div>
+
+                <div class="toolbar-group">
+                    <button data-action="move" data-dx="0" data-dy="-1" title="Move Up (↑)">▲</button>
+                    <button data-action="move" data-dx="0" data-dy="1" title="Move Down (↓)">▼</button>
+                    <button data-action="move" data-dx="-1" data-dy="0" title="Move Left (←)">◀</button>
+                    <button data-action="move" data-dx="1" data-dy="0" title="Move Right (→)">▶</button>
+                </div>
+
+                <div class="toolbar-group">
+                    <select class="toolbar-select" id="tool-transform" title="Transform">
+                        <option value="" disabled selected>↻</option>
+                        <option value="rot_90">↻ 90°</option>
+                        <option value="rot_-90">↺ -90°</option>
+                        <option value="rot_180">↻ 180°</option>
+                        <option value="rot_45">↻ 45°</option>
+                        <option value="rot_-45">↺ -45°</option>
+                        <option value="flip_h">↔ Flip H</option>
+                        <option value="flip_v">↕ Flip V</option>
+                    </select>
+                    <div class="toolbar-divider"></div>
+                    <button class="danger" id="tool-delete" title="Delete">🗑️</button>
+                </div>
+
+                <div class="toolbar-group toolbar-right">
+                    <button id="tool-undo" title="Undo (Ctrl+Z)">↶</button>
+                    <button id="tool-redo" title="Redo (Ctrl+Y)">↷</button>
+                    <button class="primary" id="tool-load" title="Load File">📂</button>
+                    <button class="primary" id="tool-copy" title="Copy Code">📋</button>
+                    <button class="primary" id="tool-save" title="Save SVG">💾</button>
+                    <input type="file" id="file-input" accept=".svg,.txt,.html,.xml" style="display: none;">
+                </div>
+            </header>
+
+            <div class="panel preview-panel">
+                <div id="preview-container">
+                    <svg id="main-svg" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <pattern id="gridPattern" patternUnits="userSpaceOnUse" width="10" height="10">
+                                <rect width="100%" height="100%" fill="none" />
+                                <path id="gridPatternLine" d="M 10 0 L 0 0 0 10" fill="none" stroke="var(--grid-line)" stroke-width="0.5" />
+                            </pattern>
+                        </defs>
+                        <g id="grid-group">
+                            <rect id="grid-rect" fill="url(#gridPattern)" />
+                            <g id="grid-labels"></g>
+                        </g>
+                        <svg id="user-svg-container"></svg>
+                        <g id="overlay-group" style="pointer-events: none;"></g>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="panel editor-panel">
+                <div class="editor-wrapper" id="editor-wrapper">
+                    <div class="backdrop" id="backdrop"></div>
+                    <textarea id="code" spellcheck="false"></textarea>
+                </div>
+            </div>
+
+            <footer>
+                <div class="footer-left">
+                    <span id="error-badge" class="badge">Syntax Error</span>
+                    <label class="toggle" style="font-size: inherit;">
+                        <input type="checkbox" id="toggle-grid" checked> Grid
+                    </label>
+                    <button id="toggle-keyboard" title="Toggle Virtual Keyboard" style="background: none; border: none; padding: 0; margin-left: 5px; color: inherit; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s;">⌨️</button>
+                    <button id="toggle-theme" title="Theme: Auto" style="background: none; border: none; padding: 0; margin-left: 10px; color: inherit; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s;">🌗</button>
+                </div>
+                <div class="footer-center">
+                    <label for="move-step">Step:</label>
+                    <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                </div>
+                <div class="footer-right">v6.16.0</div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Completely encase application logic in IIFE to protect host environments
+        (function() {
+            // Theme Controller Implementation
+            let APP_THEME = 'auto'; // Supports 'auto', 'dark', 'light'
+
+            function applyTheme() {
+                const body = document.body;
+                const app = document.getElementById('svg-editor-app');
+                const themeBtn = document.getElementById('toggle-theme');
+                
+                let isDark = false;
+                if (APP_THEME === 'dark') {
+                    isDark = true;
+                } else if (APP_THEME === 'light') {
+                    isDark = false;
+                } else {
+                    // 'auto' - system media preference
+                    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                }
+                
+                if (isDark) {
+                    body.classList.add('theme-dark');
+                    if (app) app.classList.add('theme-dark');
+                } else {
+                    body.classList.remove('theme-dark');
+                    if (app) app.classList.remove('theme-dark');
+                }
+
+                if (themeBtn) {
+                    const themeIcons = { 'auto': '🌗', 'dark': '🌙', 'light': '☀️' };
+                    themeBtn.innerHTML = themeIcons[APP_THEME] || '🌗';
+                    themeBtn.title = `Theme: ${APP_THEME.charAt(0).toUpperCase() + APP_THEME.slice(1)}`;
+                }
+            }
+
+            // Execute theme evaluation immediately
+            applyTheme();
+
+            if (APP_THEME === 'auto') {
+                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                if (mediaQuery.addEventListener) {
+                    mediaQuery.addEventListener('change', applyTheme);
+                } else {
+                    mediaQuery.addListener(applyTheme);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', applyTheme);
+
+            const defaultCode = `<!-- NPN Transistor -->
+<symbol id="npn" viewBox="0 0 100 100">
+  <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="50" cy="50" r="42" stroke-width="2" />
+    <line x1="0" y1="50" x2="35" y2="50" />
+    <line x1="35" y1="28" x2="35" y2="72" stroke-width="4.5" />
+    <path d="M35,40 L60,20 L60,0" />
+    <path d="M35,60 L60,80 L60,100" />
+    <polygon points="58,78 46,76 54,67" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"/>
+  </g>
+</symbol>`;
+
+            // DOM Elements
+            const textarea = document.getElementById('code');
+            const backdrop = document.getElementById('backdrop');
+            const userSvgContainer = document.getElementById('user-svg-container');
+            const overlayGroup = document.getElementById('overlay-group');
+            const mainSvg = document.getElementById('main-svg');
+            const gridGroup = document.getElementById('grid-group');
+            const gridRect = document.getElementById('grid-rect');
+            const gridPattern = document.getElementById('gridPattern');
+            const gridPatternLine = document.getElementById('gridPatternLine');
+            const gridLabels = document.getElementById('grid-labels');
+            const errorBadge = document.getElementById('error-badge');
+            const toggleGrid = document.getElementById('toggle-grid');
+            const toggleKeyboardBtn = document.getElementById('toggle-keyboard');
+            const editorWrapper = document.getElementById('editor-wrapper');
+            const moveStepInput = document.getElementById('move-step');
+
+            // State & Singletons
+            const MAX_HISTORY = 50;
+            let history = [];
+            let historyIndex = -1;
+            let lastValidRender = "";
+            let activeTagInfo = null;
+            let debounceTimeout;
+            let selectionRafId = null;
+            let scrollRafId = null;
+            let keyboardDisabled = false;
+            let overlayTimeoutId = null;
+            
+            // Track previously highlighted node to restore its state
+            let previouslyHighlightedNode = { node: null, originalStroke: null, originalColor: null };
+            
+            const domParser = new DOMParser();
+
+            // --- Matrix Squashing Mathematics ---
+            const multiplyMatrix = (m1, m2) => ({
+                a: m1.a * m2.a + m1.c * m2.b,
+                b: m1.b * m2.a + m1.d * m2.b,
+                c: m1.a * m2.c + m1.c * m2.d,
+                d: m1.b * m2.c + m1.d * m2.d,
+                e: m1.a * m2.e + m1.c * m2.f + m1.e,
+                f: m1.b * m2.e + m1.d * m2.f + m1.f
+            });
+
+            const createIdentity = () => ({a: 1, b: 0, c: 0, d: 1, e: 0, f: 0});
+
+            // --- Core Application Utilities ---
+            const SVGUtils = {
+                getLogicalCenter: (activeNode) => {
+                    if (!activeNode) return { cx: 0, cy: 0 };
+                    const tagName = activeNode.tagName.toLowerCase();
+                    const safeF = (val, fallback = 0) => {
+                        let v = parseFloat(val);
+                        return Number.isFinite(v) ? v : fallback;
+                    };
+                    
+                    if (tagName === 'use' || tagName === 'image') {
+                        let useX = safeF(activeNode.getAttribute('x'));
+                        let useY = safeF(activeNode.getAttribute('y'));
+                        let useW = safeF(activeNode.getAttribute('width'), NaN);
+                        let useH = safeF(activeNode.getAttribute('height'), NaN);
+                        
+                        if (Number.isFinite(useW) && Number.isFinite(useH) && useW > 0 && useH > 0) {
+                            return { cx: useX + useW / 2, cy: useY + useH / 2 };
+                        }
+                        
+                        const href = activeNode.getAttribute('href') || activeNode.getAttribute('xlink:href');
+                        if (href && href.startsWith('#')) {
+                            const refId = href.substring(1);
+                            const refNode = document.getElementById(refId) || document.querySelector(`[id="${refId}"]`);
+                            if (refNode) {
+                                if (refNode.viewBox && refNode.viewBox.baseVal && refNode.viewBox.baseVal.width > 0) {
+                                    return { cx: useX + refNode.viewBox.baseVal.width / 2, cy: useY + refNode.viewBox.baseVal.height / 2 };
+                                } else if (refNode.hasAttribute('width') && refNode.hasAttribute('height')) {
+                                    return { cx: useX + safeF(refNode.getAttribute('width')) / 2, cy: useY + safeF(refNode.getAttribute('height')) / 2 };
+                                }
+                            }
+                        }
+                    } else if (tagName === 'circle' || tagName === 'ellipse') {
+                        return { cx: safeF(activeNode.getAttribute('cx')), cy: safeF(activeNode.getAttribute('cy')) };
+                    } else if (tagName === 'rect') {
+                        let x = safeF(activeNode.getAttribute('x'));
+                        let y = safeF(activeNode.getAttribute('y'));
+                        let w = safeF(activeNode.getAttribute('width'));
+                        let h = safeF(activeNode.getAttribute('height'));
+                        return { cx: x + w / 2, cy: y + h / 2 };
+                    } else if (tagName === 'line') {
+                        let x1 = safeF(activeNode.getAttribute('x1'));
+                        let y1 = safeF(activeNode.getAttribute('y1'));
+                        let x2 = safeF(activeNode.getAttribute('x2'));
+                        let y2 = safeF(activeNode.getAttribute('y2'));
+                        return { cx: (x1 + x2) / 2, cy: (y1 + y2) / 2 };
+                    }
+
+                    try {
+                        let bbox = activeNode.getBBox();
+                        if (bbox.width > 0 || bbox.height > 0) {
+                            return { cx: safeF(bbox.x) + safeF(bbox.width) / 2, cy: safeF(bbox.y) + safeF(bbox.height) / 2 };
+                        }
+                    } catch (e) {}
+
+                    return { cx: safeF(activeNode.getAttribute('x')), cy: safeF(activeNode.getAttribute('y')) };
+                },
+
+                getMatrix: (str) => {
+                    if (!str) return createIdentity();
+                    let m = createIdentity();
+                    const cmdRegex = /(translate|rotate|scale|matrix|skewX|skewY)\s*\(([^)]+)\)/ig;
+                    let match;
+                    while ((match = cmdRegex.exec(str)) !== null) {
+                        const type = match[1].toLowerCase();
+                        const args = match[2].split(/[,\s]+/).map(parseFloat).filter(n => !isNaN(n));
+                        let nextM = createIdentity();
+
+                        if (type === 'translate') {
+                            nextM.e = args[0] || 0;
+                            nextM.f = args.length > 1 ? args[1] : 0;
+                        } else if (type === 'rotate') {
+                            const angle = (args[0] || 0) * Math.PI / 180;
+                            const r_cx = args.length > 1 ? args[1] : 0;
+                            const r_cy = args.length > 2 ? args[2] : 0;
+                            const cos = Math.cos(angle);
+                            const sin = Math.sin(angle);
+                            
+                            if (r_cx !== 0 || r_cy !== 0) {
+                                m = multiplyMatrix(m, {a: 1, b: 0, c: 0, d: 1, e: r_cx, f: r_cy});
+                            }
+                            nextM.a = cos; nextM.b = sin; nextM.c = -sin; nextM.d = cos;
+                            if (r_cx !== 0 || r_cy !== 0) {
+                                nextM = multiplyMatrix(nextM, {a: 1, b: 0, c: 0, d: 1, e: -r_cx, f: -r_cy});
+                            }
+                        } else if (type === 'scale') {
+                            nextM.a = args[0] !== undefined ? args[0] : 1;
+                            nextM.d = args.length > 1 ? args[1] : (args[0] !== undefined ? args[0] : 1);
+                        } else if (type === 'matrix') {
+                            nextM.a = args[0] !== undefined ? args[0] : 1; 
+                            nextM.b = args[1] !== undefined ? args[1] : 0;
+                            nextM.c = args[2] !== undefined ? args[2] : 0; 
+                            nextM.d = args[3] !== undefined ? args[3] : 1;
+                            nextM.e = args[4] !== undefined ? args[4] : 0; 
+                            nextM.f = args[5] !== undefined ? args[5] : 0;
+                        } else if (type === 'skewx') {
+                            nextM.c = Math.tan((args[0] || 0) * Math.PI / 180);
+                        } else if (type === 'skewy') {
+                            nextM.b = Math.tan((args[0] || 0) * Math.PI / 180);
+                        }
+                        
+                        m = multiplyMatrix(m, nextM);
+                    }
+                    return m;
+                },
+
+                squashTransforms: (str) => {
+                    if (!str) return "";
+                    // If no valid commands, return original string (or empty)
+                    if (!/(translate|rotate|scale|matrix|skewX|skewY)/i.test(str)) return str;
+                    
+                    let m = SVGUtils.getMatrix(str);
+
+                    const f = n => {
+                        const val = parseFloat(n.toFixed(3));
+                        return Object.is(val, -0) ? 0 : val;
+                    };
+
+                    const a = f(m.a), b = f(m.b), c = f(m.c), d = f(m.d), e = f(m.e), f_val = f(m.f);
+
+                    // If it evaluates precisely to a simple translation or zero
+                    if (a === 1 && b === 0 && c === 0 && d === 1) {
+                        if (e === 0 && f_val === 0) return "";
+                        return `translate(${e}, ${f_val})`;
+                    }
+                    
+                    // Compress back to clean rotate if it happens to be perfectly symmetrical on origin
+                    if (e === 0 && f_val === 0 && a === d && b === -c) {
+                        const angle = Math.round(Math.atan2(b, a) * 180 / Math.PI * 1000) / 1000;
+                        if (!isNaN(angle)) return `rotate(${angle})`;
+                    }
+
+                    return `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f_val})`;
+                },
+
+                getAttrMatch: (tagStr, attr) => {
+                    const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+                    return m ? { start: m.index, end: m.index + m[0].length, val: m[0] } : null;
+                },
+                
+                adjustAttr: (str, attr, delta) => {
+                    const regex = new RegExp(`\\b${attr}=["']([^"']+)["']`, 'i');
+                    return str.replace(regex, (match, val) => {
+                        let num = parseFloat(val);
+                        return isNaN(num) ? match : `${attr}="${num + delta}"`;
+                    });
+                },
+                
+                setOrReplaceAttr: (str, attr, val) => {
+                    const regex = new RegExp(`\\b${attr}=["'][^"']*["']`, 'i');
+                    if (regex.test(str)) {
+                        return str.replace(regex, `${attr}="${val}"`);
+                    } else {
+                        return str.replace(/(<[a-zA-Z0-9:-]+)/, `$1 ${attr}="${val}"`);
+                    }
+                },
+                
+                checkAndAdjustNearAttr: (tagStr, relPos, attrList, xDelta, yDelta, postFixFn = null) => {
+                    for (let attr of attrList) {
+                        const match = SVGUtils.getAttrMatch(tagStr, attr);
+                        if (match && relPos >= match.start && relPos <= match.end) {
+                            let newStr = tagStr;
+                            if (xDelta !== 0) newStr = SVGUtils.adjustAttr(newStr, attrList[0], xDelta);
+                            if (yDelta !== 0 && attrList.length > 1) newStr = SVGUtils.adjustAttr(newStr, attrList[1], yDelta);
+                            if (postFixFn) newStr = postFixFn(newStr);
+                            return { modified: true, tagStr: newStr };
+                        }
+                    }
+                    return { modified: false, tagStr: tagStr };
+                },
+
+                adjustPoints: (str, deltaX, deltaY) => {
+                    const regex = /\bpoints=["']([^"']+)["']/i;
+                    return str.replace(regex, (match, val) => {
+                        const newVals = (val.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                        let out = [];
+                        for (let i = 0; i < newVals.length; i += 2) {
+                            if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+                                out.push(`${newVals[i] + deltaX},${newVals[i+1] + deltaY}`);
+                            }
+                        }
+                        return `points="${out.join(' ')}"`;
+                    });
+                },
+
+                formatPointsData: (pointsStr) => {
+                    const newVals = (pointsStr.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                    let out = [];
+                    for (let i = 0; i < newVals.length; i += 2) {
+                        if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+                            out.push(`${newVals[i]},${newVals[i+1]}`);
+                        }
+                    }
+                    return out.join(' ');
+                },
+
+                formatPathData: (dStr) => {
+                    const commands = dStr.match(/[a-df-zA-DF-Z][^a-df-zA-DF-Z]*/g);
+                    if (!commands) return dStr;
+                    return commands.map(cmdChunk => {
+                        const letter = cmdChunk.trim()[0];
+                        const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                        const upper = letter.toUpperCase();
+                        if (upper === 'Z') return letter;
+                        let outNums = [];
+                        if (upper === 'H' || upper === 'V') {
+                            for(let n of nums) outNums.push(n);
+                        } else if (upper === 'A') {
+                            for (let i = 0; i < nums.length; i += 7) {
+                                let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
+                                if (i+5 < nums.length) part += ` ${nums[i+5]},${nums[i+6]}`;
+                                outNums.push(part);
+                            }
+                        } else {
+                            for (let i = 0; i < nums.length; i += 2) {
+                                if (i+1 < nums.length) outNums.push(`${nums[i]},${nums[i+1]}`);
+                                else outNums.push(nums[i]);
+                            }
+                        }
+                        return letter + outNums.join(' ');
+                    }).join(' ');
+                },
+
+                shiftPathD: (dStr, deltaX, deltaY) => {
+                    const commands = dStr.match(/[a-df-zA-DF-Z][^a-df-zA-DF-Z]*/g);
+                    if (!commands) return dStr;
+                    let firstCmd = true;
+                    const res = commands.map(cmdChunk => {
+                        const letter = cmdChunk.trim()[0];
+                        const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                        const upper = letter.toUpperCase();
+                        const isRel = letter === letter.toLowerCase();
+
+                        if (upper === 'Z') return letter;
+
+                        let applyX = deltaX;
+                        let applyY = deltaY;
+                        if (isRel && !(firstCmd && letter === 'm')) {
+                            applyX = 0;
+                            applyY = 0;
+                        }
+                        firstCmd = false;
+
+                        let outNums = [];
+                        if (upper === 'H') {
+                            for(let n of nums) outNums.push(n + applyX);
+                        } else if (upper === 'V') {
+                            for(let n of nums) outNums.push(n + applyY);
+                        } else if (upper === 'A') {
+                            for (let i = 0; i < nums.length; i += 7) {
+                                let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
+                                if (i+5 < nums.length) part += ` ${nums[i+5] + applyX},${nums[i+6] + applyY}`;
+                                outNums.push(part);
+                            }
+                        } else {
+                            for (let i = 0; i < nums.length; i += 2) {
+                                if (i+1 < nums.length) outNums.push(`${nums[i] + applyX},${nums[i+1] + applyY}`);
+                                else outNums.push(nums[i] + applyX);
+                            }
+                        }
+                        return letter + outNums.join(' ');
+                    });
+                    return res.join(' ');
+                },
+
+                shiftSinglePathCommand: (cmdChunk, deltaX, deltaY) => {
+                    const letter = cmdChunk.trim()[0];
+                    const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                    const upper = letter.toUpperCase();
+
+                    if (upper === 'Z') return letter;
+
+                    let outNums = [];
+                    if (upper === 'H') {
+                        for(let n of nums) outNums.push(n + deltaX);
+                    } else if (upper === 'V') {
+                        for(let n of nums) outNums.push(n + deltaY);
+                    } else if (upper === 'A') {
+                        for (let i = 0; i < nums.length; i += 7) {
+                            let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
+                            if (i+5 < nums.length) part += ` ${nums[i+5] + deltaX},${nums[i+6] + deltaY}`;
+                            outNums.push(part);
+                        }
+                    } else {
+                        for (let i = 0; i < nums.length; i += 2) {
+                            if (i+1 < nums.length) outNums.push(`${nums[i] + deltaX},${nums[i+1] + deltaY}`);
+                            else outNums.push(nums[i] + deltaX);
+                        }
+                    }
+                    
+                    return letter + outNums.join(' ');
+                }
+            };
+
+            // --- Strategy Pattern Handlers ---
+            const UniversalAttributes = {
+                getSubElement: (tagStr, relPos, activeNode) => {
+                    const transformMatch = SVGUtils.getAttrMatch(tagStr, 'transform');
+                    if (transformMatch && relPos >= transformMatch.start && relPos <= transformMatch.end) {
+                        const matchVal = tagStr.match(/\btransform=["']([^"']+)["']/i);
+                        if (matchVal) {
+                            const vStart = matchVal.index + matchVal[0].indexOf(matchVal[1]);
+                            const localRelPos = relPos - vStart;
+                            const cmdRegex = /(translate|rotate|scale|skewX|skewY|matrix)\s*\(([^)]+)\)/ig;
+                            let m;
+                            while ((m = cmdRegex.exec(matchVal[1])) !== null) {
+                                if (localRelPos >= m.index - 1 && localRelPos <= m.index + m[0].length + 1) {
+                                    let cxVal = 0, cyVal = 0;
+                                    if (activeNode) {
+                                        const center = SVGUtils.getLogicalCenter(activeNode);
+                                        cxVal = center.cx;
+                                        cyVal = center.cy;
+                                    }
+                                    return {
+                                        start: vStart + m.index,
+                                        end: vStart + m.index + m[0].length,
+                                        cx: cxVal,
+                                        cy: cyVal
+                                    };
+                                }
+                            }
+                        }
+                    }
+
+                    const swMatch = SVGUtils.getAttrMatch(tagStr, 'stroke-width');
+                    if (swMatch && relPos >= swMatch.start && relPos <= swMatch.end) return { start: swMatch.start, end: swMatch.end };
+
+                    const fsMatch = SVGUtils.getAttrMatch(tagStr, 'font-size');
+                    if (fsMatch && relPos >= fsMatch.start && relPos <= fsMatch.end) {
+                        let ret = { start: fsMatch.start, end: fsMatch.end };
+                        if (activeNode && activeNode.hasAttribute('x') && activeNode.hasAttribute('y')) {
+                            ret.cx = parseFloat(activeNode.getAttribute('x'));
+                            ret.cy = parseFloat(activeNode.getAttribute('y'));
+                        }
+                        return ret;
+                    }
+
+                    const taMatch = SVGUtils.getAttrMatch(tagStr, 'text-anchor');
+                    if (taMatch && relPos >= taMatch.start && relPos <= taMatch.end) {
+                        let ret = { start: taMatch.start, end: taMatch.end };
+                        if (activeNode && activeNode.hasAttribute('x') && activeNode.hasAttribute('y')) {
+                            ret.cx = parseFloat(activeNode.getAttribute('x'));
+                            ret.cy = parseFloat(activeNode.getAttribute('y'));
+                        }
+                        return ret;
+                    }
+
+                    return null;
+                },
+
+                movePoint: (tagStr, relPos, dx, dy) => {
+                    let res;
+                    res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['stroke-width'], Math.sign(dx - dy) * 0.1, 0, (str) => {
+                        return str.replace(/\bstroke-width=["']([^"']+)["']/i, (m, v) => {
+                            let currentVal = parseFloat(v);
+                            if (isNaN(currentVal)) currentVal = 1;
+                            return `stroke-width="${Math.max(0, currentVal).toFixed(1).replace(/\.0$/, '')}"`;
+                        });
+                    });
+                    if (res.modified) return res;
+
+                    res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['font-size'], Math.sign(dx - dy), 0, (str) => {
+                        return str.replace(/\bfont-size=["']([^"']+)["']/i, (m, v) => {
+                            let currentVal = parseFloat(v);
+                            if (isNaN(currentVal)) currentVal = 14;
+                            return `font-size="${Math.max(0, currentVal).toFixed(1).replace(/\.0$/, '')}"`;
+                        });
+                    });
+                    if (res.modified) return res;
+
+                    res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['text-anchor'], Math.sign(dx - dy), 0, (str) => {
+                        const cycle = ['start', 'middle', 'end'];
+                        return str.replace(/\btext-anchor=["']([^"']+)["']/i, (m, v) => {
+                            let dir = Math.sign(dx - dy);
+                            let idx = cycle.indexOf(v.toLowerCase());
+                            if (idx === -1) idx = 0;
+                            let newIdx = (idx + dir + cycle.length) % cycle.length;
+                            return `text-anchor="${cycle[newIdx]}"`;
+                        });
+                    });
+                    if (res.modified) return res;
+
+                    const transformMatch = tagStr.match(/\btransform=["']([^"']+)["']/i);
+                    if (transformMatch) {
+                        const valStart = transformMatch.index + transformMatch[0].indexOf(transformMatch[1]);
+                        const valEnd = valStart + transformMatch[1].length;
+                        
+                        if (relPos >= valStart && relPos <= valEnd) {
+                            const localRelPos = relPos - valStart;
+                            const cmdRegex = /(translate|rotate|scale|skewX|skewY|matrix)\s*\(([^)]+)\)/ig;
+                            let m;
+                            let newVal = transformMatch[1];
+                            
+                            while ((m = cmdRegex.exec(transformMatch[1])) !== null) {
+                                if (localRelPos >= m.index - 1 && localRelPos <= m.index + m[0].length + 1) {
+                                    const type = m[1].toLowerCase();
+                                    const argsStr = m[2];
+                                    
+                                    const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                                    let args = [];
+                                    let nMatch;
+                                    while((nMatch = numRegex.exec(argsStr)) !== null) {
+                                        args.push(parseFloat(nMatch[1]));
+                                    }
+                                    
+                                    if (type === 'translate') {
+                                        if (args.length >= 1) args[0] += dx;
+                                        if (args.length >= 2) args[1] += dy;
+                                        else if (dy !== 0) args.push(dy); 
+                                    } else if (type === 'rotate') {
+                                        let dir = Math.sign(dx - dy); 
+                                        if (args.length >= 1) {
+                                            if (dir > 0) args[0] = Math.ceil((args[0] + 1) / 45) * 45;
+                                            else if (dir < 0) args[0] = Math.floor((args[0] - 1) / 45) * 45;
+                                        }
+                                    } else if (type === 'scale' || type === 'skewx' || type === 'skewy') {
+                                        let dir = Math.sign(dx - dy) * 0.1;
+                                        if (args.length >= 1) args[0] += dir;
+                                        if (args.length >= 2) args[1] += dir;
+                                    } else if (type === 'matrix') {
+                                        // Standard affine matrices map translate x/y components to argument 5 and 6 (e and f).
+                                        if (args.length >= 5) args[4] += dx;
+                                        if (args.length >= 6) args[5] += dy;
+                                    }
+                                    
+                                    const newCmd = `${m[1]}(${args.map(n => Number(n.toFixed(3))).join(', ')})`;
+                                    newVal = newVal.substring(0, m.index) + newCmd + newVal.substring(m.index + m[0].length);
+                                    
+                                    // Apply matrix squasher dynamically to clean up any nested commands immediately after nudging
+                                    const squashedNewVal = SVGUtils.squashTransforms(newVal);
+                                    return { modified: true, tagStr: tagStr.substring(0, valStart) + squashedNewVal + tagStr.substring(valEnd) };
+                                }
+                            }
+                        }
+                    }
+                    return { modified: false };
+                }
+            };
+
+            const ShapeRegistry = {
+                polygon: {
+                    getSubElement: (tagStr, relPos) => {
+                        const pointsMatch = tagStr.match(/\bpoints=["']([^"']+)["']/i);
+                        if (pointsMatch) {
+                            const valStart = pointsMatch.index + pointsMatch[0].indexOf(pointsMatch[1]);
+                            const valEnd = valStart + pointsMatch[1].length;
+                            if (relPos >= valStart && relPos <= valEnd) {
+                                const localRelPos = relPos - valStart;
+                                const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                                let pMatch;
+                                while ((pMatch = pairRegex.exec(pointsMatch[1])) !== null) {
+                                    if (localRelPos >= pMatch.index - 1 && localRelPos <= pMatch.index + pMatch[0].length + 1) {
+                                        return {
+                                            start: valStart + pMatch.index,
+                                            end: valStart + pMatch.index + pMatch[0].length,
+                                            cx: parseFloat(pMatch[1]),
+                                            cy: parseFloat(pMatch[2])
+                                        };
+                                    }
+                                }
+                            }
+                        }
+                        return null;
+                    },
+                    movePoint: (tagStr, relPos, dx, dy) => {
+                        const pointsMatch = tagStr.match(/\bpoints=["']([^"']+)["']/i);
+                        if (pointsMatch) {
+                            const valStart = pointsMatch.index + pointsMatch[0].indexOf(pointsMatch[1]);
+                            const valEnd = valStart + pointsMatch[1].length;
+                            
+                            if (relPos >= valStart && relPos <= valEnd) {
+                                const localRelPos = relPos - valStart;
+                                const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                                let pMatch;
+                                let newVal = pointsMatch[1];
+                                
+                                while ((pMatch = pairRegex.exec(pointsMatch[1])) !== null) {
+                                    if (localRelPos >= pMatch.index - 1 && localRelPos <= pMatch.index + pMatch[0].length + 1) {
+                                        const nx = parseFloat(pMatch[1]) + dx;
+                                        const ny = parseFloat(pMatch[2]) + dy;
+                                        const shiftedPair = `${nx},${ny}`;
+                                        newVal = newVal.substring(0, pMatch.index) + shiftedPair + newVal.substring(pMatch.index + pMatch[0].length);
+                                        newVal = SVGUtils.formatPointsData(newVal);
+                                        return { modified: true, tagStr: tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd) };
+                                    }
+                                }
+                            }
+                        }
+                        return { modified: false };
+                    },
+                    moveElement: (tagStr, dx, dy) => SVGUtils.adjustPoints(tagStr, dx, dy),
+                    transformElement: (tagStr, action, transPoint) => {
+                        const f = n => parseFloat(n.toFixed(3));
+                        return tagStr.replace(/\bpoints=["']([^"']+)["']/i, (match, val) => {
+                            const newVals = (val.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                            let out = [];
+                            for (let i = 0; i < newVals.length; i += 2) {
+                                if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+                                    let [nx, ny] = transPoint(newVals[i], newVals[i+1]);
+                                    out.push(`${f(nx)},${f(ny)}`);
+                                }
+                            }
+                            return `points="${out.join(' ')}"`;
+                        });
+                    }
+                },
+                line: {
+                    getSubElement: (tagStr, relPos, activeNode) => {
+                        const checkPair = (a1, a2) => {
+                            const m1 = SVGUtils.getAttrMatch(tagStr, a1);
+                            const m2 = SVGUtils.getAttrMatch(tagStr, a2);
+                            if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
+                                (m2 && relPos >= m2.start && relPos <= m2.end)) return { m1, m2 };
+                            return null;
+                        };
+                        let pair1 = checkPair('x1', 'y1');
+                        if (pair1) {
+                            let ranges = [];
+                            if (pair1.m1) ranges.push(pair1.m1);
+                            if (pair1.m2) ranges.push(pair1.m2);
+                            return { ranges: ranges, cx: parseFloat(activeNode.getAttribute('x1') || 0), cy: parseFloat(activeNode.getAttribute('y1') || 0) };
+                        }
+                        let pair2 = checkPair('x2', 'y2');
+                        if (pair2) {
+                            let ranges = [];
+                            if (pair2.m1) ranges.push(pair2.m1);
+                            if (pair2.m2) ranges.push(pair2.m2);
+                            return { ranges: ranges, cx: parseFloat(activeNode.getAttribute('x2') || 0), cy: parseFloat(activeNode.getAttribute('y2') || 0) };
+                        }
+                        return null;
+                    },
+                    movePoint: (tagStr, relPos, dx, dy) => {
+                        let res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['x1', 'y1'], dx, dy);
+                        if (res.modified) return res;
+                        res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['x2', 'y2'], dx, dy);
+                        return res;
+                    },
+                    moveElement: (tagStr, dx, dy) => {
+                        let t = SVGUtils.adjustAttr(tagStr, 'x1', dx);
+                        t = SVGUtils.adjustAttr(t, 'x2', dx);
+                        t = SVGUtils.adjustAttr(t, 'y1', dy);
+                        return SVGUtils.adjustAttr(t, 'y2', dy);
+                    },
+                    transformElement: (tagStr, action, transPoint, activeNode) => {
+                        const f = n => parseFloat(n.toFixed(3));
+                        let x1 = parseFloat(activeNode.getAttribute('x1') || 0);
+                        let y1 = parseFloat(activeNode.getAttribute('y1') || 0);
+                        let x2 = parseFloat(activeNode.getAttribute('x2') || 0);
+                        let y2 = parseFloat(activeNode.getAttribute('y2') || 0);
+                        let [nx1, ny1] = transPoint(x1, y1);
+                        let [nx2, ny2] = transPoint(x2, y2);
+                        let t = SVGUtils.setOrReplaceAttr(tagStr, 'x1', f(nx1));
+                        t = SVGUtils.setOrReplaceAttr(t, 'y1', f(ny1));
+                        t = SVGUtils.setOrReplaceAttr(t, 'x2', f(nx2));
+                        t = SVGUtils.setOrReplaceAttr(t, 'y2', f(ny2));
+                        return t;
+                    }
+                },
+                rect: {
+                    getSubElement: (tagStr, relPos, activeNode) => {
+                        const checkPair = (a1, a2) => {
+                            const m1 = SVGUtils.getAttrMatch(tagStr, a1);
+                            const m2 = SVGUtils.getAttrMatch(tagStr, a2);
+                            if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
+                                (m2 && relPos >= m2.start && relPos <= m2.end)) return { m1, m2 };
+                            return null;
+                        };
+                        let xVal = parseFloat(activeNode.getAttribute('x') || 0);
+                        let yVal = parseFloat(activeNode.getAttribute('y') || 0);
+                        let wVal = parseFloat(activeNode.getAttribute('width') || 0);
+                        let hVal = parseFloat(activeNode.getAttribute('height') || 0);
+
+                        let basePair = checkPair('x', 'y');
+                        if (basePair) {
+                            let ranges = [];
+                            if (basePair.m1) ranges.push(basePair.m1);
+                            if (basePair.m2) ranges.push(basePair.m2);
+                            return { ranges: ranges, cx: xVal, cy: yVal };
+                        }
+                        let wMatch = SVGUtils.getAttrMatch(tagStr, 'width');
+                        if (wMatch && relPos >= wMatch.start && relPos <= wMatch.end) return { start: wMatch.start, end: wMatch.end, cx: xVal + wVal, cy: yVal + hVal / 2 };
+                        let hMatch = SVGUtils.getAttrMatch(tagStr, 'height');
+                        if (hMatch && relPos >= hMatch.start && relPos <= hMatch.end) return { start: hMatch.start, end: hMatch.end, cx: xVal + wVal / 2, cy: yVal };
+                        let rxMatch = SVGUtils.getAttrMatch(tagStr, 'rx');
+                        if (rxMatch && relPos >= rxMatch.start && relPos <= rxMatch.end) return { start: rxMatch.start, end: rxMatch.end, cx: xVal + parseFloat(activeNode.getAttribute('rx') || 0), cy: yVal };
+                        let ryMatch = SVGUtils.getAttrMatch(tagStr, 'ry');
+                        if (ryMatch && relPos >= ryMatch.start && relPos <= ryMatch.end) return { start: ryMatch.start, end: ryMatch.end, cx: xVal, cy: yVal + parseFloat(activeNode.getAttribute('ry') || 0) };
+                        return null;
+                    },
+                    movePoint: (tagStr, relPos, dx, dy) => {
+                        let res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['x', 'y'], dx, dy);
+                        if (res.modified) return res;
+                        res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['width'], dx - dy, 0, (str) => str.replace(/\bwidth=["']([^"']+)["']/i, (m, v) => `width="${Math.max(0, parseFloat(v))}"`));
+                        if (res.modified) return res;
+                        res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['height'], dx - dy, 0, (str) => str.replace(/\bheight=["']([^"']+)["']/i, (m, v) => `height="${Math.max(0, parseFloat(v))}"`));
+                        if (res.modified) return res;
+                        res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['rx'], dx - dy, 0, (str) => str.replace(/\brx=["']([^"']+)["']/i, (m, v) => `rx="${Math.max(0, parseFloat(v))}"`));
+                        if (res.modified) return res;
+                        res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['ry'], dx - dy, 0, (str) => str.replace(/\bry=["']([^"']+)["']/i, (m, v) => `ry="${Math.max(0, parseFloat(v))}"`));
+                        return res;
+                    },
+                    moveElement: (tagStr, dx, dy) => {
+                        let t = SVGUtils.adjustAttr(tagStr, 'x', dx);
+                        return SVGUtils.adjustAttr(t, 'y', dy);
+                    },
+                    transformElement: (tagStr, action, transPoint, activeNode, cx, cy) => {
+                        const f = n => parseFloat(n.toFixed(3));
+                        let x = parseFloat(activeNode.getAttribute('x') || 0);
+                        let y = parseFloat(activeNode.getAttribute('y') || 0);
+                        let w = parseFloat(activeNode.getAttribute('width') || 0);
+                        let h = parseFloat(activeNode.getAttribute('height') || 0);
+
+                        if (action.startsWith('rot_')) {
+                            const angle = parseFloat(action.replace('rot_', ''));
+                            if (Math.abs(angle) === 90) {
+                                let nw = h, nh = w;
+                                let nx = cx - nw / 2;
+                                let ny = cy - nh / 2;
+                                let t = SVGUtils.setOrReplaceAttr(tagStr, 'x', f(nx));
+                                t = SVGUtils.setOrReplaceAttr(t, 'y', f(ny));
+                                t = SVGUtils.setOrReplaceAttr(t, 'width', f(nw));
+                                t = SVGUtils.setOrReplaceAttr(t, 'height', f(nh));
+                                return t;
+                            } else if (angle % 90 !== 0) {
+                                let pts = [[x, y], [x+w, y], [x+w, y+h], [x, y+h]];
+                                let outPts = pts.map(p => {
+                                    let [nx, ny] = transPoint(p[0], p[1]);
+                                    return `${f(nx)},${f(ny)}`;
+                                }).join(' ');
+                                let newTag = tagStr.replace(/^<rect/i, '<polygon').replace(/\s+x=["'][^"']*["']/i, '').replace(/\s+y=["'][^"']*["']/i, '').replace(/\s+width=["'][^"']*["']/i, '').replace(/\s+height=["'][^"']*["']/i, '').replace(/\s+rx=["'][^"']*["']/i, '').replace(/\s+ry=["'][^"']*["']/i, '');
+                                return SVGUtils.setOrReplaceAttr(newTag, 'points', outPts);
+                            }
+                        }
+                        return tagStr; 
+                    }
+                },
+                circle: {
+                    getSubElement: (tagStr, relPos, activeNode) => {
+                        const checkPair = (a1, a2) => {
+                            const m1 = SVGUtils.getAttrMatch(tagStr, a1);
+                            const m2 = SVGUtils.getAttrMatch(tagStr, a2);
+                            if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
+                                (m2 && relPos >= m2.start && relPos <= m2.end)) return { m1, m2 };
+                            return null;
+                        };
+                        let cxVal = parseFloat(activeNode.getAttribute('cx') || 0);
+                        let cyVal = parseFloat(activeNode.getAttribute('cy') || 0);
+                        let rVal = parseFloat(activeNode.getAttribute('r') || 0);
+
+                        let centerPair = checkPair('cx', 'cy');
+                        if (centerPair) {
+                            let ranges = [];
+                            if (centerPair.m1) ranges.push(centerPair.m1);
+                            if (centerPair.m2) ranges.push(centerPair.m2);
+                            return { ranges: ranges, cx: cxVal, cy: cyVal };
+                        }
+                        let rMatch = SVGUtils.getAttrMatch(tagStr, 'r');
+                        if (rMatch && relPos >= rMatch.start && relPos <= rMatch.end) {
+                            return { start: rMatch.start, end: rMatch.end, cx: cxVal, cy: cyVal - rVal };
+                        }
+                        return null;
+                    },
+                    movePoint: (tagStr, relPos, dx, dy) => {
+                        let res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['cx', 'cy'], dx, dy);
+                        if (res.modified) return res;
+                        res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['r'], dx - dy, 0, (str) => str.replace(/\br=["']([^"']+)["']/i, (m, v) => `r="${Math.max(0, parseFloat(v))}"`));
+                        return res;
+                    },
+                    moveElement: (tagStr, dx, dy) => {
+                        let t = SVGUtils.adjustAttr(tagStr, 'cx', dx);
+                        return SVGUtils.adjustAttr(t, 'cy', dy);
+                    },
+                    transformElement: (tagStr, action, transPoint, activeNode, cx, cy) => {
+                        if (action.startsWith('rot_')) {
+                            const angle = parseFloat(action.replace('rot_', ''));
+                            if (Math.abs(angle) === 90 && tagStr.startsWith('<ellipse')) {
+                                let rxMatch = tagStr.match(/\brx=["']([^"']+)["']/i);
+                                let ryMatch = tagStr.match(/\bry=["']([^"']+)["']/i);
+                                if (rxMatch && ryMatch) {
+                                    let rx = rxMatch[1], ry = ryMatch[1];
+                                    let t = tagStr.replace(/\brx=["'][^"']+["']/i, `rx="${ry}"`);
+                                    return t.replace(/\bry=["'][^"']+["']/i, `ry="${rx}"`);
+                                }
+                            } else if (angle % 90 !== 0 && tagStr.startsWith('<ellipse')) {
+                                let cx_attr = parseFloat(activeNode.getAttribute('cx') || 0);
+                                let cy_attr = parseFloat(activeNode.getAttribute('cy') || 0);
+                                let rx = parseFloat(activeNode.getAttribute('rx') || 0);
+                                let ry = parseFloat(activeNode.getAttribute('ry') || 0);
+                                const f = n => parseFloat(n.toFixed(3));
+                                const kappa = 0.5522848; 
+                                let ox = rx * kappa, oy = ry * kappa;
+                                let pts = [
+                                    ['M', cx_attr + rx, cy_attr],
+                                    ['C', cx_attr + rx, cy_attr + oy, cx_attr + ox, cy_attr + ry, cx_attr, cy_attr + ry],
+                                    ['C', cx_attr - ox, cy_attr + ry, cx_attr - rx, cy_attr + oy, cx_attr - rx, cy_attr],
+                                    ['C', cx_attr - rx, cy_attr - oy, cx_attr - ox, cy_attr - ry, cx_attr, cy_attr - ry],
+                                    ['C', cx_attr + ox, cy_attr - ry, cx_attr + rx, cy_attr - oy, cx_attr + rx, cy_attr]
+                                ];
+                                let d = '';
+                                for (let cmd of pts) {
+                                    d += cmd[0];
+                                    for (let i = 1; i < cmd.length; i += 2) {
+                                        let [nx, ny] = transPoint(cmd[i], cmd[i+1]);
+                                        d += `${f(nx)},${f(ny)} `;
+                                    }
+                                }
+                                let newTag = tagStr.replace(/^<ellipse/i, '<path').replace(/\s+cx=["'][^"']*["']/i, '').replace(/\s+cy=["'][^"']*["']/i, '').replace(/\s+rx=["'][^"']*["']/i, '').replace(/\s+ry=["'][^"']*["']/i, '');
+                                return SVGUtils.setOrReplaceAttr(newTag, 'd', d.trim());
+                            }
+                        }
+                        return tagStr;
+                    }
+                },
+                text: {
+                    getSubElement: (tagStr, relPos, activeNode) => {
+                        let xMatch = SVGUtils.getAttrMatch(tagStr, 'x');
+                        let yMatch = SVGUtils.getAttrMatch(tagStr, 'y');
+                        if ((xMatch && relPos >= xMatch.start && relPos <= xMatch.end) || 
+                            (yMatch && relPos >= yMatch.start && relPos <= yMatch.end)) {
+                            let ranges = [];
+                            if (xMatch) ranges.push(xMatch);
+                            if (yMatch) ranges.push(yMatch);
+                            return { ranges: ranges, cx: parseFloat(activeNode.getAttribute('x') || 0), cy: parseFloat(activeNode.getAttribute('y') || 0) };
+                        }
+                        return null;
+                    },
+                    movePoint: (tagStr, relPos, dx, dy) => SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['x', 'y'], dx, dy),
+                    moveElement: (tagStr, dx, dy) => {
+                        let t = SVGUtils.adjustAttr(tagStr, 'x', dx);
+                        return SVGUtils.adjustAttr(t, 'y', dy);
+                    },
+                    transformElement: (tagStr, action, transPoint, activeNode, cx, cy) => {
+                        const f = n => parseFloat(n.toFixed(3));
+                        let transformMatch = tagStr.match(/\btransform=["']([^"']+)["']/i);
+                        let currentTransform = transformMatch ? transformMatch[1] : '';
+                        
+                        // Map local center to visual screen space center through the existing matrix
+                        let m = SVGUtils.getMatrix(currentTransform);
+                        let screenCx = m.a * cx + m.c * cy + m.e;
+                        let screenCy = m.b * cx + m.d * cy + m.f;
+
+                        let newTransformCmd = '';
+
+                        if (action.startsWith('rot_')) {
+                            const angle = parseFloat(action.replace('rot_', ''));
+                            newTransformCmd = `rotate(${angle}, ${f(screenCx)}, ${f(screenCy)})`;
+                        } else if (action === 'flip_h') {
+                            newTransformCmd = `translate(${f(2*screenCx)}, 0) scale(-1, 1)`;
+                        } else if (action === 'flip_v') {
+                            newTransformCmd = `translate(0, ${f(2*screenCy)}) scale(1, -1)`;
+                        }
+
+                        // Prepend matrix to apply in visual screen space, then squash to clean matrix() output
+                        if (currentTransform && newTransformCmd) {
+                            return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(`${newTransformCmd} ${currentTransform}`));
+                        } else if (newTransformCmd) {
+                            return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(newTransformCmd));
+                        }
+                        
+                        return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(currentTransform));
+                    }
+                },
+                use: {
+                    getSubElement: (tagStr, relPos, activeNode) => {
+                        let xMatch = SVGUtils.getAttrMatch(tagStr, 'x');
+                        let yMatch = SVGUtils.getAttrMatch(tagStr, 'y');
+                        if ((xMatch && relPos >= xMatch.start && relPos <= xMatch.end) || 
+                            (yMatch && relPos >= yMatch.start && relPos <= yMatch.end)) {
+                            let ranges = [];
+                            if (xMatch) ranges.push(xMatch);
+                            if (yMatch) ranges.push(yMatch);
+                            return { ranges: ranges, cx: parseFloat(activeNode.getAttribute('x') || 0), cy: parseFloat(activeNode.getAttribute('y') || 0) };
+                        }
+                        
+                        // Provide base point for future transformations when cursor is at the beginning of the tag
+                        const tagNameMatch = tagStr.match(/^<([a-z0-9:-]+)/i);
+                        if (tagNameMatch && relPos >= 0 && relPos <= tagNameMatch[0].length + 1) {
+                            const center = SVGUtils.getLogicalCenter(activeNode);
+                            return { start: 0, end: tagNameMatch[0].length, cx: center.cx, cy: center.cy };
+                        }
+                        return null;
+                    },
+                    movePoint: (tagStr, relPos, dx, dy) => SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['x', 'y'], dx, dy),
+                    moveElement: (tagStr, dx, dy) => {
+                        let hasX = tagStr.match(/\bx=["']/i);
+                        let hasY = tagStr.match(/\by=["']/i);
+                        
+                        if (hasX || hasY) {
+                            let t = tagStr;
+                            if (hasX) t = SVGUtils.adjustAttr(t, 'x', dx);
+                            if (hasY) t = SVGUtils.adjustAttr(t, 'y', dy);
+                            return t;
+                        } else {
+                            // Automatically prepend coordinate translation and mathematically squash it!
+                            let transformMatch = tagStr.match(/\btransform=["']([^"']+)["']/i);
+                            if (transformMatch) {
+                                return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(`translate(${dx}, ${dy}) ${transformMatch[1]}`));
+                            } else {
+                                return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(`translate(${dx}, ${dy})`));
+                            }
+                        }
+                    },
+                    transformElement: (tagStr, action, transPoint, activeNode, origCx, origCy) => {
+                        const f = n => parseFloat(n.toFixed(3));
+                        
+                        let cx = origCx;
+                        let cy = origCy;
+
+                        let transformMatch = tagStr.match(/\btransform=["']([^"']+)["']/i);
+                        let currentTransform = transformMatch ? transformMatch[1] : '';
+                        
+                        // Map local center to visual screen space center through the existing matrix
+                        let m = SVGUtils.getMatrix(currentTransform);
+                        let screenCx = m.a * cx + m.c * cy + m.e;
+                        let screenCy = m.b * cx + m.d * cy + m.f;
+
+                        let newTransformCmd = '';
+
+                        if (action.startsWith('rot_')) {
+                            const angleDelta = parseFloat(action.replace('rot_', ''));
+                            newTransformCmd = `rotate(${angleDelta}, ${f(screenCx)}, ${f(screenCy)})`;
+                        } else if (action === 'flip_h') {
+                            newTransformCmd = `translate(${f(2*screenCx)}, 0) scale(-1, 1)`;
+                        } else if (action === 'flip_v') {
+                            newTransformCmd = `translate(0, ${f(2*screenCy)}) scale(1, -1)`;
+                        }
+                        
+                        // Prepend matrix dynamically to apply in visual screen space and squash to clean matrix() output
+                        if (currentTransform && newTransformCmd) {
+                            return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(`${newTransformCmd} ${currentTransform}`));
+                        } else if (newTransformCmd) {
+                            return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(newTransformCmd));
+                        }
+                        
+                        return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(currentTransform));
+                    }
+                },
+                path: {
+                    getSubElement: (tagStr, relPos) => {
+                        const dMatch = tagStr.match(/\bd=["']([^"']+)["']/i);
+                        if (dMatch) {
+                            const valStart = dMatch.index + dMatch[0].indexOf(dMatch[1]);
+                            const valEnd = valStart + dMatch[1].length;
+                            if (relPos >= valStart && relPos <= valEnd) {
+                                const localRelPos = relPos - valStart;
+                                const cmdRegex = /([a-df-zA-DF-Z][^a-df-zA-DF-Z]*)/g;
+                                let cMatch;
+                                let currX = 0, currY = 0, startX = 0, startY = 0;
+                                
+                                while ((cMatch = cmdRegex.exec(dMatch[1])) !== null) {
+                                    const chunk = cMatch[0];
+                                    const letter = chunk.trim()[0];
+                                    const nums = (chunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                                    const upper = letter.toUpperCase();
+                                    const isRel = letter === letter.toLowerCase();
+
+                                    let endX = currX;
+                                    let endY = currY;
+                                    let qStartX = currX;
+                                    let qStartY = currY;
+
+                                    if (upper === 'Z') {
+                                        endX = startX;
+                                        endY = startY;
+                                    } else if (upper === 'H') {
+                                        for (let n of nums) endX = isRel ? endX + n : n;
+                                    } else if (upper === 'V') {
+                                        for (let n of nums) endY = isRel ? endY + n : n;
+                                    } else if (upper === 'M' || upper === 'L' || upper === 'T') {
+                                        for (let i = 0; i < nums.length; i += 2) {
+                                            endX = isRel ? endX + nums[i] : nums[i];
+                                            endY = isRel ? endY + nums[i+1] : nums[i+1];
+                                            if (upper === 'M' && i === 0) { startX = endX; startY = endY; }
+                                        }
+                                    } else if (upper === 'C') {
+                                        for (let i = 0; i < nums.length; i += 6) {
+                                            endX = isRel ? endX + nums[i+4] : nums[i+4];
+                                            endY = isRel ? endY + nums[i+5] : nums[i+5];
+                                        }
+                                    } else if (upper === 'Q' || upper === 'S') {
+                                        for (let i = 0; i < nums.length; i += 4) {
+                                            endX = isRel ? endX + nums[i+2] : nums[i+2];
+                                            endY = isRel ? endY + nums[i+3] : nums[i+3];
+                                        }
+                                    } else if (upper === 'A') {
+                                        for (let i = 0; i < nums.length; i += 7) {
+                                            endX = isRel ? endX + nums[i+5] : nums[i+5];
+                                            endY = isRel ? endY + nums[i+6] : nums[i+6];
+                                        }
+                                    }
+
+                                    if (localRelPos >= cMatch.index - 1 && localRelPos <= cMatch.index + chunk.length + 1) {
+                                        if (upper === 'Q') {
+                                            let currentStartX = qStartX;
+                                            let currentStartY = qStartY;
+                                            let foundSub = null;
+                                            let pMatch;
+                                            const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                                            let pairIndex = 0;
+
+                                            while ((pMatch = pairRegex.exec(chunk)) !== null) {
+                                                const pStart = cMatch.index + pMatch.index;
+                                                const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
+
+                                                let isControl = (pairIndex % 2 === 0);
+                                                let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
+                                                let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
+
+                                                let numIdx = pairIndex * 2;
+                                                let segmentData = null;
+                                                
+                                                if (isControl && numIdx + 3 < nums.length) {
+                                                    segmentData = {
+                                                        startX: currentStartX, startY: currentStartY,
+                                                        c1x: absX, c1y: absY,
+                                                        endX: isRel ? currentStartX + nums[numIdx+2] : nums[numIdx+2],
+                                                        endY: isRel ? currentStartY + nums[numIdx+3] : nums[numIdx+3],
+                                                        activePoint: 'control'
+                                                    };
+                                                } else if (!isControl && numIdx - 1 < nums.length && numIdx - 2 >= 0) {
+                                                    segmentData = {
+                                                        startX: currentStartX, startY: currentStartY,
+                                                        c1x: isRel ? currentStartX + nums[numIdx-2] : nums[numIdx-2],
+                                                        c1y: isRel ? currentStartY + nums[numIdx-1] : nums[numIdx-1],
+                                                        endX: absX, endY: absY,
+                                                        activePoint: 'end'
+                                                    };
+                                                }
+
+                                                if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
+                                                    foundSub = {
+                                                        start: valStart + pStart, end: valStart + pEnd, cx: absX, cy: absY,
+                                                        qData: segmentData || { startX: currentStartX, startY: currentStartY, c1x: absX, c1y: absY, endX: absX, endY: absY, activePoint: isControl ? 'control' : 'end' }
+                                                    };
+                                                    break;
+                                                }
+
+                                                if (!isControl) {
+                                                    currentStartX = absX;
+                                                    currentStartY = absY;
+                                                }
+                                                pairIndex++;
+                                            }
+                                            if (foundSub) return foundSub;
+                                        }
+
+                                        if (upper === 'C') {
+                                            let currentStartX = qStartX;
+                                            let currentStartY = qStartY;
+                                            let foundSub = null;
+                                            let pMatch;
+                                            const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                                            let pairIndex = 0;
+
+                                            while ((pMatch = pairRegex.exec(chunk)) !== null) {
+                                                const pStart = cMatch.index + pMatch.index;
+                                                const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
+
+                                                let pointType = pairIndex % 3; // 0: c1, 1: c2, 2: end
+                                                let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
+                                                let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
+
+                                                let segmentData = null;
+                                                let baseIdx = Math.floor(pairIndex / 3) * 6;
+                                                if (baseIdx + 5 < nums.length) {
+                                                    segmentData = {
+                                                        startX: currentStartX, startY: currentStartY,
+                                                        c1x: isRel ? currentStartX + nums[baseIdx] : nums[baseIdx],
+                                                        c1y: isRel ? currentStartY + nums[baseIdx+1] : nums[baseIdx+1],
+                                                        c2x: isRel ? currentStartX + nums[baseIdx+2] : nums[baseIdx+2],
+                                                        c2y: isRel ? currentStartY + nums[baseIdx+3] : nums[baseIdx+3],
+                                                        endX: isRel ? currentStartX + nums[baseIdx+4] : nums[baseIdx+4],
+                                                        endY: isRel ? currentStartY + nums[baseIdx+5] : nums[baseIdx+5],
+                                                        activePoint: pointType === 0 ? 'c1' : (pointType === 1 ? 'c2' : 'end')
+                                                    };
+                                                }
+
+                                                if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
+                                                    foundSub = {
+                                                        start: valStart + pStart, end: valStart + pEnd, cx: absX, cy: absY,
+                                                        cData: segmentData || { startX: currentStartX, startY: currentStartY, c1x: absX, c1y: absY, c2x: absX, c2y: absY, endX: absX, endY: absY, activePoint: pointType === 0 ? 'c1' : (pointType === 1 ? 'c2' : 'end') }
+                                                    };
+                                                    break;
+                                                }
+
+                                                if (pointType === 2) {
+                                                    currentStartX = absX;
+                                                    currentStartY = absY;
+                                                }
+                                                pairIndex++;
+                                            }
+                                            if (foundSub) return foundSub;
+                                        }
+
+                                        if (['M', 'L', 'T', 'S'].includes(upper)) {
+                                            let currentStartX = qStartX;
+                                            let currentStartY = qStartY;
+                                            let foundSub = null;
+                                            let pMatch;
+                                            const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+
+                                            while ((pMatch = pairRegex.exec(chunk)) !== null) {
+                                                const pStart = cMatch.index + pMatch.index;
+                                                const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
+
+                                                let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
+                                                let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
+
+                                                if (localRelPos >= pStart - 1 && pStart >= 0 && localRelPos <= pEnd + 1) {
+                                                    foundSub = { start: valStart + pStart, end: valStart + pEnd, cx: absX, cy: absY };
+                                                    break;
+                                                }
+                                                currentStartX = absX;
+                                                currentStartY = absY;
+                                            }
+                                            if (foundSub) return foundSub;
+                                        }
+
+                                        if (upper === 'H' || upper === 'V') {
+                                            let currentStartX = qStartX;
+                                            let currentStartY = qStartY;
+                                            let foundSub = null;
+                                            let nMatch;
+                                            const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+
+                                            while ((nMatch = numRegex.exec(chunk)) !== null) {
+                                                const pStart = cMatch.index + nMatch.index;
+                                                const pEnd = cMatch.index + nMatch.index + nMatch[0].length;
+
+                                                let val = parseFloat(nMatch[1]);
+                                                let absX = upper === 'H' ? (isRel ? currentStartX + val : val) : currentStartX;
+                                                let absY = upper === 'V' ? (isRel ? currentStartY + val : val) : currentStartY;
+
+                                                if (localRelPos >= pStart - 1 && pStart >= 0 && localRelPos <= pEnd + 1) {
+                                                    foundSub = { start: valStart + pStart, end: valStart + pEnd, cx: absX, cy: absY };
+                                                    break;
+                                                }
+                                                if (upper === 'H') currentStartX = absX;
+                                                if (upper === 'V') currentStartY = absY;
+                                            }
+                                            if (foundSub) return foundSub;
+                                        }
+
+                                        let ret = {
+                                            start: valStart + cMatch.index, end: valStart + cMatch.index + chunk.length,
+                                            cx: endX, cy: endY
+                                        };
+                                        
+                                        if (upper === 'Q') {
+                                            ret.qData = { startX: qStartX, startY: qStartY, c1x: isRel ? qStartX + nums[0] : nums[0], c1y: isRel ? qStartY + nums[1] : nums[1], endX: isRel ? qStartX + nums[2] : nums[2], endY: isRel ? qStartY + nums[3] : nums[3], activePoint: 'both' };
+                                        } else if (upper === 'C' && nums.length >= 6) {
+                                            ret.cData = { startX: qStartX, startY: qStartY, c1x: isRel ? qStartX + nums[0] : nums[0], c1y: isRel ? qStartY + nums[1] : nums[1], c2x: isRel ? qStartX + nums[2] : nums[2], c2y: isRel ? qStartY + nums[3] : nums[3], endX: isRel ? qStartX + nums[4] : nums[4], endY: isRel ? qStartY + nums[5] : nums[5], activePoint: 'both' };
+                                        }
+                                        return ret;
+                                    }
+                                    currX = endX;
+                                    currY = endY;
+                                }
+                            }
+                        }
+                        return null;
+                    },
+                    movePoint: (tagStr, relPos, dx, dy) => {
+                        const dMatch = tagStr.match(/\bd=["']([^"']+)["']/i);
+                        if (dMatch) {
+                            const valStart = dMatch.index + dMatch[0].indexOf(dMatch[1]);
+                            const valEnd = valStart + dMatch[1].length;
+                            
+                            if (relPos >= valStart && relPos <= valEnd) {
+                                const localRelPos = relPos - valStart;
+                                const cmdRegex = /([a-df-zA-DF-Z][^a-df-zA-DF-Z]*)/g;
+                                let cMatch;
+                                let newVal = dMatch[1];
+                                
+                                while ((cMatch = cmdRegex.exec(dMatch[1])) !== null) {
+                                    if (localRelPos >= cMatch.index - 1 && localRelPos <= cMatch.index + cMatch[0].length + 1) {
+                                        const chunk = cMatch[0];
+                                        const letter = chunk.trim()[0];
+                                        const upper = letter.toUpperCase();
+
+                                        if (['Q', 'C', 'M', 'L', 'T', 'S'].includes(upper)) {
+                                            const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                                            let pMatch;
+                                            let modifiedChunk = chunk;
+                                            let pairMoved = false;
+
+                                            while ((pMatch = pairRegex.exec(chunk)) !== null) {
+                                                if (localRelPos >= cMatch.index + pMatch.index - 1 && localRelPos <= cMatch.index + pMatch.index + pMatch[0].length + 1) {
+                                                    const nx = parseFloat(pMatch[1]) + dx;
+                                                    const ny = parseFloat(pMatch[2]) + dy;
+                                                    modifiedChunk = modifiedChunk.substring(0, pMatch.index) + `${nx},${ny}` + modifiedChunk.substring(pMatch.index + pMatch[0].length);
+                                                    pairMoved = true;
+                                                    break;
+                                                }
+                                            }
+                                            if (pairMoved) {
+                                                newVal = newVal.substring(0, cMatch.index) + modifiedChunk + newVal.substring(cMatch.index + cMatch[0].length);
+                                                newVal = SVGUtils.formatPathData(newVal);
+                                                return { modified: true, tagStr: tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd) };
+                                            }
+                                        } else if (upper === 'H' || upper === 'V') {
+                                            const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                                            let nMatch;
+                                            let modifiedChunk = chunk;
+                                            let numMoved = false;
+
+                                            while ((nMatch = numRegex.exec(chunk)) !== null) {
+                                                if (localRelPos >= cMatch.index + nMatch.index - 1 && localRelPos <= cMatch.index + nMatch.index + nMatch[0].length + 1) {
+                                                    const delta = upper === 'H' ? dx : dy;
+                                                    const nn = parseFloat(nMatch[1]) + delta;
+                                                    modifiedChunk = modifiedChunk.substring(0, nMatch.index) + nn + modifiedChunk.substring(nMatch.index + nMatch[0].length);
+                                                    numMoved = true;
+                                                    break;
+                                                }
+                                            }
+                                            if (numMoved) {
+                                                newVal = newVal.substring(0, cMatch.index) + modifiedChunk + newVal.substring(cMatch.index + cMatch[0].length);
+                                                newVal = SVGUtils.formatPathData(newVal);
+                                                return { modified: true, tagStr: tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd) };
+                                            }
+                                        }
+
+                                        const shiftedCmd = SVGUtils.shiftSinglePathCommand(cMatch[0], dx, dy);
+                                        newVal = newVal.substring(0, cMatch.index) + shiftedCmd + newVal.substring(cMatch.index + cMatch[0].length);
+                                        newVal = SVGUtils.formatPathData(newVal);
+                                        return { modified: true, tagStr: tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd) };
+                                    }
+                                }
+                            }
+                        }
+                        return { modified: false };
+                    },
+                    moveElement: (tagStr, dx, dy) => {
+                        return tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => `d="${SVGUtils.shiftPathD(val, dx, dy)}"`);
+                    },
+                    transformElement: (tagStr, action, transPoint) => {
+                        const f = n => parseFloat(n.toFixed(3));
+                        return tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => {
+                            const commands = val.match(/[a-df-zA-Z][^a-df-zA-Z]*/g);
+                            if (!commands) return match;
+
+                            let currX = 0, currY = 0;
+                            let startX = 0, startY = 0;
+
+                            const processCommand = (cmdChunk) => {
+                                const letter = cmdChunk.trim()[0];
+                                const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                                const upper = letter.toUpperCase();
+                                const isRel = letter === letter.toLowerCase();
+
+                                if (upper === 'Z') {
+                                    currX = startX;
+                                    currY = startY;
+                                    return 'Z';
+                                }
+
+                                let out = [];
+                                let isFlip = action === 'flip_h' || action === 'flip_v';
+
+                                if (upper === 'H') {
+                                    for (let n of nums) {
+                                        currX = isRel ? currX + n : n;
+                                        let [rx, ry] = transPoint(currX, currY);
+                                        out.push(`L${f(rx)},${f(ry)}`);
+                                    }
+                                } else if (upper === 'V') {
+                                    for (let n of nums) {
+                                        currY = isRel ? currY + n : n;
+                                        let [rx, ry] = transPoint(currX, currY);
+                                        out.push(`L${f(rx)},${f(ry)}`);
+                                    }
+                                } else if (upper === 'M' || upper === 'L' || upper === 'T') {
+                                    for (let i = 0; i < nums.length; i += 2) {
+                                        currX = isRel ? currX + nums[i] : nums[i];
+                                        currY = isRel ? currY + nums[i+1] : nums[i+1];
+                                        if (upper === 'M' && i === 0) {
+                                            startX = currX;
+                                            startY = currY;
+                                        }
+                                        let [rx, ry] = transPoint(currX, currY);
+                                        out.push(`${(upper === 'M' && i === 0) ? 'M' : (upper === 'M' ? 'L' : upper)}${f(rx)},${f(ry)}`);
+                                    }
+                                } else if (upper === 'Q' || upper === 'S') {
+                                    for (let i = 0; i < nums.length; i += 4) {
+                                        let c1x = isRel ? currX + nums[i] : nums[i];
+                                        let c1y = isRel ? currY + nums[i+1] : nums[i+1];
+                                        let endX = isRel ? currX + nums[i+2] : nums[i+2];
+                                        let endY = isRel ? currY + nums[i+3] : nums[i+3];
+                                        
+                                        let [rc1x, rc1y] = transPoint(c1x, c1y);
+                                        let [rendX, rendY] = transPoint(endX, endY);
+                                        
+                                        out.push(`${upper}${f(rc1x)},${f(rc1y)} ${f(rendX)},${f(rendY)}`);
+                                        currX = endX;
+                                        currY = endY;
+                                    }
+                                } else if (upper === 'C') {
+                                    for (let i = 0; i < nums.length; i += 6) {
+                                        let c1x = isRel ? currX + nums[i] : nums[i];
+                                        let c1y = isRel ? currY + nums[i+1] : nums[i+1];
+                                        let c2x = isRel ? currX + nums[i+2] : nums[i+2];
+                                        let c2y = isRel ? currY + nums[i+3] : nums[i+3];
+                                        let endX = isRel ? currX + nums[i+4] : nums[i+4];
+                                        let endY = isRel ? currY + nums[i+5] : nums[i+5];
+                                        
+                                        let [rc1x, rc1y] = transPoint(c1x, c1y);
+                                        let [rc2x, rc2y] = transPoint(c2x, c2y);
+                                        let [rendX, rendY] = transPoint(endX, endY);
+                                        
+                                        out.push(`C${f(rc1x)},${f(rc1y)} ${f(rc2x)},${f(rc2y)} ${f(rendX)},${f(rendY)}`);
+                                        currX = endX;
+                                        currY = endY;
+                                    }
+                                } else if (upper === 'A') {
+                                    for (let i = 0; i < nums.length; i += 7) {
+                                        let rx_val = nums[i];
+                                        let ry_val = nums[i+1];
+                                        let xRot = nums[i+2];
+                                        let largeArc = nums[i+3];
+                                        let sweep = nums[i+4];
+                                        let endX = isRel ? currX + nums[i+5] : nums[i+5];
+                                        let endY = isRel ? currY + nums[i+6] : nums[i+6];
+                                        
+                                        if (action.startsWith('rot_')) {
+                                            let angle = parseFloat(action.replace('rot_', ''));
+                                            xRot = (xRot + angle) % 360;
+                                        }
+
+                                        if (isFlip) {
+                                            sweep = sweep === 1 ? 0 : 1; 
+                                            if (action === 'flip_h' || action === 'flip_v') xRot = -xRot;
+                                        }
+
+                                        let [rendX, rendY] = transPoint(endX, endY);
+                                        
+                                        out.push(`A${f(rx_val)},${f(ry_val)} ${f(xRot)} ${largeArc} ${sweep} ${f(rendX)},${f(rendY)}`);
+                                        currX = endX;
+                                        currY = endY;
+                                    }
+                                }
+                                return out.join(' ');
+                            };
+
+                            let newD = commands.map(processCommand).join(' ').replace(/\s+/g, ' ').trim();
+                            return `d="${newD}"`;
+                        });
+                    }
+                },
+                default: { moveElement: (tagStr, dx, dy) => tagStr }
+            };
+            
+            // Link identical strategies
+            ShapeRegistry.polyline = ShapeRegistry.polygon;
+            ShapeRegistry.ellipse = ShapeRegistry.circle;
+            ShapeRegistry.image = ShapeRegistry.use;
+
+            // --- Initialization ---
+            const initApp = () => {
+                bindEvents();
+                textarea.value = defaultCode;
+                saveHistory(defaultCode);
+                processInput(true);
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initApp);
+            } else {
+                initApp();
+            }
+
+            function bindEvents() {
+                // Programmatic listeners to prevent inline handler clashes
+                document.getElementById('tool-insert').addEventListener('change', function() {
+                    if(this.value) { insertShape(this.value); this.value=''; }
+                });
+
+                document.querySelectorAll('button[data-action="move"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const dx = parseInt(btn.getAttribute('data-dx'), 10);
+                        const dy = parseInt(btn.getAttribute('data-dy'), 10);
+                        moveShape(dx, dy);
+                    });
+                });
+
+                document.getElementById('tool-transform').addEventListener('change', function() {
+                    if(this.value) { transformShape(this.value); this.value=''; }
+                });
+
+                document.getElementById('tool-delete').addEventListener('click', deleteActiveShape);
+                document.getElementById('tool-undo').addEventListener('click', undo);
+                document.getElementById('tool-redo').addEventListener('click', redo);
+                document.getElementById('tool-load').addEventListener('click', () => document.getElementById('file-input').click());
+                document.getElementById('tool-copy').addEventListener('click', copyToClipboard);
+                document.getElementById('tool-save').addEventListener('click', downloadSVG);
+                document.getElementById('file-input').addEventListener('change', loadFromFile);
+
+                textarea.addEventListener('input', (e) => {
+                    processInput(false);
+                    clearTimeout(debounceTimeout);
+                    debounceTimeout = setTimeout(() => saveHistory(e.target.value), 600);
+                });
+
+                const selectionEvents = ['keyup', 'click', 'focus', 'touchend'];
+                selectionEvents.forEach(evt => textarea.addEventListener(evt, () => {
+                    if (selectionRafId) cancelAnimationFrame(selectionRafId);
+                    selectionRafId = requestAnimationFrame(updateSelection);
+                }));
+
+                textarea.addEventListener('scroll', () => {
+                    if (scrollRafId) cancelAnimationFrame(scrollRafId);
+                    scrollRafId = requestAnimationFrame(() => {
+                        backdrop.scrollTop = textarea.scrollTop;
+                        backdrop.scrollLeft = textarea.scrollLeft;
+                    });
+                });
+
+                toggleGrid.addEventListener('change', () => {
+                    gridGroup.style.display = toggleGrid.checked ? 'block' : 'none';
+                });
+
+                toggleKeyboardBtn.addEventListener('click', () => {
+                    keyboardDisabled = !keyboardDisabled;
+                    if (keyboardDisabled) {
+                        textarea.setAttribute('inputmode', 'none');
+                        toggleKeyboardBtn.style.opacity = '0.5';
+                    } else {
+                        textarea.removeAttribute('inputmode');
+                        toggleKeyboardBtn.style.opacity = '1';
+                    }
+                });
+
+                const toggleThemeBtn = document.getElementById('toggle-theme');
+                if (toggleThemeBtn) {
+                    toggleThemeBtn.addEventListener('click', () => {
+                        if (APP_THEME === 'auto') APP_THEME = 'dark';
+                        else if (APP_THEME === 'dark') APP_THEME = 'light';
+                        else APP_THEME = 'auto';
+                        applyTheme();
+                    });
+                }
+
+                window.addEventListener('keydown', (e) => {
+                    const app = document.getElementById('svg-editor-app');
+                    if (!app.contains(document.activeElement) && document.activeElement !== document.body) return;
+
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key === 'z') { e.preventDefault(); undo(); }
+                        if (e.key === 'y' || (e.shiftKey && e.key === 'Z')) { e.preventDefault(); redo(); }
+                    }
+                    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                        if (selectionRafId) cancelAnimationFrame(selectionRafId);
+                        selectionRafId = requestAnimationFrame(updateSelection);
+                    }
+                });
+
+                if (editorWrapper) {
+                    editorWrapper.addEventListener('dragover', (e) => { e.preventDefault(); editorWrapper.classList.add('drag-over'); });
+                    editorWrapper.addEventListener('dragleave', (e) => { e.preventDefault(); editorWrapper.classList.remove('drag-over'); });
+                    editorWrapper.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        editorWrapper.classList.remove('drag-over');
+                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                            const reader = new FileReader();
+                            reader.onload = evt => { updateCode(evt.target.result, true); textarea.scrollTop = 0; textarea.scrollLeft = 0; };
+                            reader.readAsText(e.dataTransfer.files[0]);
+                        }
+                    });
+                }
+            }
+
+            // --- Core Processing ---
+            function processInput(forceUpdate = false) {
+                const code = textarea.value;
+                const previewCode = code.replace(/<symbol/gi, '<svg').replace(/<\/symbol>/gi, '</svg>');
+                const doc = domParser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${previewCode}</svg>`, "image/svg+xml");
+                const isError = doc.querySelector("parsererror");
+
+                if (isError) {
+                    errorBadge.style.display = 'inline-block';
+                    if (selectionRafId) cancelAnimationFrame(selectionRafId);
+                    selectionRafId = requestAnimationFrame(updateSelection);
+                    return;
+                }
+                
+                errorBadge.style.display = 'none';
+                lastValidRender = previewCode;
+                userSvgContainer.innerHTML = previewCode;
+                updateGrid(code);
+                
+                if (selectionRafId) cancelAnimationFrame(selectionRafId);
+                selectionRafId = requestAnimationFrame(updateSelection);
+            }
+
+            // --- History System (Memory Optimized) ---
+            function saveHistory(code) {
+                if (historyIndex >= 0 && history[historyIndex] === code) return;
+                history = history.slice(0, historyIndex + 1);
+                history.push(code);
+                
+                // Truncate to prevent unbounded memory growth on long sessions
+                if (history.length > MAX_HISTORY) {
+                    history.shift();
+                }
+                historyIndex = history.length - 1;
+            }
+
+            function applyState() {
+                const savedScrollTop = textarea.scrollTop;
+                const savedScrollLeft = textarea.scrollLeft;
+                
+                textarea.value = history[historyIndex];
+                textarea.scrollTop = savedScrollTop;
+                textarea.scrollLeft = savedScrollLeft;
+                
+                processInput(true);
+            }
+
+            function undo() {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    applyState();
+                }
+            }
+
+            function redo() {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    applyState();
+                }
+            }
+
+            function updateCode(newCode, save = true) {
+                textarea.value = newCode;
+                processInput(true);
+                if (save) saveHistory(newCode);
+            }
+
+            // --- Grid & Viewport Management ---
+            function updateGrid(code) {
+                let viewBoxMatch = code.replace(/<!--[\s\S]*?-->/g, '').match(/viewBox=["']([^"']+)["']/i);
+                let vb = viewBoxMatch ? viewBoxMatch[1].trim().split(/[\s,]+/).map(Number) : [0, 0, 100, 100];
+                
+                if (vb.length < 4 || vb.some(isNaN) || vb[2] <= 0 || vb[3] <= 0) {
+                    vb = [0, 0, 100, 100];
+                }
+                
+                const vx = vb[0], vy = vb[1], vw = vb[2], vh = vb[3];
+                const step = vw / 10;
+                const pad = step * 2.5;
+
+                mainSvg.setAttribute('viewBox', `${vx - pad} ${vy - pad} ${vw + 2*pad} ${vh + 2*pad}`);
+                userSvgContainer.setAttribute('x', vx);
+                userSvgContainer.setAttribute('y', vy);
+                userSvgContainer.setAttribute('width', vw);
+                userSvgContainer.setAttribute('height', vh);
+
+                gridPattern.setAttribute('width', step);
+                gridPattern.setAttribute('height', step);
+                gridPatternLine.setAttribute('d', `M ${step} 0 L 0 0 0 ${step}`);
+                
+                gridRect.setAttribute('x', vx);
+                gridRect.setAttribute('y', vy);
+                gridRect.setAttribute('width', vw);
+                gridRect.setAttribute('height', vh);
+
+                let labelsArr = [];
+                const maxStepsX = Math.min(Math.floor(vw / step), 500);
+                const maxStepsY = Math.min(Math.floor(vh / step), 500);
+
+                for (let i = 0; i <= maxStepsX; i++) {
+                    if (i === 0 || i === maxStepsX || i % 2 === 0) {
+                        let valX = vx + i * step;
+                        let textX = parseFloat(valX.toFixed(2));
+                        labelsArr.push(`<text x="${valX}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`);
+                    }
+                }
+                
+                if (vw - maxStepsX * step > 0.001 && maxStepsX < 500) {
+                    let textX = parseFloat((vx + vw).toFixed(2));
+                    labelsArr.push(`<text x="${vx + vw}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`);
+                }
+
+                for (let i = 0; i <= maxStepsY; i++) {
+                    if (i === 0 || i === maxStepsY || i % 2 === 0) {
+                        let valY = vy + i * step;
+                        let textY = parseFloat(valY.toFixed(2));
+                        labelsArr.push(`<text x="${vx - step*0.3}" y="${valY + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`);
+                    }
+                }
+                
+                if (vh - maxStepsY * step > 0.001 && maxStepsY < 500) {
+                    let textY = parseFloat((vy + vh).toFixed(2));
+                    labelsArr.push(`<text x="${vx - step*0.3}" y="${vy + vh + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`);
+                }
+
+                gridLabels.innerHTML = labelsArr.join('');
+            }
+
+            // --- State Machine Tokenizer (Robust HTML/XML Parsing) ---
+            function getActiveTag(html, cursor) {
+                let elements = [];
+                let state = 'TEXT'; 
+                let currentStart = -1;
+                let domIndex = 0;
+                let stack = [];
+
+                for (let i = 0; i < html.length; i++) {
+                    const char = html[i];
+                    if (state === 'TEXT') {
+                        if (char === '<') {
+                            if (html.substring(i, i + 4) === '<!--') {
+                                state = 'IN_COMMENT';
+                                currentStart = i;
+                                i += 3;
+                            } else {
+                                state = 'IN_TAG';
+                                currentStart = i;
+                            }
+                        }
+                    } else if (state === 'IN_COMMENT') {
+                        if (char === '-' && html.substring(i, i + 3) === '-->') {
+                            state = 'TEXT';
+                            let el = {
+                                domIndex: -1,
+                                start: currentStart,
+                                effectiveStart: currentStart,
+                                tagEnd: i + 3,
+                                fullEnd: i + 3,
+                                closeStart: -1,
+                                tagName: '!--'
+                            };
+                            elements.push(el);
+                            i += 2;
+                        }
+                    } else if (state === 'IN_TAG') {
+                        if (char === '"') state = 'IN_ATTR_DOUBLE';
+                        else if (char === "'") state = 'IN_ATTR_SINGLE';
+                        else if (char === '>') {
+                            state = 'TEXT';
+                            let tagStr = html.substring(currentStart, i + 1);
+                            let isClose = tagStr.startsWith('</');
+                            let isSelfClosing = /\/\s*>$/.test(tagStr);
+                            let tagNameMatch = tagStr.match(/<\/?([a-z0-9:-]+)/i);
+                            let tagName = tagNameMatch ? tagNameMatch[1] : '';
+
+                            let effectiveStart = currentStart;
+                            while (effectiveStart > 0 && (html[effectiveStart - 1] === ' ' || html[effectiveStart - 1] === '\t' || html[effectiveStart - 1] === '\n')) {
+                                effectiveStart--;
+                            }
+
+                            let el = {
+                                domIndex: isClose ? -1 : domIndex++,
+                                start: currentStart,
+                                effectiveStart: effectiveStart,
+                                tagEnd: i + 1,
+                                fullEnd: i + 1,
+                                closeStart: isSelfClosing ? (i + 1) : -1,
+                                tagName: tagName
+                            };
+
+                            if (isClose) {
+                                if (stack.length > 0) {
+                                    let top = stack.pop();
+                                    top.fullEnd = i + 1;
+                                    top.closeStart = currentStart;
+                                }
+                            } else {
+                                if (tagName.toLowerCase() !== 'br' && tagName.toLowerCase() !== 'hr') {
+                                    elements.push(el);
+                                    if (!isSelfClosing) stack.push(el);
+                                }
+                            }
+                        }
+                    } else if (state === 'IN_ATTR_DOUBLE') {
+                        if (char === '"') state = 'IN_TAG';
+                    } else if (state === 'IN_ATTR_SINGLE') {
+                        if (char === "'") state = 'IN_TAG';
+                    }
+                }
+
+                // Close unclosed tags implicitly at end of document
+                for (let s of stack) {
+                    s.fullEnd = html.length;
+                    s.closeStart = html.length;
+                }
+                if (state === 'IN_COMMENT') {
+                    elements.push({
+                        domIndex: -1,
+                        start: currentStart,
+                        effectiveStart: currentStart,
+                        tagEnd: html.length,
+                        fullEnd: html.length,
+                        closeStart: -1,
+                        tagName: '!--'
+                    });
+                }
+
+                let active = null;
+                let minSize = Infinity;
+                for (let el of elements) {
+                    if (cursor >= el.effectiveStart && cursor <= el.fullEnd) {
+                        let size = el.fullEnd - el.start;
+                        if (size < minSize) {
+                            minSize = size;
+                            active = el;
+                        }
+                    }
+                }
+                return active;
+            }
+
+            // --- Decoupled Tracking & Highlighting ---
+            function updateSelection() {
+                const code = textarea.value;
+                const cursor = textarea.selectionStart;
+                
+                activeTagInfo = getActiveTag(code, cursor);
+                
+                let activeSub = null;
+                let activeNode = null;
+                
+                // Clear previous formatting
+                if (previouslyHighlightedNode.node) {
+                    const { node, originalStroke, originalColor } = previouslyHighlightedNode;
+                    if (originalStroke === null) node.removeAttribute('stroke');
+                    else node.setAttribute('stroke', originalStroke);
+                    if (originalColor === null) node.removeAttribute('color');
+                    else node.setAttribute('color', originalColor);
+                    previouslyHighlightedNode.node = null;
+                }
+
+                if (activeTagInfo && activeTagInfo.domIndex >= 0) {
+                    const liveElements = Array.from(userSvgContainer.querySelectorAll('*')).filter(node => node.nodeType === 1);
+                    activeNode = liveElements[activeTagInfo.domIndex];
+                    
+                    if (activeNode) {
+                        previouslyHighlightedNode.node = activeNode;
+                        previouslyHighlightedNode.originalStroke = activeNode.getAttribute('stroke');
+                        previouslyHighlightedNode.originalColor = activeNode.getAttribute('color');
+                        
+                        activeNode.setAttribute('stroke', '#3b82f6');
+                        activeNode.setAttribute('color', '#3b82f6'); 
+                        
+                        const tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+                        const relPos = cursor - activeTagInfo.start;
+                        activeSub = getActiveSubElement(tagStr, relPos, activeTagInfo.tagName.toLowerCase(), activeNode);
+                    }
+                }
+
+                // 1. Instant Text Update
+                updateBackdropText(code, activeSub);
+
+                // 2. Debounced Visual Overlay (Prevents Thrashing during rapid movement)
+                if (overlayTimeoutId) clearTimeout(overlayTimeoutId);
+                overlayGroup.innerHTML = ''; 
+                
+                if (activeNode && activeSub) {
+                    overlayTimeoutId = setTimeout(() => {
+                        renderVisualOverlay(activeNode, activeSub);
+                    }, 50);
+                }
+            }
+
+            function updateBackdropText(code, activeSub) {
+                let finalHTML = '';
+                if (activeTagInfo) {
+                    const before = escapeHTML(code.substring(0, activeTagInfo.start));
+                    let highlight = '';
+                    
+                    if (activeSub) {
+                        const tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+                        const ranges = activeSub.ranges || [{start: activeSub.start, end: activeSub.end}];
+                        ranges.sort((a, b) => a.start - b.start);
+                        
+                        let hlResult = '';
+                        let lastIdx = 0;
+                        for (let r of ranges) {
+                            hlResult += escapeHTML(tagStr.substring(lastIdx, r.start));
+                            hlResult += `<mark class="point-mark">${escapeHTML(tagStr.substring(r.start, r.end))}</mark>`;
+                            lastIdx = r.end;
+                        }
+                        hlResult += escapeHTML(tagStr.substring(lastIdx));
+                        highlight = hlResult;
+                    } else {
+                        highlight = escapeHTML(code.substring(activeTagInfo.start, activeTagInfo.tagEnd));
+                    }
+                    
+                    const after = escapeHTML(code.substring(activeTagInfo.tagEnd));
+                    finalHTML = before + `<mark>${highlight}</mark>` + after;
+                } else {
+                    finalHTML = escapeHTML(code);
+                }
+                
+                if (code.endsWith('\n')) finalHTML += ' ';
+                backdrop.innerHTML = finalHTML;
+            }
+
+            function escapeHTML(str) {
+                return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+
+            function renderVisualOverlay(activeNode, activeSub) {
+                if (!activeSub) return;
+                
+                const hasValidCenter = Number.isFinite(activeSub.cx) && Number.isFinite(activeSub.cy);
+                if (!hasValidCenter && !activeSub.qData && !activeSub.cData) return;
+                
+                const vw = parseFloat(userSvgContainer.getAttribute('width') || 100);
+                const r = vw * 0.02;
+                
+                const getMappedCoords = (x, y) => {
+                    let tx = Number.isFinite(x) ? x : 0;
+                    let ty = Number.isFinite(y) ? y : 0;
+                    try {
+                        const pt = mainSvg.createSVGPoint();
+                        pt.x = tx;
+                        pt.y = ty;
+                        const ctm = activeNode.getScreenCTM();
+                        const inv = mainSvg.getScreenCTM().inverse();
+                        if (ctm && inv) {
+                            const screenPt = pt.matrixTransform(ctm);
+                            const overlayPt = screenPt.matrixTransform(inv);
+                            tx = overlayPt.x;
+                            ty = overlayPt.y;
+                        }
+                    } catch(e) {
+                        console.error("CTM Transformation Error:", e);
+                    }
+                    return {tx, ty};
+                };
+
+                if (activeSub.cData) {
+                    const pStart = getMappedCoords(activeSub.cData.startX, activeSub.cData.startY);
+                    const pC1 = getMappedCoords(activeSub.cData.c1x, activeSub.cData.c1y);
+                    const pC2 = getMappedCoords(activeSub.cData.c2x, activeSub.cData.c2y);
+                    const pEnd = getMappedCoords(activeSub.cData.endX, activeSub.cData.endY);
+                    
+                    let c1Color = (activeSub.cData.activePoint === 'c1' || activeSub.cData.activePoint === 'both') ? 'var(--danger)' : 'var(--primary)';
+                    let c2Color = (activeSub.cData.activePoint === 'c2' || activeSub.cData.activePoint === 'both') ? 'var(--danger)' : 'var(--primary)';
+                    let endColor = (activeSub.cData.activePoint === 'end' || activeSub.cData.activePoint === 'both') ? 'var(--danger)' : 'var(--primary)';
+                    
+                    overlayGroup.innerHTML = `
+                        <line x1="${pStart.tx}" y1="${pStart.ty}" x2="${pC1.tx}" y2="${pC1.ty}" stroke="var(--primary)" stroke-width="1.5" stroke-dasharray="2,2" />
+                        <line x1="${pC2.tx}" y1="${pC2.ty}" x2="${pEnd.tx}" y2="${pEnd.ty}" stroke="var(--primary)" stroke-width="1.5" stroke-dasharray="2,2" />
+                        <circle cx="${pC1.tx}" cy="${pC1.ty}" r="${r}" fill="${c1Color}" stroke="#fff" stroke-width="${r * 0.2}" />
+                        <circle cx="${pC2.tx}" cy="${pC2.ty}" r="${r}" fill="${c2Color}" stroke="#fff" stroke-width="${r * 0.2}" />
+                        <circle cx="${pEnd.tx}" cy="${pEnd.ty}" r="${r}" fill="${endColor}" stroke="#fff" stroke-width="${r * 0.2}" />
+                    `;
+                } else if (activeSub.qData) {
+                    const pStart = getMappedCoords(activeSub.qData.startX, activeSub.qData.startY);
+                    const pC1 = getMappedCoords(activeSub.qData.c1x, activeSub.qData.c1y);
+                    const pEnd = getMappedCoords(activeSub.qData.endX, activeSub.qData.endY);
+                    
+                    let c1Color = activeSub.qData.activePoint === 'end' ? 'var(--primary)' : 'var(--danger)';
+                    let endColor = activeSub.qData.activePoint === 'control' ? 'var(--primary)' : 'var(--danger)';
+                    
+                    overlayGroup.innerHTML = `
+                        <line x1="${pStart.tx}" y1="${pStart.ty}" x2="${pC1.tx}" y2="${pC1.ty}" stroke="var(--primary)" stroke-width="1.5" stroke-dasharray="2,2" />
+                        <line x1="${pC1.tx}" y1="${pC1.ty}" x2="${pEnd.tx}" y2="${pEnd.ty}" stroke="var(--primary)" stroke-width="1.5" stroke-dasharray="2,2" />
+                        <circle cx="${pC1.tx}" cy="${pC1.ty}" r="${r}" fill="${c1Color}" stroke="#fff" stroke-width="${r * 0.2}" />
+                        <circle cx="${pEnd.tx}" cy="${pEnd.ty}" r="${r}" fill="${endColor}" stroke="#fff" stroke-width="${r * 0.2}" />
+                    `;
+                } else {
+                    const p = getMappedCoords(activeSub.cx, activeSub.cy);
+                    overlayGroup.innerHTML = `<circle cx="${p.tx}" cy="${p.ty}" r="${r}" fill="var(--danger)" stroke="#fff" stroke-width="${r * 0.2}" />`;
+                }
+            }
+
+            function getActiveSubElement(tagStr, relPos, tagName, activeNode) {
+                let sub = UniversalAttributes.getSubElement(tagStr, relPos, activeNode);
+                if (sub) return sub;
+
+                const handler = ShapeRegistry[tagName];
+                if (handler && handler.getSubElement) {
+                    return handler.getSubElement(tagStr, relPos, activeNode);
+                }
+                return null;
+            }
+
+            // --- Tools (Move, Insert, Delete, Transform) ---
+            function moveShape(dirX, dirY) {
+                if (!activeTagInfo) return;
+                const code = textarea.value;
+                let tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+                const tagName = activeTagInfo.tagName.toLowerCase();
+                const relPos = textarea.selectionStart - activeTagInfo.start;
+                
+                const step = parseFloat(moveStepInput.value) || 1;
+                const dx = dirX * step;
+                const dy = dirY * step;
+
+                const handler = ShapeRegistry[tagName] || ShapeRegistry.default;
+                let moveResult = null;
+
+                if (handler.movePoint) moveResult = handler.movePoint(tagStr, relPos, dx, dy);
+                if (!moveResult || !moveResult.modified) moveResult = UniversalAttributes.movePoint(tagStr, relPos, dx, dy);
+                if (!moveResult || !moveResult.modified) {
+                    if (handler.moveElement) {
+                        const newTagStr = handler.moveElement(tagStr, dx, dy);
+                        if (newTagStr !== tagStr) moveResult = { modified: true, tagStr: newTagStr };
+                    }
+                }
+
+                if (!moveResult || !moveResult.modified) return;
+                
+                tagStr = moveResult.tagStr;
+                const newCode = code.substring(0, activeTagInfo.start) + tagStr + code.substring(activeTagInfo.tagEnd);
+                const offset = tagStr.length - (activeTagInfo.tagEnd - activeTagInfo.start);
+                let newCursor = textarea.selectionStart;
+                if (newCursor > activeTagInfo.start) newCursor += offset;
+
+                const savedScrollTop = textarea.scrollTop;
+                const savedScrollLeft = textarea.scrollLeft;
+
+                updateCode(newCode, true);
+                textarea.focus();
+                textarea.setSelectionRange(newCursor, newCursor);
+                textarea.scrollTop = savedScrollTop;
+                textarea.scrollLeft = savedScrollLeft;
+                
+                if (selectionRafId) cancelAnimationFrame(selectionRafId);
+                selectionRafId = requestAnimationFrame(updateSelection);
+            }
+
+            function transformShape(action) {
+                if (!activeTagInfo) return;
+                const code = textarea.value;
+                const liveElements = Array.from(userSvgContainer.querySelectorAll('*')).filter(node => node.nodeType === 1);
+                const activeNode = liveElements[activeTagInfo.domIndex];
+                
+                if (!activeNode) return;
+
+                const center = SVGUtils.getLogicalCenter(activeNode);
+                const cx = center.cx;
+                const cy = center.cy;
+
+                let tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+                const tagName = activeTagInfo.tagName.toLowerCase();
+
+                let transPoint;
+                if (action.startsWith('rot_')) {
+                    const angle = parseFloat(action.replace('rot_', ''));
+                    const rad = angle * Math.PI / 180;
+                    const cos = Math.cos(rad);
+                    const sin = Math.sin(rad);
+                    transPoint = (px, py) => {
+                        const dx = px - cx;
+                        const dy = py - cy;
+                        return [cx + dx * cos - dy * sin, cy + dx * sin + dy * cos];
+                    };
+                } else if (action === 'flip_h') {
+                    transPoint = (px, py) => [cx - (px - cx), py];
+                } else if (action === 'flip_v') {
+                    transPoint = (px, py) => [px, cy - (py - cy)];
+                }
+
+                const handler = ShapeRegistry[tagName] || ShapeRegistry.default;
+                let modified = false;
+
+                if (handler.transformElement) {
+                    const newTagStr = handler.transformElement(tagStr, action, transPoint, activeNode, cx, cy);
+                    if (newTagStr !== tagStr) {
+                        tagStr = newTagStr;
+                        modified = true;
+                    }
+                }
+
+                if (!modified) return;
+
+                const newCode = code.substring(0, activeTagInfo.start) + tagStr + code.substring(activeTagInfo.tagEnd);
+                const offset = tagStr.length - (activeTagInfo.tagEnd - activeTagInfo.start);
+                let newCursor = textarea.selectionStart;
+                if (newCursor > activeTagInfo.start) newCursor += offset;
+
+                const savedScrollTop = textarea.scrollTop;
+                const savedScrollLeft = textarea.scrollLeft;
+
+                updateCode(newCode, true);
+                textarea.focus();
+                textarea.setSelectionRange(newCursor, newCursor);
+                textarea.scrollTop = savedScrollTop;
+                textarea.scrollLeft = savedScrollLeft;
+                
+                if (selectionRafId) cancelAnimationFrame(selectionRafId);
+                selectionRafId = requestAnimationFrame(updateSelection);
+            }
+
+            function insertShape(type) {
+                let shapeMap = {
+                    'circle': `<circle cx="50" cy="50" r="10" />`,
+                    'line': `<line x1="10" y1="10" x2="90" y2="90" />`,
+                    'path': `<path d="M20,20 L80,80" />`,
+                    'polygon': `<polygon points="20,80 50,20 80,80" />`,
+                    'polyline': `<polyline points="20,20 50,80 80,20" />`,
+                    'rect': `<rect x="10" y="10" width="80" height="80" />`,
+                    'text': `<text x="50" y="50" font-family="sans-serif" font-size="14" text-anchor="middle">Text</text>`,
+                    'comment_start': `<!-- `,
+                    'comment_end': ` -->`
+                };
+                
+                let template = shapeMap[type] || '';
+                const code = textarea.value;
+                let insertPos = textarea.selectionStart;
+                let indent = "\n  ";
+                
+                if (type === 'comment_start') {
+                    let refPos = textarea.selectionStart;
+                    if (activeTagInfo && activeTagInfo.tagName !== '!--') refPos = activeTagInfo.start;
+                    const lineStart = code.lastIndexOf('\n', refPos - 1);
+                    insertPos = lineStart === -1 ? 0 : lineStart + 1;
+                    template = "<!--\n";
+                    indent = "";
+                } else if (type === 'comment_end') {
+                    if (activeTagInfo && activeTagInfo.tagName !== '!--') {
+                        insertPos = activeTagInfo.fullEnd;
+                    } else {
+                        const lineEnd = code.indexOf('\n', textarea.selectionStart);
+                        insertPos = lineEnd === -1 ? code.length : lineEnd;
+                    }
+                    template = "\n-->";
+                    indent = "";
+                } else {
+                    if (activeTagInfo) {
+                        const nonContainers = ['circle', 'line', 'path', 'polygon', 'polyline', 'rect', 'text', 'tspan', 'ellipse', 'image', 'use'];
+                        if (nonContainers.includes(activeTagInfo.tagName.toLowerCase())) {
+                            if (insertPos > activeTagInfo.start && insertPos < activeTagInfo.fullEnd) insertPos = activeTagInfo.fullEnd;
+                        } else {
+                            if (insertPos > activeTagInfo.start && insertPos < activeTagInfo.tagEnd) {
+                                insertPos = activeTagInfo.tagEnd;
+                            } else if (activeTagInfo.closeStart !== undefined && activeTagInfo.closeStart !== -1 && insertPos > activeTagInfo.closeStart && insertPos < activeTagInfo.fullEnd) {
+                                insertPos = activeTagInfo.fullEnd;
+                            }
+                        }
+                    }
+                    
+                    const lineStart = code.lastIndexOf('\n', insertPos - 1);
+                    if (lineStart !== -1) {
+                        const spaces = code.substring(lineStart + 1).match(/^\s*/);
+                        if (spaces) indent = "\n" + spaces[0];
+                    }
+                }
+
+                const newCode = code.substring(0, insertPos) + indent + template + code.substring(insertPos);
+                const savedScrollTop = textarea.scrollTop;
+                const savedScrollLeft = textarea.scrollLeft;
+                
+                updateCode(newCode, true);
+                
+                const newPos = insertPos + indent.length + template.length;
+                textarea.focus();
+                textarea.setSelectionRange(newPos, newPos);
+                textarea.scrollTop = savedScrollTop;
+                textarea.scrollLeft = savedScrollLeft;
+                
+                if (selectionRafId) cancelAnimationFrame(selectionRafId);
+                selectionRafId = requestAnimationFrame(updateSelection);
+            }
+
+            function deleteActiveShape() {
+                if (!activeTagInfo) return;
+                const code = textarea.value;
+                let start = activeTagInfo.start;
+                let end = activeTagInfo.fullEnd;
+
+                while (start > 0 && (code[start-1] === ' ' || code[start-1] === '\t')) start--;
+                if (start > 0 && code[start-1] === '\n') start--;
+
+                const newCode = code.substring(0, start) + code.substring(end);
+                const savedScrollTop = textarea.scrollTop;
+                const savedScrollLeft = textarea.scrollLeft;
+                
+                updateCode(newCode, true);
+                textarea.focus();
+                textarea.setSelectionRange(start, start);
+                textarea.scrollTop = savedScrollTop;
+                textarea.scrollLeft = savedScrollLeft;
+                
+                if (selectionRafId) cancelAnimationFrame(selectionRafId);
+                selectionRafId = requestAnimationFrame(updateSelection);
+            }
+
+            // --- Output & Utility ---
+            function downloadSVG() {
+                const code = textarea.value;
+                let finalSVG = code;
+
+                if (/<svg/i.test(code)) {
+                    finalSVG = code;
+                } else if (/<symbol/i.test(code)) {
+                    let viewBoxMatch = code.replace(/<!--[\s\S]*?-->/g, '').match(/viewBox=["']([^"']+)["']/i);
+                    let viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+                    let idMatch = code.match(/<symbol[^>]*id=["']([^"']+)["']/i);
+                    let symbolId = idMatch ? idMatch[1] : "component";
+                    let indentedCode = code.split('\n').map(line => '    ' + line).join('\n');
+
+                    finalSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">\n` +
+                               `  <defs>\n${indentedCode}\n  </defs>\n` +
+                               `  <use href="#${symbolId}" />\n` +
+                               `</svg>`;
+                } else {
+                    let viewBoxMatch = code.replace(/<!--[\s\S]*?-->/g, '').match(/viewBox=["']([^"']+)["']/i);
+                    let viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+                    let indentedCode = code.split('\n').map(line => '  ' + line).join('\n');
+                    finalSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">\n${indentedCode}\n</svg>`;
+                }
+
+                const blob = new Blob([finalSVG], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                let idMatch = code.match(/<symbol[^>]*id=["']([^"']+)["']/i);
+                a.download = (idMatch ? idMatch[1] : 'component') + '.svg';
+                
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            }
+
+            function copyToClipboard() {
+                textarea.select();
+                document.execCommand('copy');
+                textarea.setSelectionRange(textarea.selectionStart, textarea.selectionStart);
+                
+                const btn = document.getElementById('tool-copy');
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✅';
+                setTimeout(() => btn.innerHTML = orig, 1500);
+                textarea.focus();
+            }
+
+            function loadFromFile(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    updateCode(e.target.result, true);
+                    textarea.scrollTop = 0;
+                    textarea.scrollLeft = 0;
+                };
+                reader.readAsText(file);
+                event.target.value = ''; 
+            }
+
+            // --- Micro Unit Test System Bridge ---
+            // Only activates if ?test= is present in the URL
+            if (window.location.search.includes('test=')) {
+                window.TEST_API = {
+                    textarea,
+                    userSvgContainer,
+                    errorBadge,
+                    updateCode,
+                    undo,
+                    redo,
+                    insertShape,
+                    moveShape,
+                    transformShape,
+                    deleteActiveShape,
+                    SVGUtils,
+                    getActiveTag,
+                    backdrop
+                };
+                
+                const script = document.createElement('script');
+                script.src = 'svg_component_editor_v6_16_0_tests.js';
+                script.onerror = () => console.error("Test suite not found: svg_component_editor_v6_16_0_tests.js");
+                document.body.appendChild(script);
+            }
+        })();
+    </script>
+</body>
+</html>
