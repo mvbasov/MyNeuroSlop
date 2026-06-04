@@ -27,3 +27,17 @@ const BIP39_RAW = "abandon ... table ... zoo"; // (truncated for example)
 // Runtime Parsing (Instantly converts the string into a 2048-item array)
 const bip39Dictionary = BIP39_RAW.split(" ");
 ```
+shorter forms of comments
+```
+// [AI-SKIP-START] Do not modify or include in python scripts
+const BIP39_DICTIONARY = [
+    "abandon", 
+    "ability", 
+    // ...
+];
+// [AI-SKIP-END]
+```
+```
+// [AI-SKIP] Black box data. Do not modify or include in python scripts.
+const BIP39_RAW = "abandon ability able about above..."; 
+```
