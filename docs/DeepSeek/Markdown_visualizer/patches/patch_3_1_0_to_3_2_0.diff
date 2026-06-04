@@ -1,0 +1,151 @@
+--- md_3_1_0.html	2026-06-05 02:09:53.702363277 +0300
++++ md_3_2_0.html	2026-06-05 02:16:47.575078442 +0300
+@@ -3,7 +3,7 @@
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Markdown/Code Viewer · KaTeX + marked‑katex‑extension (local‑first)</title>
++    <title>Markdown/Code Viewer · KaTeX + marked‑katex‑extension (fixed)</title>
+     <style>
+         * { margin: 0; padding: 0; box-sizing: border-box; }
+         body { background: #fafafa; padding: 2rem 1rem; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+@@ -26,7 +26,7 @@
+ <script>
+     // ---------- CONFIGURATION (local-first) ----------
+     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/docs/markdown_example.md';
+-    const PAGE_VERSION = '3.1.0 (marked‑katex‑extension v5.1.10)';
++    const PAGE_VERSION = '3.2.0 (fixed extension integration)';
+ 
+     // Marked.js
+     const MARKED_LOCAL = 'fallback_js/marked.min.js';
+@@ -36,7 +36,7 @@
+     const MKATEX_LOCAL = 'fallback_js/marked-katex-extension.min.js';
+     const MKATEX_CDN = 'https://cdn.jsdelivr.net/npm/marked-katex-extension@5.1.10/lib/index.umd.js';
+ 
+-    // KaTeX (core + CSS) – still needed for rendering
++    // KaTeX (core + CSS)
+     const KATEX_CSS_LOCAL = 'fallback_js/katex.min.css';
+     const KATEX_CSS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
+     const KATEX_JS_LOCAL = 'fallback_js/katex.min.js';
+@@ -69,7 +69,7 @@
+         });
+     }
+ 
+-    // Helper: load script
++    // Helper: load script (returns promise when script is loaded and executed)
+     function loadScript(primary, fallback) {
+         return new Promise((resolve, reject) => {
+             const script = document.createElement('script');
+@@ -86,26 +86,40 @@
+         });
+     }
+ 
+-    // Load all dependencies
+-    async function loadMarkdownCSS() { try { await loadCSS(MD_CSS_LOCAL, MD_CSS_CDN); console.log('✓ Markdown CSS'); } catch(e) { console.warn(e); } }
+-    async function loadKaTeX() {
++    // Load all dependencies in the correct order (like the minimal test)
++    async function loadDependencies() {
++        // 1. KaTeX CSS + JS (must be loaded before marked-katex-extension)
+         await loadCSS(KATEX_CSS_LOCAL, KATEX_CSS_CDN);
+         await loadScript(KATEX_JS_LOCAL, KATEX_JS_CDN);
+-        if (typeof katex === 'undefined') throw new Error('KaTeX not loaded');
+-        return true;
+-    }
+-    async function loadMarked() {
+-        if (window.marked?.parse) return window.marked;
++        if (typeof katex === 'undefined') throw new Error('KaTeX core not loaded');
++
++        // 2. Markdown CSS (optional)
++        await loadCSS(MD_CSS_LOCAL, MD_CSS_CDN).catch(() => {});
++
++        // 3. Marked.js
+         await loadScript(MARKED_LOCAL, MARKED_CDN);
+         if (!window.marked?.parse) throw new Error('Marked not loaded');
+-        return window.marked;
+-    }
+-    async function loadMarkedKatexExtension() {
+-        if (window.markedKatex) return window.markedKatex;
++
++        // 4. marked-katex-extension (must come after both KaTeX and marked)
+         await loadScript(MKATEX_LOCAL, MKATEX_CDN);
+         if (typeof window.markedKatex !== 'function') throw new Error('marked-katex-extension not loaded');
+-        return window.markedKatex;
++
++        // Apply the extension globally to the marked instance
++        window.marked.use(window.markedKatex({
++            throwOnError: false,
++            errorColor: '#cc0000',
++            delimiters: [
++                { left: '$$', right: '$$', display: true },
++                { left: '$', right: '$', display: false },
++                { left: '\\[', right: '\\]', display: true },
++                { left: '\\(', right: '\\)', display: false }
++            ]
++        }));
++        window.marked.setOptions({ gfm: true, breaks: true });
++
++        return true;
+     }
++
+     async function loadHighlightJS() {
+         if (typeof hljs !== 'undefined') return true;
+         await loadCSS(HLJS_CSS_LOCAL, HLJS_CSS_CDN);
+@@ -139,25 +153,6 @@
+         return txt;
+     }
+ 
+-    // Render markdown using marked + katex extension
+-    async function renderMarkdown(text, marked, katexExt, container) {
+-        // Configure marked to use the extension
+-        marked.use(katexExt({
+-            throwOnError: false,
+-            errorColor: '#cc0000',
+-            delimiters: [
+-                { left: '$$', right: '$$', display: true },
+-                { left: '$', right: '$', display: false },
+-                { left: '\\[', right: '\\]', display: true },
+-                { left: '\\(', right: '\\)', display: false }
+-            ]
+-        }));
+-        marked.setOptions({ gfm: true, breaks: true });
+-        const html = await marked.parse(text);
+-        container.innerHTML = html;
+-        console.log('✓ Markdown + KaTeX extension rendered');
+-    }
+-
+     function renderSource(raw, container, ext) {
+         const lines = raw.split(/\r?\n/).filter(l => l.trim());
+         const code = lines.join('\n').replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
+@@ -172,16 +167,10 @@
+         const container = document.getElementById('content');
+         let mathAvailable = false;
+         try {
+-            container.innerHTML = '<div class="loader">Loading dependencies (local-first)...</div>';
+-            // Load all required resources in parallel
+-            const [marked, katexExt, katexOk] = await Promise.all([
+-                loadMarked(),
+-                loadMarkedKatexExtension(),
+-                loadKaTeX().then(() => true).catch(e => { console.error('KaTeX core error:', e); return false; }),
+-                loadMarkdownCSS().catch(() => {})
+-            ]);
+-            mathAvailable = katexOk && (typeof katexExt === 'function');
+-            if (!mathAvailable) throw new Error('KaTeX or marked-katex-extension missing');
++            container.innerHTML = '<div class="loader">Loading dependencies (local-first, sequential)...</div>';
++            await loadDependencies();
++            mathAvailable = true;
++            console.log('✓ All dependencies loaded and marked-katex-extension applied');
+ 
+             let hljsOk = false;
+             if (sourceMode) {
+@@ -201,7 +190,10 @@
+                     container.prepend(warn);
+                 }
+             } else {
+-                await renderMarkdown(raw, marked, katexExt, container);
++                // Markdown rendering – the extension is already applied to window.marked
++                const html = await window.marked.parse(raw);
++                container.innerHTML = html;
++                console.log('✓ Markdown + KaTeX rendered');
+             }
+ 
+             const footer = document.createElement('div');

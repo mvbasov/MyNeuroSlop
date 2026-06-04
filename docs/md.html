@@ -3,481 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown/Code Viewer · Syntax Highlighting + KaTeX (local-first)</title>
+    <title>Markdown/Code Viewer · KaTeX + marked‑katex‑extension (fixed)</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background: #fafafa;
-            padding: 2rem 1rem;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        .markdown-body {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .loader, .error {
-            text-align: center;
-            padding: 3rem 1rem;
-            font-size: 1rem;
-        }
-        .error {
-            color: #d73a49;
-            background: #ffeef0;
-            border-radius: 6px;
-            white-space: pre-wrap;
-        }
-        .footer-version {
-            margin-top: 2rem;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #6a737d;
-            border-top: 1px solid #eaecef;
-            padding-top: 1rem;
-        }
-        .raw-link-container {
-            text-align: center;
-            margin-top: 1rem;
-            padding-top: 0.75rem;
-            font-size: 0.8rem;
-            border-top: 1px solid #eaecef;
-        }
-        .raw-link-container a {
-            color: #0969da;
-            text-decoration: none;
-            background: #f6f8fa;
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            transition: background 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 500;
-        }
-        .raw-link-container a:hover {
-            background: #eef2f5;
-            text-decoration: underline;
-        }
-        .source-mode-note {
-            background: #f1f8ff;
-            border-left: 4px solid #0366d6;
-            padding: 0.6rem 1rem;
-            margin-bottom: 1.2rem;
-            font-size: 0.85rem;
-            border-radius: 6px;
-            color: #1f2d3d;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-        }
-        .source-mode-note::before {
-            content: "📄";
-            font-size: 1.1rem;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #fafafa; padding: 2rem 1rem; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+        .markdown-body { max-width: 900px; margin: 0 auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .loader, .error { text-align: center; padding: 3rem 1rem; }
+        .error { color: #d73a49; background: #ffeef0; border-radius: 6px; white-space: pre-wrap; }
+        .warning-banner { background: #fff5b0; border-left: 4px solid #f5a623; padding: 0.6rem 1rem; margin-bottom: 1rem; border-radius: 6px; color: #5c3c00; font-size: 0.85rem; }
+        .footer-version { margin-top: 2rem; text-align: center; font-size: 0.75rem; color: #6a737d; border-top: 1px solid #eaecef; padding-top: 1rem; }
+        .math-status { display: inline-block; margin-left: 1rem; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.7rem; }
+        .math-status.ok { background: #d4edda; color: #155724; }
+        .math-status.fail { background: #f8d7da; color: #721c24; }
+        .raw-link-container { text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #eaecef; }
+        .raw-link-container a { color: #0969da; text-decoration: none; background: #f6f8fa; padding: 0.4rem 0.8rem; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; }
+        .source-mode-note { background: #f1f8ff; border-left: 4px solid #0366d6; padding: 0.6rem 1rem; margin-bottom: 1.2rem; border-radius: 6px; display: flex; align-items: center; gap: 8px; }
     </style>
 </head>
 <body>
-<div id="content" class="markdown-body">
-    <div class="loader">Loading viewer engine (local-first → CDN)…</div>
-</div>
+<div id="content" class="markdown-body"><div class="loader">Loading viewer…</div></div>
 
 <script>
-    // --------------------------------------------------------------
-    // 1. CONFIGURATION – LOCAL FIRST, CDN FALLBACK
-    // --------------------------------------------------------------
+    // ---------- CONFIGURATION (local-first) ----------
     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/docs/markdown_example.md';
-    const PAGE_VERSION = '1.8.1';   // local-first loading order
+    const PAGE_VERSION = '3.2.0 (fixed extension integration)';
 
-    // Marked.js (local first, then CDN)
+    // Marked.js
     const MARKED_LOCAL = 'fallback_js/marked.min.js';
-    const MARKED_CDN  = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+    const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
 
-    // GitHub Markdown CSS (local first, then CDN)
-    const MD_CSS_LOCAL = 'fallback_js/github-markdown.min.css';
-    const MD_CSS_CDN   = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown.min.css';
+    // marked-katex-extension (v5.1.10)
+    const MKATEX_LOCAL = 'fallback_js/marked-katex-extension.min.js';
+    const MKATEX_CDN = 'https://cdn.jsdelivr.net/npm/marked-katex-extension@5.1.10/lib/index.umd.js';
 
-    // KaTeX resources (local first, then CDN)
+    // KaTeX (core + CSS)
     const KATEX_CSS_LOCAL = 'fallback_js/katex.min.css';
-    const KATEX_CSS_CDN   = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
-    const KATEX_JS_LOCAL  = 'fallback_js/katex.min.js';
-    const KATEX_JS_CDN    = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js';
-    const KATEX_AUTO_LOCAL = 'fallback_js/auto-render.min.js';
-    const KATEX_AUTO_CDN   = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js';
+    const KATEX_CSS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
+    const KATEX_JS_LOCAL = 'fallback_js/katex.min.js';
+    const KATEX_JS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js';
 
-    // Highlight.js (already local-first, keep as is but ensure ordering)
+    // GitHub Markdown CSS
+    const MD_CSS_LOCAL = 'fallback_js/github-markdown.min.css';
+    const MD_CSS_CDN = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown.min.css';
+
+    // Highlight.js (source mode)
     const HLJS_CSS_LOCAL = 'fallback_js/github-dark.min.css';
     const HLJS_CSS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
     const HLJS_JS_LOCAL = 'fallback_js/highlight.min.js';
     const HLJS_JS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
 
-    // --------------------------------------------------------------
-    // 2. Helper: load CSS (primary = local, fallback = remote)
-    // --------------------------------------------------------------
-    function loadCSS(primaryHref, fallbackHref = null) {
+    // Helper: load CSS
+    function loadCSS(primary, fallback) {
         return new Promise((resolve, reject) => {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = primaryHref;
+            link.href = primary;
             link.onload = () => resolve();
             link.onerror = () => {
-                if (fallbackHref && fallbackHref !== primaryHref) {
-                    console.warn(`CSS local failed: ${primaryHref}, trying fallback (remote): ${fallbackHref}`);
-                    loadCSS(fallbackHref, null).then(resolve).catch(reject);
-                } else {
-                    reject(new Error(`Failed to load CSS: ${primaryHref}`));
-                }
+                if (fallback && fallback !== primary) {
+                    console.warn(`CSS local fail: ${primary}, trying ${fallback}`);
+                    loadCSS(fallback).then(resolve).catch(reject);
+                } else reject(new Error(`CSS failed: ${primary}`));
             };
             document.head.appendChild(link);
         });
     }
 
-    // Helper: load script (primary = local, fallback = remote)
-    function loadScript(primarySrc, fallbackSrc = null) {
+    // Helper: load script (returns promise when script is loaded and executed)
+    function loadScript(primary, fallback) {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = primarySrc;
+            script.src = primary;
             script.async = true;
             script.onload = () => resolve();
             script.onerror = () => {
-                if (fallbackSrc && fallbackSrc !== primarySrc) {
-                    console.warn(`Script local failed: ${primarySrc}, trying fallback (remote): ${fallbackSrc}`);
-                    loadScript(fallbackSrc, null).then(resolve).catch(reject);
-                } else {
-                    reject(new Error(`Failed to load script: ${primarySrc}`));
-                }
+                if (fallback && fallback !== primary) {
+                    console.warn(`Script local fail: ${primary}, trying ${fallback}`);
+                    loadScript(fallback).then(resolve).catch(reject);
+                } else reject(new Error(`Script failed: ${primary}`));
             };
             document.head.appendChild(script);
         });
     }
 
-    // --------------------------------------------------------------
-    // 3. Load markdown CSS (local-first)
-    // --------------------------------------------------------------
-    async function loadMarkdownCSS() {
-        try {
-            await loadCSS(MD_CSS_LOCAL, MD_CSS_CDN);
-            console.log('✓ Markdown CSS loaded (local-first)');
-        } catch (e) {
-            console.warn('Markdown CSS failed, using fallback styles', e);
-        }
-    }
+    // Load all dependencies in the correct order (like the minimal test)
+    async function loadDependencies() {
+        // 1. KaTeX CSS + JS (must be loaded before marked-katex-extension)
+        await loadCSS(KATEX_CSS_LOCAL, KATEX_CSS_CDN);
+        await loadScript(KATEX_JS_LOCAL, KATEX_JS_CDN);
+        if (typeof katex === 'undefined') throw new Error('KaTeX core not loaded');
 
-    // --------------------------------------------------------------
-    // 4. Load KaTeX fully: CSS + core + auto-render (local-first)
-    // --------------------------------------------------------------
-    async function loadKaTeX() {
-        // KaTeX CSS: local → remote
-        try {
-            await loadCSS(KATEX_CSS_LOCAL, KATEX_CSS_CDN);
-            console.log('✓ KaTeX CSS loaded (local-first)');
-        } catch (e) {
-            console.warn('KaTeX CSS failed, math may look ugly', e);
-        }
+        // 2. Markdown CSS (optional)
+        await loadCSS(MD_CSS_LOCAL, MD_CSS_CDN).catch(() => {});
 
-        // KaTeX core JS: local → remote
-        try {
-            await loadScript(KATEX_JS_LOCAL, KATEX_JS_CDN);
-            console.log('✓ KaTeX core loaded (local-first)');
-        } catch (e) {
-            throw new Error(`KaTeX core load failed: ${e.message}`);
-        }
+        // 3. Marked.js
+        await loadScript(MARKED_LOCAL, MARKED_CDN);
+        if (!window.marked?.parse) throw new Error('Marked not loaded');
 
-        // KaTeX auto-render: local → remote
-        try {
-            await loadScript(KATEX_AUTO_LOCAL, KATEX_AUTO_CDN);
-            console.log('✓ KaTeX auto-render loaded (local-first)');
-        } catch (e) {
-            throw new Error(`KaTeX auto-render failed: ${e.message}`);
-        }
+        // 4. marked-katex-extension (must come after both KaTeX and marked)
+        await loadScript(MKATEX_LOCAL, MKATEX_CDN);
+        if (typeof window.markedKatex !== 'function') throw new Error('marked-katex-extension not loaded');
 
-        if (typeof window.renderMathInElement !== 'function') {
-            throw new Error('renderMathInElement not available after loading auto-render');
-        }
+        // Apply the extension globally to the marked instance
+        window.marked.use(window.markedKatex({
+            throwOnError: false,
+            errorColor: '#cc0000',
+            delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false },
+                { left: '\\[', right: '\\]', display: true },
+                { left: '\\(', right: '\\)', display: false }
+            ]
+        }));
+        window.marked.setOptions({ gfm: true, breaks: true });
+
         return true;
     }
 
-    // Load marked.js with local-first strategy
-    async function loadMarked() {
-        if (window.marked && typeof window.marked.parse === 'function') return window.marked;
-        try {
-            await loadScript(MARKED_LOCAL, MARKED_CDN);
-            if (window.marked && typeof window.marked.parse === 'function') return window.marked;
-            throw new Error('Marked not available after load');
-        } catch (e) {
-            throw new Error(`Marked load failed (local + remote): ${e.message}`);
-        }
-    }
-
-    // Load Highlight.js only when needed (source mode) – already local-first
     async function loadHighlightJS() {
-        if (typeof hljs !== 'undefined' && hljs.highlightElement) return true;
+        if (typeof hljs !== 'undefined') return true;
+        await loadCSS(HLJS_CSS_LOCAL, HLJS_CSS_CDN);
+        await loadScript(HLJS_JS_LOCAL, HLJS_JS_CDN);
+        return typeof hljs !== 'undefined';
+    }
+
+    // URL helpers
+    function getMarkdownUrl() {
+        const s = window.location.search;
+        if (!s) return DEFAULT_MARKDOWN_URL;
+        const params = new URLSearchParams(s);
+        let url = params.get('md') || params.get('file') || params.get('src');
+        if (url) return url;
+        if (!s.includes('=')) return decodeURIComponent(s.slice(1));
+        return DEFAULT_MARKDOWN_URL;
+    }
+    const rawUrl = getMarkdownUrl();
+    const sourceMode = new URLSearchParams(location.search).has('source') || (() => {
         try {
-            // Load CSS first (local → remote)
-            await loadCSS(HLJS_CSS_LOCAL, HLJS_CSS_CDN);
-            // Load script (local → remote)
-            await loadScript(HLJS_JS_LOCAL, HLJS_JS_CDN);
-            if (typeof hljs !== 'undefined' && hljs.highlightElement) {
-                console.log('✓ Highlight.js loaded for syntax highlighting (local-first)');
-                return true;
-            }
-            throw new Error('Highlight.js not available after load');
-        } catch (e) {
-            console.warn('Highlight.js failed to load, source mode will be plain text', e);
-            return false;
-        }
-    }
+            const ext = new URL(rawUrl, location.href).pathname.split('.').pop()?.toLowerCase();
+            return ext && !['md','markdown','mdown','mkd'].includes(ext);
+        } catch { return false; }
+    })();
 
-    // --------------------------------------------------------------
-    // 5. URL helpers (unchanged)
-    // --------------------------------------------------------------
-    function getMarkdownUrlFromQuery() {
-        const search = window.location.search;
-        if (!search || search === '?') return null;
-        const params = new URLSearchParams(search);
-        let named = params.get('md') || params.get('file') || params.get('markdown') || params.get('src');
-        if (named?.trim()) return named.trim();
-        if (!search.includes('=')) return decodeURIComponent(search.slice(1));
-        return null;
-    }
-
-    function isExplicitSourceMode() {
-        const params = new URLSearchParams(window.location.search);
-        return params.has('source');
-    }
-
-    function shouldAutoSourceMode(url) {
-        if (!url) return false;
-        try {
-            const path = new URL(url, window.location.href).pathname;
-            const ext = path.split('.').pop()?.toLowerCase();
-            if (!ext) return false;
-            const sourceExtensions = new Set([
-                'js', 'mjs', 'cjs', 'ts', 'jsx', 'tsx',
-                'sh', 'bash', 'zsh', 'fish',
-                'py', 'rb', 'pl', 'pm', 'lua', 'go', 'rs', 'swift',
-                'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'java', 'kt', 'kts',
-                'css', 'scss', 'sass', 'less',
-                'html', 'htm', 'xml', 'svg', 'xhtml',
-                'json', 'yaml', 'yml', 'toml', 'ini', 'cfg',
-                'txt', 'log', 'csv', 'sql',
-                'php', 'asp', 'aspx', 'jsp',
-                'vue', 'svelte', 'fcmacro'  
-            ]);
-            const markdownExtensions = new Set(['md', 'markdown', 'mdown', 'mkd', 'mkdown']);
-            if (markdownExtensions.has(ext)) return false;
-            return sourceExtensions.has(ext);
-        } catch {
-            return false;
-        }
-    }
-
-    const rawMarkdownUrl = getMarkdownUrlFromQuery() || DEFAULT_MARKDOWN_URL;
-    const explicitSource = isExplicitSourceMode();
-    const autoSource = shouldAutoSourceMode(rawMarkdownUrl);
-    const sourceMode = explicitSource || autoSource;
-
-    function getFileExtension(url) {
-        try {
-            const path = new URL(url, window.location.href).pathname;
-            const ext = path.split('.').pop()?.toLowerCase();
-            return ext || '';
-        } catch { return ''; }
-    }
-    const fileExtension = getFileExtension(rawMarkdownUrl);
-
-    // --------------------------------------------------------------
-    // 6. Fetch content
-    // --------------------------------------------------------------
     async function fetchContent(url) {
-        let absoluteUrl;
-        try {
-            absoluteUrl = new URL(url, window.location.href).href;
-        } catch (e) {
-            throw new Error(`Invalid URL: ${url}`);
-        }
-        const response = await fetch(absoluteUrl);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status} - ${response.statusText}\nURL: ${absoluteUrl}`);
-        }
-        const text = await response.text();
-        if (text.length === 0) throw new Error('File is empty');
-        return text;
+        const resp = await fetch(new URL(url, location.href).href);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const txt = await resp.text();
+        if (!txt.length) throw new Error('Empty file');
+        return txt;
     }
 
-    // --------------------------------------------------------------
-    // 7. Processing: delete empty lines, escape HTML
-    // --------------------------------------------------------------
-    function processSourceText(rawText) {
-        const lines = rawText.split(/\r?\n/);
-        const nonEmptyLines = lines.filter(line => line.trim() !== '');
-        const trimmedContent = nonEmptyLines.join('\n');
-        return trimmedContent.replace(/[&<>]/g, (m) => {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+    function renderSource(raw, container, ext) {
+        const lines = raw.split(/\r?\n/).filter(l => l.trim());
+        const code = lines.join('\n').replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
+        const langMap = {js:'javascript',py:'python',sh:'bash',cpp:'cpp',java:'java',html:'html',css:'css',json:'json'};
+        const lang = langMap[ext] || ext;
+        container.innerHTML = `<pre><code class="language-${lang}">${code}</code></pre>`;
+        if (typeof hljs !== 'undefined') hljs.highlightElement(container.querySelector('code'));
     }
 
-    // --------------------------------------------------------------
-    // 8. Renderers
-    // --------------------------------------------------------------
-    async function renderWithMath(htmlContent, container) {
-        container.innerHTML = htmlContent;
-        if (window.renderMathInElement) {
-            try {
-                window.renderMathInElement(container, {
-                    delimiters: [
-                        { left: '$$', right: '$$', display: true },
-                        { left: '$', right: '$', display: false },
-                        { left: '\\(', right: '\\)', display: false },
-                        { left: '\\[', right: '\\]', display: true }
-                    ],
-                    throwOnError: false,
-                    errorColor: '#cc0000',
-                });
-                console.log('✓ KaTeX math rendered');
-            } catch (e) { console.warn('Math error:', e); }
-        } else {
-            const warn = document.createElement('div');
-            warn.className = 'error';
-            warn.innerText = '⚠️ KaTeX auto-render not available. Math shown as raw LaTeX.';
-            container.prepend(warn);
-        }
-    }
-
-    async function renderMarkdown(markdownText, markedLib, container) {
-        markedLib.setOptions({ gfm: true, breaks: true, headerIds: true });
-        const html = await markedLib.parse(markdownText);
-        await renderWithMath(html, container);
-    }
-
-    async function renderAsSourceCode(rawText, container, extension) {
-        const processed = processSourceText(rawText);
-        let langClass = '';
-        if (extension) {
-            const langMap = {
-                'js': 'javascript', 'mjs': 'javascript', 'cjs': 'javascript',
-                'ts': 'typescript', 'jsx': 'jsx', 'tsx': 'tsx',
-                'sh': 'bash', 'bash': 'bash', 'zsh': 'bash',
-                'py': 'python', 'rb': 'ruby', 'go': 'go', 'rs': 'rust',
-                'c': 'c', 'cpp': 'cpp', 'h': 'c', 'hpp': 'cpp', 'java': 'java',
-                'css': 'css', 'scss': 'scss', 'html': 'html', 'xml': 'xml',
-                'json': 'json', 'yaml': 'yaml', 'yml': 'yaml',
-                'sql': 'sql', 'php': 'php', 'pl': 'perl'
-            };
-            const hljsLang = langMap[extension] || extension;
-            langClass = `language-${hljsLang}`;
-        }
-        const codeHtml = `<pre><code class="${langClass}">${processed}</code></pre>`;
-        container.innerHTML = '';
-        container.insertAdjacentHTML('beforeend', codeHtml);
-
-        if (typeof hljs !== 'undefined' && hljs.highlightElement) {
-            const codeBlock = container.querySelector('code');
-            if (codeBlock) {
-                hljs.highlightElement(codeBlock);
-                console.log('✓ Syntax highlighting applied');
-            }
-        } else {
-            console.log('Highlight.js not loaded, showing plain text');
-        }
-    }
-
-    function appendRawFileLink(container, rawUrl) {
-        const rawDiv = document.createElement('div');
-        rawDiv.className = 'raw-link-container';
-        const link = document.createElement('a');
-        link.href = rawUrl;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.innerHTML = '📄 Download raw file';
-        link.title = 'Open or save the original source file';
-        rawDiv.appendChild(link);
-        container.appendChild(rawDiv);
-    }
-
-    // --------------------------------------------------------------
-    // 9. Main init (local-first loading sequence)
-    // --------------------------------------------------------------
-    async function init() {
+    // ---------- MAIN ----------
+    (async () => {
         const container = document.getElementById('content');
+        let mathAvailable = false;
         try {
-            container.innerHTML = '<div class="loader">Loading dependencies (local: fallback_js/ → CDN fallback)...</div>';
+            container.innerHTML = '<div class="loader">Loading dependencies (local-first, sequential)...</div>';
+            await loadDependencies();
+            mathAvailable = true;
+            console.log('✓ All dependencies loaded and marked-katex-extension applied');
 
-            // Load core dependencies in parallel (all local-first)
-            const [markedLib, katexLoaded] = await Promise.all([
-                loadMarked(),
-                loadKaTeX().catch(e => {
-                    console.error('KaTeX load failed, math disabled:', e);
-                    return false;
-                }),
-                loadMarkdownCSS().catch(e => console.warn('CSS optional:', e))
-            ]);
-
-            // If source mode, also load Highlight.js (local-first)
-            let highlightLoaded = false;
+            let hljsOk = false;
             if (sourceMode) {
-                container.innerHTML = '<div class="loader">Loading syntax highlighter (local-first)...</div>';
-                highlightLoaded = await loadHighlightJS();
+                container.innerHTML = '<div class="loader">Loading syntax highlighter...</div>';
+                hljsOk = await loadHighlightJS().catch(()=>false);
             }
 
-            container.innerHTML = '<div class="loader">Fetching file content...</div>';
-            const rawContent = await fetchContent(rawMarkdownUrl);
+            container.innerHTML = '<div class="loader">Fetching file...</div>';
+            const raw = await fetchContent(rawUrl);
 
             if (sourceMode) {
-                await renderAsSourceCode(rawContent, container, fileExtension);
-                const note = document.createElement('div');
-                note.className = 'source-mode-note';
-                if (explicitSource) {
-                    note.innerHTML = `<strong>Source mode (explicit &source)</strong> — Empty lines removed, HTML escaped${highlightLoaded ? ', syntax highlighting active.' : '. Highlight.js not loaded.'}`;
-                } else if (autoSource) {
-                    note.innerHTML = `<strong>Auto source mode</strong> — Detected code file (${fileExtension || 'unknown'}). Empty lines removed, <code>&lt;</code> and <code>&gt;</code> escaped${highlightLoaded ? ', syntax highlighting on.' : '.'}`;
-                } else {
-                    note.innerHTML = `<strong>Source mode</strong> — Raw content${highlightLoaded ? ' with syntax highlighting' : ''}.`;
+                renderSource(raw, container, new URL(rawUrl, location.href).pathname.split('.').pop());
+                if (!hljsOk) {
+                    const warn = document.createElement('div');
+                    warn.className = 'warning-banner';
+                    warn.innerText = '⚠️ Syntax highlighting unavailable – highlight.js missing.';
+                    container.prepend(warn);
                 }
-                container.prepend(note);
             } else {
-                await renderMarkdown(rawContent, markedLib, container);
+                // Markdown rendering – the extension is already applied to window.marked
+                const html = await window.marked.parse(raw);
+                container.innerHTML = html;
+                console.log('✓ Markdown + KaTeX rendered');
             }
 
             const footer = document.createElement('div');
             footer.className = 'footer-version';
-            let modeStr = '';
-            if (sourceMode) modeStr = explicitSource ? ' · 🔍 Explicit source + syntax highlight' : (autoSource ? ' · 🤖 Auto source + syntax highlight' : ' · 🔍 Source mode');
-            footer.innerText = `Version ${PAGE_VERSION} (local-first)${modeStr}`;
+            const mathStatus = mathAvailable ? '✅ Math: KaTeX + marked‑katex‑extension' : '❌ Math: not available';
+            footer.innerHTML = `Version ${PAGE_VERSION} <span class="math-status ${mathAvailable ? 'ok' : 'fail'}">${mathStatus}</span>`;
             container.appendChild(footer);
 
-            appendRawFileLink(container, rawMarkdownUrl);
+            const rawLink = document.createElement('div');
+            rawLink.className = 'raw-link-container';
+            rawLink.innerHTML = `<a href="${escapeHtml(rawUrl)}" target="_blank">📄 Download raw file</a>`;
+            container.appendChild(rawLink);
 
         } catch (err) {
             console.error(err);
-            let errorMessage = err.message;
-            if (window.location.protocol === 'file:' && errorMessage.includes('fetch')) {
-                errorMessage = `Cannot load local file via file:// protocol.\n\n` +
-                    `👉 Start a local web server:\n   python3 -m http.server 8000\n` +
-                    `Then open: http://localhost:8000/${window.location.pathname.split('/').pop()}${window.location.search}\n\n` +
-                    `Original error: ${err.message}`;
+            let msg = err.message;
+            if (location.protocol === 'file:' && msg.includes('fetch')) {
+                msg = 'Local file access blocked. Start a web server: `python3 -m http.server 8000`';
             }
-            const rawLink = `<a href="${escapeHtml(rawMarkdownUrl)}" target="_blank" rel="noopener noreferrer" style="background:#f6f8fa; padding:6px 12px; border-radius:20px; text-decoration:none; color:#0969da;">📄 Download raw file</a>`;
-            container.innerHTML = `<div class="error">❌ ${escapeHtml(errorMessage)}<br><br>${rawLink}</div>`;
+            container.innerHTML = `<div class="error">❌ ${escapeHtml(msg)}<br><br><a href="${escapeHtml(rawUrl)}" target="_blank">📄 View raw file</a></div>`;
         }
-    }
+    })();
 
-    function escapeHtml(str) {
-        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
-    }
-
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-    else init();
+    function escapeHtml(s) { return s.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
 </script>
 </body>
 </html>

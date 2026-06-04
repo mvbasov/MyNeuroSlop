@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown/Code Viewer · KaTeX (clean auto‑render)</title>
+    <title>Markdown/Code Viewer · KaTeX + marked‑katex‑extension (fixed)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #fafafa; padding: 2rem 1rem; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
@@ -26,23 +26,33 @@
 <script>
     // ---------- CONFIGURATION (local-first) ----------
     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/docs/markdown_example.md';
-    const PAGE_VERSION = '2.4.0 (clean auto-render, no manual regex)';
+    const PAGE_VERSION = '3.2.0 (fixed extension integration)';
 
+    // Marked.js
     const MARKED_LOCAL = 'fallback_js/marked.min.js';
     const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
-    const MD_CSS_LOCAL = 'fallback_js/github-markdown.min.css';
-    const MD_CSS_CDN = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown.min.css';
+
+    // marked-katex-extension (v5.1.10)
+    const MKATEX_LOCAL = 'fallback_js/marked-katex-extension.min.js';
+    const MKATEX_CDN = 'https://cdn.jsdelivr.net/npm/marked-katex-extension@5.1.10/lib/index.umd.js';
+
+    // KaTeX (core + CSS)
     const KATEX_CSS_LOCAL = 'fallback_js/katex.min.css';
     const KATEX_CSS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
     const KATEX_JS_LOCAL = 'fallback_js/katex.min.js';
     const KATEX_JS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js';
-    const KATEX_AUTO_LOCAL = 'fallback_js/auto-render.min.js';
-    const KATEX_AUTO_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js';
+
+    // GitHub Markdown CSS
+    const MD_CSS_LOCAL = 'fallback_js/github-markdown.min.css';
+    const MD_CSS_CDN = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown.min.css';
+
+    // Highlight.js (source mode)
     const HLJS_CSS_LOCAL = 'fallback_js/github-dark.min.css';
     const HLJS_CSS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
     const HLJS_JS_LOCAL = 'fallback_js/highlight.min.js';
     const HLJS_JS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
 
+    // Helper: load CSS
     function loadCSS(primary, fallback) {
         return new Promise((resolve, reject) => {
             const link = document.createElement('link');
@@ -58,6 +68,8 @@
             document.head.appendChild(link);
         });
     }
+
+    // Helper: load script (returns promise when script is loaded and executed)
     function loadScript(primary, fallback) {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
@@ -74,20 +86,40 @@
         });
     }
 
-    async function loadMarkdownCSS() { try { await loadCSS(MD_CSS_LOCAL, MD_CSS_CDN); console.log('✓ Markdown CSS'); } catch(e) { console.warn(e); } }
-    async function loadMarked() {
-        if (window.marked?.parse) return window.marked;
-        await loadScript(MARKED_LOCAL, MARKED_CDN);
-        if (!window.marked?.parse) throw new Error('Marked not loaded');
-        return window.marked;
-    }
-    async function loadKaTeX() {
+    // Load all dependencies in the correct order (like the minimal test)
+    async function loadDependencies() {
+        // 1. KaTeX CSS + JS (must be loaded before marked-katex-extension)
         await loadCSS(KATEX_CSS_LOCAL, KATEX_CSS_CDN);
         await loadScript(KATEX_JS_LOCAL, KATEX_JS_CDN);
-        await loadScript(KATEX_AUTO_LOCAL, KATEX_AUTO_CDN);
-        if (typeof window.renderMathInElement !== 'function') throw new Error('renderMathInElement missing');
+        if (typeof katex === 'undefined') throw new Error('KaTeX core not loaded');
+
+        // 2. Markdown CSS (optional)
+        await loadCSS(MD_CSS_LOCAL, MD_CSS_CDN).catch(() => {});
+
+        // 3. Marked.js
+        await loadScript(MARKED_LOCAL, MARKED_CDN);
+        if (!window.marked?.parse) throw new Error('Marked not loaded');
+
+        // 4. marked-katex-extension (must come after both KaTeX and marked)
+        await loadScript(MKATEX_LOCAL, MKATEX_CDN);
+        if (typeof window.markedKatex !== 'function') throw new Error('marked-katex-extension not loaded');
+
+        // Apply the extension globally to the marked instance
+        window.marked.use(window.markedKatex({
+            throwOnError: false,
+            errorColor: '#cc0000',
+            delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false },
+                { left: '\\[', right: '\\]', display: true },
+                { left: '\\(', right: '\\)', display: false }
+            ]
+        }));
+        window.marked.setOptions({ gfm: true, breaks: true });
+
         return true;
     }
+
     async function loadHighlightJS() {
         if (typeof hljs !== 'undefined') return true;
         await loadCSS(HLJS_CSS_LOCAL, HLJS_CSS_CDN);
@@ -95,6 +127,7 @@
         return typeof hljs !== 'undefined';
     }
 
+    // URL helpers
     function getMarkdownUrl() {
         const s = window.location.search;
         if (!s) return DEFAULT_MARKDOWN_URL;
@@ -120,53 +153,6 @@
         return txt;
     }
 
-    // ---------- SAFE UNESCAPE ONLY INSIDE MATH DELIMITERS ----------
-    function unescapeMathInHtml(html) {
-        // Replace &lt; &gt; &amp; inside $$...$$ and $...$ (but not inside already rendered KaTeX spans)
-        return html.replace(/\$\$([\s\S]*?)\$\$|\$([^\$]+?)\$/g, (match, dbl, single) => {
-            // Skip if this match is already inside a KaTeX element (heuristic: contains 'katex')
-            if (match.includes('katex')) return match;
-            let inner = (dbl !== undefined) ? dbl : single;
-            inner = inner.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-            return match.startsWith('$$') ? `$$${inner}$$` : `$${inner}$`;
-        });
-    }
-
-    async function renderMarkdown(text, marked, container) {
-        marked.setOptions({ gfm: true, breaks: true });
-        let html = await marked.parse(text);
-        // Unescape HTML entities inside math blocks (fixes <, >, &)
-        html = unescapeMathInHtml(html);
-        container.innerHTML = html;
-
-        if (window.renderMathInElement) {
-            try {
-                window.renderMathInElement(container, {
-                    delimiters: [
-                        { left: '$$', right: '$$', display: true },
-                        { left: '$', right: '$', display: false },
-                        { left: '\\(', right: '\\)', display: false },
-                        { left: '\\[', right: '\\]', display: true }
-                    ],
-                    throwOnError: false,
-                    errorColor: '#cc0000'
-                });
-                console.log('✓ KaTeX auto-render completed');
-            } catch (e) {
-                console.warn('Auto-render error:', e);
-            }
-        }
-
-        // Final check: warn if any raw $ or $$ remains (excluding code blocks)
-        const leftover = container.innerHTML.match(/\$\$[^$]+\$\$|\$[^$]+\$/);
-        if (leftover && !sourceMode) {
-            const warn = document.createElement('div');
-            warn.className = 'warning-banner';
-            warn.innerHTML = '⚠️ Some math expressions were not rendered. This may happen if the markdown contains <code>_</code> or <code>*</code> inside math. Try wrapping math in <code>\\[ ... \\]</code> instead.';
-            container.prepend(warn);
-        }
-    }
-
     function renderSource(raw, container, ext) {
         const lines = raw.split(/\r?\n/).filter(l => l.trim());
         const code = lines.join('\n').replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
@@ -179,15 +165,12 @@
     // ---------- MAIN ----------
     (async () => {
         const container = document.getElementById('content');
-        let katexOk = false;
+        let mathAvailable = false;
         try {
-            container.innerHTML = '<div class="loader">Loading dependencies (local-first)...</div>';
-            const [marked, , katexLoaded] = await Promise.all([
-                loadMarked(),
-                loadMarkdownCSS().catch(()=>{}),
-                loadKaTeX().then(()=>true).catch(e=>{console.error(e); return false;})
-            ]);
-            katexOk = katexLoaded;
+            container.innerHTML = '<div class="loader">Loading dependencies (local-first, sequential)...</div>';
+            await loadDependencies();
+            mathAvailable = true;
+            console.log('✓ All dependencies loaded and marked-katex-extension applied');
 
             let hljsOk = false;
             if (sourceMode) {
@@ -207,20 +190,16 @@
                     container.prepend(warn);
                 }
             } else {
-                await renderMarkdown(raw, marked, container);
-                if (!katexOk) {
-                    const banner = document.createElement('div');
-                    banner.className = 'warning-banner';
-                    banner.innerHTML = '❌ <strong>KaTeX is not loaded</strong> – math formulas are shown as raw LaTeX.<br>' +
-                        '👉 Place <code>katex.min.js</code>, <code>auto-render.min.js</code> and <code>katex.min.css</code> inside the <code>fallback_js/</code> folder, or go online.';
-                    container.prepend(banner);
-                }
+                // Markdown rendering – the extension is already applied to window.marked
+                const html = await window.marked.parse(raw);
+                container.innerHTML = html;
+                console.log('✓ Markdown + KaTeX rendered');
             }
 
             const footer = document.createElement('div');
             footer.className = 'footer-version';
-            const mathStatus = katexOk ? '✅ Math: KaTeX active' : '❌ Math: not loaded';
-            footer.innerHTML = `Version ${PAGE_VERSION} <span class="math-status ${katexOk ? 'ok' : 'fail'}">${mathStatus}</span>`;
+            const mathStatus = mathAvailable ? '✅ Math: KaTeX + marked‑katex‑extension' : '❌ Math: not available';
+            footer.innerHTML = `Version ${PAGE_VERSION} <span class="math-status ${mathAvailable ? 'ok' : 'fail'}">${mathStatus}</span>`;
             container.appendChild(footer);
 
             const rawLink = document.createElement('div');

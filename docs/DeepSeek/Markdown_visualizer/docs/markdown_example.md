@@ -51,9 +51,9 @@ print("Hello, world!")
 
 $$ \text{File}_{B} = \text{File}_{A} + \text{Diff}_{A \to B} $$
 
-\[ \text{Target} < \text{Anchor} \implies \text{Anchor} - \text{Diff}_{T \to A} = \text{Target} \]
-\[ \text{Target} > \text{Anchor} \implies \text{Anchor} + \text{Diff}_{A \to T} = \text{Target} \]
-
-* `currDist` = $D_1 \cdot L$
 * `nextDist` = $D_2 \cdot L$
 
+$$ \text{Target} < \text{Anchor} \implies \text{Anchor} - \text{Diff}_{T \to A} = \text{Target} $$
+$$ \text{Target} > \text{Anchor} \implies \text{Anchor} + \text{Diff}_{A \to T} = \text{Target} $$
+
+* `currDist` = $D_1 \cdot L$

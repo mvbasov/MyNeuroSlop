@@ -1,0 +1,21 @@
+--- md_3_0_0.html	2026-06-05 01:55:28.148217757 +0300
++++ md_3_1_0.html	2026-06-05 02:09:53.702363277 +0300
+@@ -26,15 +26,15 @@
+ <script>
+     // ---------- CONFIGURATION (local-first) ----------
+     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/docs/markdown_example.md';
+-    const PAGE_VERSION = '3.0.0 (marked‑katex‑extension)';
++    const PAGE_VERSION = '3.1.0 (marked‑katex‑extension v5.1.10)';
+ 
+     // Marked.js
+     const MARKED_LOCAL = 'fallback_js/marked.min.js';
+     const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+ 
+-    // marked-katex-extension
++    // marked-katex-extension (v5.1.10)
+     const MKATEX_LOCAL = 'fallback_js/marked-katex-extension.min.js';
+-    const MKATEX_CDN = 'https://cdn.jsdelivr.net/npm/marked-katex-extension@1.1.4/lib/index.umd.js';
++    const MKATEX_CDN = 'https://cdn.jsdelivr.net/npm/marked-katex-extension@5.1.10/lib/index.umd.js';
+ 
+     // KaTeX (core + CSS) – still needed for rendering
+     const KATEX_CSS_LOCAL = 'fallback_js/katex.min.css';
