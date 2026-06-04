@@ -1,0 +1,223 @@
+--- version_manager_v1_13_0.sh	2026-06-05 00:02:55.960044069 +0300
++++ version_manager_v1_14_0.sh	2026-06-05 00:06:39.352365798 +0300
+@@ -1,7 +1,7 @@
+ #!/bin/bash
+ 
+ # Project Version Management Script
+-# Version: 1.13.0
++# Version: 1.14.0
+ # Usage:
+ #   ./manage_versions.sh diff      - Create patches, keep latest
+ #   ./manage_versions.sh restore   - Interactively select version to restore to ./restored
+@@ -11,7 +11,7 @@
+ 
+ set -e
+ 
+-SCRIPT_VERSION="1.13.0"
++SCRIPT_VERSION="1.14.0"
+ 
+ # Determine PROJECT_NAME: Environment Var > .version_manager file > Default "converter"
+ if [ -z "$PROJECT_NAME" ] && [ -f ".version_manager" ]; then
+@@ -44,14 +44,24 @@
+ 
+ PROJECT_NAME="${PROJECT_NAME:-converter}"
+ 
+-echo "Using Project Name: $PROJECT_NAME"
++# Dynamically detect if files use "_v" or "_" as the version separator.
++# Since the highest version file always remains in the root directory, this is 100% reliable.
++if ls "${PROJECT_NAME}_v"[0-9]* 2>/dev/null >/dev/null; then
++    VER_SEP="_v"
++elif ls "${PROJECT_NAME}_"[0-9]* 2>/dev/null >/dev/null; then
++    VER_SEP="_"
++else
++    VER_SEP="_v" # Default fallback
++fi
++
++echo "Using Project Name: $PROJECT_NAME (Separator: $VER_SEP)"
+ 
+ # Extracts clean version strings, completely filtering out raw file paths
+ get_versions() {
+     (
+         # Extract version from converter/script files: e.g. converter_v1.14.1.html or utility_v1_0_0.sh -> 1.14.1 or 1_0_0
+         # Uses '#' as sed delimiter to prevent collision with '|' alternation inside regex (html|htm|sh)
+-        ls ${PROJECT_NAME}_v* 2>/dev/null | sed -n -E 's#^.*'"${PROJECT_NAME}"'_v([0-9_\.]+)(\.(html|htm|sh)|_tests\.js)$#\1#p'
++        ls ${PROJECT_NAME}${VER_SEP}* 2>/dev/null | sed -n -E 's#^.*'"${PROJECT_NAME}${VER_SEP}"'([0-9_\.]+)(\.(html|htm|sh)|_tests\.js)$#\1#p'
+         # Extract versions from patch files: e.g. patches/patch_1.1.0_to_1.1.1.diff -> 1.1.0 and 1.1.1
+         ls patches/patch_*.diff 2>/dev/null | sed -n -E 's#.*/patch_(tests_)?([0-9_\.]+)_to_([0-9_\.]+)\.diff$#\2\n\3#p'
+     ) | sort -V | uniq
+@@ -65,7 +75,7 @@
+     # Find the highest existing version file in the root directory to act as the source base
+     local base_version=""
+     for v in "${versions[@]}"; do
+-        if ls "${PROJECT_NAME}_v$v."* 2>/dev/null | grep -q -E '\.(html|htm|sh)$'; then
++        if ls "${PROJECT_NAME}${VER_SEP}$v."* 2>/dev/null | grep -q -E '\.(html|htm|sh)$'; then
+             base_version="$v"
+         fi
+     done
+@@ -132,42 +142,42 @@
+         v1="${versions[$i]}"
+         v2="${versions[$i+1]}"
+         
+-        ext=$(ls "${PROJECT_NAME}_v$v1."* 2>/dev/null | grep -E '\.(html|htm|sh)$' | head -1 | sed 's/.*\.//')
++        ext=$(ls "${PROJECT_NAME}${VER_SEP}$v1."* 2>/dev/null | grep -E '\.(html|htm|sh)$' | head -1 | sed 's/.*\.//')
+         
+-        if [ -n "$ext" ] && [ -f "${PROJECT_NAME}_v$v1.$ext" ]; then
+-            echo "Creating patch: v$v1 -> v$v2"
++        if [ -n "$ext" ] && [ -f "${PROJECT_NAME}${VER_SEP}$v1.$ext" ]; then
++            echo "Creating patch: $v1 -> $v2"
+             
+             # Remove any pre-existing failed patch to ensure clean slate check
+             rm -f "patches/patch_${v1}_to_${v2}.diff"
+             
+-            diff -u "${PROJECT_NAME}_v$v1.$ext" "${PROJECT_NAME}_v$v2.$ext" > "patches/patch_${v1}_to_${v2}.diff"
++            diff -u "${PROJECT_NAME}${VER_SEP}$v1.$ext" "${PROJECT_NAME}${VER_SEP}$v2.$ext" > "patches/patch_${v1}_to_${v2}.diff"
+             diff_status=$?
+             
+             # STRICT GUARDRAIL: Verify the diff utility succeeded AND the file actually exists
+             if [ -f "patches/patch_${v1}_to_${v2}.diff" ] && { [ $diff_status -eq 0 ] || [ $diff_status -eq 1 ]; }; then
+-                rm -f "${PROJECT_NAME}_v$v1.$ext"
++                rm -f "${PROJECT_NAME}${VER_SEP}$v1.$ext"
+             else
+                 echo "ERROR: Failed to successfully write patch for v$v1 -> v$v2!"
+-                echo "Retaining original file: ${PROJECT_NAME}_v$v1.$ext to prevent data loss."
++                echo "Retaining original file: ${PROJECT_NAME}${VER_SEP}$v1.$ext to prevent data loss."
+                 rm -f "patches/patch_${v1}_to_${v2}.diff"
+             fi
+         fi
+         
+-        if [ -f "${PROJECT_NAME}_v${v1}_tests.js" ]; then
+-            echo "Creating test patch: v$v1 -> v$v2"
++        if [ -f "${PROJECT_NAME}${VER_SEP}${v1}_tests.js" ]; then
++            echo "Creating test patch: $v1 -> $v2"
+             
+             # Remove any pre-existing failed test patch
+             rm -f "patches/patch_tests_${v1}_to_${v2}.diff"
+             
+-            diff -u "${PROJECT_NAME}_v${v1}_tests.js" "${PROJECT_NAME}_v${v2}_tests.js" > "patches/patch_tests_${v1}_to_${v2}.diff"
++            diff -u "${PROJECT_NAME}${VER_SEP}${v1}_tests.js" "${PROJECT_NAME}${VER_SEP}${v2}_tests.js" > "patches/patch_tests_${v1}_to_${v2}.diff"
+             diff_test_status=$?
+             
+             # STRICT GUARDRAIL: Verify the diff utility succeeded AND the file actually exists
+             if [ -f "patches/patch_tests_${v1}_to_${v2}.diff" ] && { [ $diff_test_status -eq 0 ] || [ $diff_test_status -eq 1 ]; }; then
+-                rm -f "${PROJECT_NAME}_v${v1}_tests.js"
++                rm -f "${PROJECT_NAME}${VER_SEP}${v1}_tests.js"
+             else
+                 echo "ERROR: Failed to successfully write test patch for v$v1 -> v$v2!"
+-                echo "Retaining original test file: ${PROJECT_NAME}_v${v1}_tests.js to prevent data loss."
++                echo "Retaining original test file: ${PROJECT_NAME}${VER_SEP}${v1}_tests.js to prevent data loss."
+                 rm -f "patches/patch_tests_${v1}_to_${v2}.diff"
+             fi
+         fi
+@@ -182,7 +192,7 @@
+     local base_version=""
+     local ext=""
+     for v in "${versions[@]}"; do
+-        local found_ext=$(ls "${PROJECT_NAME}_v$v."* 2>/dev/null | grep -E '\.(html|htm|sh)$' | head -1 | sed 's/.*\.//')
++        local found_ext=$(ls "${PROJECT_NAME}${VER_SEP}$v."* 2>/dev/null | grep -E '\.(html|htm|sh)$' | head -1 | sed 's/.*\.//')
+         if [ -n "$found_ext" ]; then
+             base_version="$v"
+             ext="$found_ext"
+@@ -190,7 +200,7 @@
+     done
+ 
+     if [ -z "$base_version" ]; then
+-        echo "Error: No base ${PROJECT_NAME}_v*.html/htm/sh file found in the root directory to use as a restoration base."
++        echo "Error: No base ${PROJECT_NAME}${VER_SEP}*.html/htm/sh file found in the root directory to use as a restoration base."
+         exit 1
+     fi
+ 
+@@ -205,12 +215,12 @@
+         echo "Restoring v$target to ./${dest_dir} using existing base v$base_version..."
+         
+         # Copy the physical base files directly into the restoration directory
+-        cp "${PROJECT_NAME}_v$base_version.$ext" "$dest_dir/${PROJECT_NAME}_v$target.$ext"
++        cp "${PROJECT_NAME}${VER_SEP}$base_version.$ext" "$dest_dir/${PROJECT_NAME}${VER_SEP}$target.$ext"
+         
+         # Track whether the base version actually has test files physically present
+         local has_tests=false
+-        if [ -f "${PROJECT_NAME}_v${base_version}_tests.js" ]; then
+-            cp "${PROJECT_NAME}_v${base_version}_tests.js" "$dest_dir/${PROJECT_NAME}_v${target}_tests.js"
++        if [ -f "${PROJECT_NAME}${VER_SEP}${base_version}_tests.js" ]; then
++            cp "${PROJECT_NAME}${VER_SEP}${base_version}_tests.js" "$dest_dir/${PROJECT_NAME}${VER_SEP}${target}_tests.js"
+             has_tests=true
+         fi
+         
+@@ -235,11 +245,11 @@
+                 local v_from="${versions[$i+1]}"
+                 echo "Applying reverse patch: $v_from -> $v_to"
+                 if [ -f "patches/patch_${v_to}_to_${v_from}.diff" ]; then
+-                    patch -R "$dest_dir/${PROJECT_NAME}_v$target.$ext" < "patches/patch_${v_to}_to_${v_from}.diff"
++                    patch -R "$dest_dir/${PROJECT_NAME}${VER_SEP}$target.$ext" < "patches/patch_${v_to}_to_${v_from}.diff"
+                 fi
+                 if [ "$has_tests" = true ] && [ -f "patches/patch_tests_${v_to}_to_${v_from}.diff" ]; then
+-                    [ ! -f "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" ] && touch "$dest_dir/${PROJECT_NAME}_v${target}_tests.js"
+-                    patch -R "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" < "patches/patch_tests_${v_to}_to_${v_from}.diff"
++                    [ ! -f "$dest_dir/${PROJECT_NAME}${VER_SEP}${target}_tests.js" ] && touch "$dest_dir/${PROJECT_NAME}${VER_SEP}${target}_tests.js"
++                    patch -R "$dest_dir/${PROJECT_NAME}${VER_SEP}${target}_tests.js" < "patches/patch_tests_${v_to}_to_${v_from}.diff"
+                 fi
+             done
+         elif [ $idx_base -lt $idx_target ]; then
+@@ -249,21 +259,21 @@
+                 local v_to="${versions[$i+1]}"
+                 echo "Applying forward patch: $v_from -> $v_to"
+                 if [ -f "patches/patch_${v_from}_to_${v_to}.diff" ]; then
+-                    patch "$dest_dir/${PROJECT_NAME}_v$target.$ext" < "patches/patch_${v_from}_to_${v_to}.diff"
++                    patch "$dest_dir/${PROJECT_NAME}${VER_SEP}$target.$ext" < "patches/patch_${v_from}_to_${v_to}.diff"
+                 fi
+                 if [ "$has_tests" = true ] && [ -f "patches/patch_tests_${v_from}_to_${v_to}.diff" ]; then
+-                    [ ! -f "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" ] && touch "$dest_dir/${PROJECT_NAME}_v${target}_tests.js"
+-                    patch "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" < "patches/patch_tests_${v_from}_to_${v_to}.diff"
++                    [ ! -f "$dest_dir/${PROJECT_NAME}${VER_SEP}${target}_tests.js" ] && touch "$dest_dir/${PROJECT_NAME}${VER_SEP}${target}_tests.js"
++                    patch "$dest_dir/${PROJECT_NAME}${VER_SEP}${target}_tests.js" < "patches/patch_tests_${v_from}_to_${v_to}.diff"
+                 fi
+             done
+         fi
+ 
+         # Prune target test file if it ended up empty
+-        if [ -f "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" ] && [ ! -s "$dest_dir/${PROJECT_NAME}_v${target}_tests.js" ]; then
+-            rm -f "$dest_dir/${PROJECT_NAME}_v${target}_tests.js"
++        if [ -f "$dest_dir/${PROJECT_NAME}${VER_SEP}${target}_tests.js" ] && [ ! -s "$dest_dir/${PROJECT_NAME}${VER_SEP}${target}_tests.js" ]; then
++            rm -f "$dest_dir/${PROJECT_NAME}${VER_SEP}${target}_tests.js"
+         fi
+ 
+-        echo "Successfully restored v$target to ./${dest_dir}/${PROJECT_NAME}_v$target.$ext"
++        echo "Successfully restored v$target to ./${dest_dir}/${PROJECT_NAME}${VER_SEP}$target.$ext"
+         break
+     done
+ }
+@@ -286,7 +296,7 @@
+         if check_recoverable "$ver"; then
+             echo "Version v$ver is fully recoverable. Deleting $file_path..."
+             rm -f "$file_path"
+-            rm -f "$dest_dir/${PROJECT_NAME}_v${ver}_tests.js"
++            rm -f "$dest_dir/${PROJECT_NAME}${VER_SEP}${ver}_tests.js"
+         else
+             echo "WARNING: Version v$ver is NOT fully recoverable (broken patch chain)! Keeping files in ./${dest_dir} to prevent data loss."
+         fi
+@@ -295,7 +305,7 @@
+     if [ -n "$target_ver" ]; then
+         # Clean up a single specified version
+         local found=false
+-        for f in "$dest_dir"/${PROJECT_NAME}_v"$target_ver".*; do
++        for f in "$dest_dir"/${PROJECT_NAME}${VER_SEP}"$target_ver".*; do
+             if [ -f "$f" ]; then
+                 found=true
+                 delete_if_recoverable "$target_ver" "$f"
+@@ -307,7 +317,7 @@
+     else
+         # Clean up all files in the restored folder
+         echo "Scanning ./${dest_dir} for restored versions..."
+-        local files=($(ls "$dest_dir"/${PROJECT_NAME}_v* 2>/dev/null | grep -E '\.(html|htm|sh)$' || true))
++        local files=($(ls "$dest_dir"/${PROJECT_NAME}${VER_SEP}* 2>/dev/null | grep -E '\.(html|htm|sh)$' || true))
+         if [ ${#files[@]} -eq 0 ]; then
+             echo "No restored HTML/HTM/SH files found in ./${dest_dir}"
+             rm -rf "$dest_dir"/*_tests.js 2>/dev/null || true
+@@ -317,7 +327,7 @@
+         
+         for f in "${files[@]}"; do
+             # Uses '#' as sed delimiter to prevent collision with '|' alternation inside regex (html|htm|sh)
+-            local ver=$(echo "$f" | sed -n -E 's#^.*'"${PROJECT_NAME}"'_v([0-9_\.]+)\.(html|htm|sh)$#\1#p')
++            local ver=$(echo "$f" | sed -n -E 's#^.*'"${PROJECT_NAME}${VER_SEP}"'([0-9_\.]+)\.(html|htm|sh)$#\1#p')
+             if [ -n "$ver" ]; then
+                 delete_if_recoverable "$ver" "$f"
+             fi

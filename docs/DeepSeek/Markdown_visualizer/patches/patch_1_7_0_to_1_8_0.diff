@@ -1,0 +1,336 @@
+--- md_1_7_0.html	2026-06-04 23:53:57.547212029 +0300
++++ md_1_8_0.html	2026-06-04 23:54:10.415233403 +0300
+@@ -3,7 +3,7 @@
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Markdown/Code Viewer · Syntax Highlighting + KaTeX</title>
++    <title>Markdown/Code Viewer · Syntax Highlighting + KaTeX (local-first)</title>
+     <style>
+         * {
+             margin: 0;
+@@ -86,132 +86,146 @@
+ </head>
+ <body>
+ <div id="content" class="markdown-body">
+-    <div class="loader">Loading viewer engine…</div>
++    <div class="loader">Loading viewer engine (local-first → CDN)…</div>
+ </div>
+ 
+ <script>
+     // --------------------------------------------------------------
+-    // 1. CONFIGURATION
++    // 1. CONFIGURATION – LOCAL FIRST, CDN FALLBACK
+     // --------------------------------------------------------------
+     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/markdown_example.md';
+-    const PAGE_VERSION = '1.7.0';   // syntax highlighting for source mode (offline fallback)
++    const PAGE_VERSION = '1.8.0';   // local-first loading order
+ 
+-    // Marked.js (CDN + local fallback)
+-    const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
++    // Marked.js (local first, then CDN)
+     const MARKED_LOCAL = 'fallback_js/marked.min.js';
++    const MARKED_CDN  = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+ 
+-    // GitHub Markdown CSS (CDN + local fallback)
+-    const MD_CSS_CDN = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown.min.css';
++    // GitHub Markdown CSS (local first, then CDN)
+     const MD_CSS_LOCAL = 'fallback_js/github-markdown.min.css';
++    const MD_CSS_CDN   = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown.min.css';
+ 
+-    // KaTeX resources
+-    const KATEX_CSS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
++    // KaTeX resources (local first, then CDN)
+     const KATEX_CSS_LOCAL = 'fallback_js/katex.min.css';
+-    const KATEX_JS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js';
+-    const KATEX_JS_LOCAL = 'fallback_js/katex.min.js';
+-    const KATEX_AUTO_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js';
++    const KATEX_CSS_CDN   = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
++    const KATEX_JS_LOCAL  = 'fallback_js/katex.min.js';
++    const KATEX_JS_CDN    = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js';
+     const KATEX_AUTO_LOCAL = 'fallback_js/auto-render.min.js';
++    const KATEX_AUTO_CDN   = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js';
+ 
+-    // Highlight.js (for syntax highlighting in source mode) – local first, then CDN
++    // Highlight.js (already local-first, keep as is but ensure ordering)
+     const HLJS_CSS_LOCAL = 'fallback_js/github-dark.min.css';
+     const HLJS_CSS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
+     const HLJS_JS_LOCAL = 'fallback_js/highlight.min.js';
+     const HLJS_JS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+ 
+     // --------------------------------------------------------------
+-    // 2. Helper: load CSS (returns promise)
++    // 2. Helper: load CSS (primary = local, fallback = remote)
+     // --------------------------------------------------------------
+-    function loadCSS(href, fallbackHref = null) {
++    function loadCSS(primaryHref, fallbackHref = null) {
+         return new Promise((resolve, reject) => {
+             const link = document.createElement('link');
+             link.rel = 'stylesheet';
+-            link.href = href;
++            link.href = primaryHref;
+             link.onload = () => resolve();
+             link.onerror = () => {
+-                if (fallbackHref && fallbackHref !== href) {
+-                    console.warn(`CSS failed: ${href}, trying fallback: ${fallbackHref}`);
+-                    loadCSS(fallbackHref).then(resolve).catch(reject);
++                if (fallbackHref && fallbackHref !== primaryHref) {
++                    console.warn(`CSS local failed: ${primaryHref}, trying fallback (remote): ${fallbackHref}`);
++                    loadCSS(fallbackHref, null).then(resolve).catch(reject);
+                 } else {
+-                    reject(new Error(`Failed to load CSS: ${href}`));
++                    reject(new Error(`Failed to load CSS: ${primaryHref}`));
+                 }
+             };
+             document.head.appendChild(link);
+         });
+     }
+ 
+-    function loadScript(src, fallbackSrc = null) {
++    // Helper: load script (primary = local, fallback = remote)
++    function loadScript(primarySrc, fallbackSrc = null) {
+         return new Promise((resolve, reject) => {
+             const script = document.createElement('script');
+-            script.src = src;
++            script.src = primarySrc;
+             script.async = true;
+             script.onload = () => resolve();
+             script.onerror = () => {
+-                if (fallbackSrc && fallbackSrc !== src) {
+-                    console.warn(`Script failed: ${src}, trying fallback: ${fallbackSrc}`);
+-                    loadScript(fallbackSrc).then(resolve).catch(reject);
++                if (fallbackSrc && fallbackSrc !== primarySrc) {
++                    console.warn(`Script local failed: ${primarySrc}, trying fallback (remote): ${fallbackSrc}`);
++                    loadScript(fallbackSrc, null).then(resolve).catch(reject);
+                 } else {
+-                    reject(new Error(`Failed to load script: ${src}`));
++                    reject(new Error(`Failed to load script: ${primarySrc}`));
+                 }
+             };
+             document.head.appendChild(script);
+         });
+     }
+ 
++    // --------------------------------------------------------------
++    // 3. Load markdown CSS (local-first)
++    // --------------------------------------------------------------
+     async function loadMarkdownCSS() {
+         try {
+-            await loadCSS(MD_CSS_CDN, MD_CSS_LOCAL);
+-            console.log('✓ Markdown CSS loaded');
++            await loadCSS(MD_CSS_LOCAL, MD_CSS_CDN);
++            console.log('✓ Markdown CSS loaded (local-first)');
+         } catch (e) {
+-            console.warn('Markdown CSS failed', e);
++            console.warn('Markdown CSS failed, using fallback styles', e);
+         }
+     }
+ 
++    // --------------------------------------------------------------
++    // 4. Load KaTeX fully: CSS + core + auto-render (local-first)
++    // --------------------------------------------------------------
+     async function loadKaTeX() {
++        // KaTeX CSS: local → remote
+         try {
+-            await loadCSS(KATEX_CSS_CDN, KATEX_CSS_LOCAL);
+-            console.log('✓ KaTeX CSS loaded');
++            await loadCSS(KATEX_CSS_LOCAL, KATEX_CSS_CDN);
++            console.log('✓ KaTeX CSS loaded (local-first)');
+         } catch (e) {
+-            console.warn('KaTeX CSS failed', e);
++            console.warn('KaTeX CSS failed, math may look ugly', e);
+         }
++
++        // KaTeX core JS: local → remote
+         try {
+-            await loadScript(KATEX_JS_CDN, KATEX_JS_LOCAL);
+-            console.log('✓ KaTeX core loaded');
++            await loadScript(KATEX_JS_LOCAL, KATEX_JS_CDN);
++            console.log('✓ KaTeX core loaded (local-first)');
+         } catch (e) {
+-            throw new Error(`KaTeX core failed: ${e.message}`);
++            throw new Error(`KaTeX core load failed: ${e.message}`);
+         }
++
++        // KaTeX auto-render: local → remote
+         try {
+-            await loadScript(KATEX_AUTO_CDN, KATEX_AUTO_LOCAL);
+-            console.log('✓ KaTeX auto-render loaded');
++            await loadScript(KATEX_AUTO_LOCAL, KATEX_AUTO_CDN);
++            console.log('✓ KaTeX auto-render loaded (local-first)');
+         } catch (e) {
+             throw new Error(`KaTeX auto-render failed: ${e.message}`);
+         }
++
+         if (typeof window.renderMathInElement !== 'function') {
+-            throw new Error('renderMathInElement missing');
++            throw new Error('renderMathInElement not available after loading auto-render');
+         }
+         return true;
+     }
+ 
++    // Load marked.js with local-first strategy
+     async function loadMarked() {
+-        if (window.marked?.parse) return window.marked;
++        if (window.marked && typeof window.marked.parse === 'function') return window.marked;
+         try {
+-            await loadScript(MARKED_CDN, MARKED_LOCAL);
+-            if (window.marked?.parse) return window.marked;
+-            throw new Error('Marked not available');
++            await loadScript(MARKED_LOCAL, MARKED_CDN);
++            if (window.marked && typeof window.marked.parse === 'function') return window.marked;
++            throw new Error('Marked not available after load');
+         } catch (e) {
+-            throw new Error(`Marked load failed: ${e.message}`);
++            throw new Error(`Marked load failed (local + remote): ${e.message}`);
+         }
+     }
+ 
+-    // Load Highlight.js only when needed (source mode)
++    // Load Highlight.js only when needed (source mode) – already local-first
+     async function loadHighlightJS() {
+         if (typeof hljs !== 'undefined' && hljs.highlightElement) return true;
+         try {
+-            // Load CSS first
++            // Load CSS first (local → remote)
+             await loadCSS(HLJS_CSS_LOCAL, HLJS_CSS_CDN);
+-            // Load script
++            // Load script (local → remote)
+             await loadScript(HLJS_JS_LOCAL, HLJS_JS_CDN);
+             if (typeof hljs !== 'undefined' && hljs.highlightElement) {
+-                console.log('✓ Highlight.js loaded for syntax highlighting');
++                console.log('✓ Highlight.js loaded for syntax highlighting (local-first)');
+                 return true;
+             }
+             throw new Error('Highlight.js not available after load');
+@@ -222,7 +236,7 @@
+     }
+ 
+     // --------------------------------------------------------------
+-    // 3. URL helpers
++    // 5. URL helpers (unchanged)
+     // --------------------------------------------------------------
+     function getMarkdownUrlFromQuery() {
+         const search = window.location.search;
+@@ -270,7 +284,6 @@
+     const autoSource = shouldAutoSourceMode(rawMarkdownUrl);
+     const sourceMode = explicitSource || autoSource;
+ 
+-    // Get file extension for syntax hint
+     function getFileExtension(url) {
+         try {
+             const path = new URL(url, window.location.href).pathname;
+@@ -281,7 +294,7 @@
+     const fileExtension = getFileExtension(rawMarkdownUrl);
+ 
+     // --------------------------------------------------------------
+-    // 4. Fetch content
++    // 6. Fetch content
+     // --------------------------------------------------------------
+     async function fetchContent(url) {
+         let absoluteUrl;
+@@ -300,7 +313,7 @@
+     }
+ 
+     // --------------------------------------------------------------
+-    // 5. Processing: delete empty lines, escape HTML
++    // 7. Processing: delete empty lines, escape HTML
+     // --------------------------------------------------------------
+     function processSourceText(rawText) {
+         const lines = rawText.split(/\r?\n/);
+@@ -315,7 +328,7 @@
+     }
+ 
+     // --------------------------------------------------------------
+-    // 6. Renderers
++    // 8. Renderers
+     // --------------------------------------------------------------
+     async function renderWithMath(htmlContent, container) {
+         container.innerHTML = htmlContent;
+@@ -349,7 +362,6 @@
+ 
+     async function renderAsSourceCode(rawText, container, extension) {
+         const processed = processSourceText(rawText);
+-        // Map common extensions to highlight.js language aliases
+         let langClass = '';
+         if (extension) {
+             const langMap = {
+@@ -369,7 +381,6 @@
+         container.innerHTML = '';
+         container.insertAdjacentHTML('beforeend', codeHtml);
+ 
+-        // Apply syntax highlighting if available
+         if (typeof hljs !== 'undefined' && hljs.highlightElement) {
+             const codeBlock = container.querySelector('code');
+             if (codeBlock) {
+@@ -381,7 +392,6 @@
+         }
+     }
+ 
+-    // Append raw file link (clean, without any query params)
+     function appendRawFileLink(container, rawUrl) {
+         const rawDiv = document.createElement('div');
+         rawDiv.className = 'raw-link-container';
+@@ -396,14 +406,14 @@
+     }
+ 
+     // --------------------------------------------------------------
+-    // 7. Main init
++    // 9. Main init (local-first loading sequence)
+     // --------------------------------------------------------------
+     async function init() {
+         const container = document.getElementById('content');
+         try {
+-            container.innerHTML = '<div class="loader">Loading dependencies (CSS, marked, KaTeX)...</div>';
++            container.innerHTML = '<div class="loader">Loading dependencies (local: fallback_js/ → CDN fallback)...</div>';
+ 
+-            // Load core dependencies in parallel
++            // Load core dependencies in parallel (all local-first)
+             const [markedLib, katexLoaded] = await Promise.all([
+                 loadMarked(),
+                 loadKaTeX().catch(e => {
+@@ -413,10 +423,10 @@
+                 loadMarkdownCSS().catch(e => console.warn('CSS optional:', e))
+             ]);
+ 
+-            // If source mode, also load Highlight.js
++            // If source mode, also load Highlight.js (local-first)
+             let highlightLoaded = false;
+             if (sourceMode) {
+-                container.innerHTML = '<div class="loader">Loading syntax highlighter for source mode...</div>';
++                container.innerHTML = '<div class="loader">Loading syntax highlighter (local-first)...</div>';
+                 highlightLoaded = await loadHighlightJS();
+             }
+ 
+@@ -425,7 +435,6 @@
+ 
+             if (sourceMode) {
+                 await renderAsSourceCode(rawContent, container, fileExtension);
+-                // Add info badge about source mode & highlighting
+                 const note = document.createElement('div');
+                 note.className = 'source-mode-note';
+                 if (explicitSource) {
+@@ -440,15 +449,13 @@
+                 await renderMarkdown(rawContent, markedLib, container);
+             }
+ 
+-            // Version footer
+             const footer = document.createElement('div');
+             footer.className = 'footer-version';
+             let modeStr = '';
+             if (sourceMode) modeStr = explicitSource ? ' · 🔍 Explicit source + syntax highlight' : (autoSource ? ' · 🤖 Auto source + syntax highlight' : ' · 🔍 Source mode');
+-            footer.innerText = `Version ${PAGE_VERSION}${modeStr}`;
++            footer.innerText = `Version ${PAGE_VERSION} (local-first)${modeStr}`;
+             container.appendChild(footer);
+ 
+-            // Always show raw file download link
+             appendRawFileLink(container, rawMarkdownUrl);
+ 
+         } catch (err) {
+@@ -473,4 +480,4 @@
+     else init();
+ </script>
+ </body>
+-</html>
++</html>
+\ No newline at end of file

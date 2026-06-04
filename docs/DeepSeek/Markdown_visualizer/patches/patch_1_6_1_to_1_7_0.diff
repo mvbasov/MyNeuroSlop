@@ -1,0 +1,262 @@
+--- md_1_6_1.html	2026-06-04 23:56:35.675468402 +0300
++++ md_1_7_0.html	2026-06-04 23:53:57.547212029 +0300
+@@ -3,7 +3,7 @@
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Markdown/Code Viewer · Auto source mode + clean empty lines & escaped HTML</title>
++    <title>Markdown/Code Viewer · Syntax Highlighting + KaTeX</title>
+     <style>
+         * {
+             margin: 0;
+@@ -94,7 +94,7 @@
+     // 1. CONFIGURATION
+     // --------------------------------------------------------------
+     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/markdown_example.md';
+-    const PAGE_VERSION = '1.6.1';   // Source mode: delete empty lines + escape <>
++    const PAGE_VERSION = '1.7.0';   // syntax highlighting for source mode (offline fallback)
+ 
+     // Marked.js (CDN + local fallback)
+     const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+@@ -112,8 +112,14 @@
+     const KATEX_AUTO_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js';
+     const KATEX_AUTO_LOCAL = 'fallback_js/auto-render.min.js';
+ 
++    // Highlight.js (for syntax highlighting in source mode) – local first, then CDN
++    const HLJS_CSS_LOCAL = 'fallback_js/github-dark.min.css';
++    const HLJS_CSS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css';
++    const HLJS_JS_LOCAL = 'fallback_js/highlight.min.js';
++    const HLJS_JS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
++
+     // --------------------------------------------------------------
+-    // 2. Helpers: load CSS/JS with fallback
++    // 2. Helper: load CSS (returns promise)
+     // --------------------------------------------------------------
+     function loadCSS(href, fallbackHref = null) {
+         return new Promise((resolve, reject) => {
+@@ -196,8 +202,27 @@
+         }
+     }
+ 
++    // Load Highlight.js only when needed (source mode)
++    async function loadHighlightJS() {
++        if (typeof hljs !== 'undefined' && hljs.highlightElement) return true;
++        try {
++            // Load CSS first
++            await loadCSS(HLJS_CSS_LOCAL, HLJS_CSS_CDN);
++            // Load script
++            await loadScript(HLJS_JS_LOCAL, HLJS_JS_CDN);
++            if (typeof hljs !== 'undefined' && hljs.highlightElement) {
++                console.log('✓ Highlight.js loaded for syntax highlighting');
++                return true;
++            }
++            throw new Error('Highlight.js not available after load');
++        } catch (e) {
++            console.warn('Highlight.js failed to load, source mode will be plain text', e);
++            return false;
++        }
++    }
++
+     // --------------------------------------------------------------
+-    // 3. URL helpers: get markdown file, detect source mode
++    // 3. URL helpers
+     // --------------------------------------------------------------
+     function getMarkdownUrlFromQuery() {
+         const search = window.location.search;
+@@ -214,7 +239,6 @@
+         return params.has('source');
+     }
+ 
+-    // Auto-detect source files (.js, .sh, etc.) – no markdown extensions
+     function shouldAutoSourceMode(url) {
+         if (!url) return false;
+         try {
+@@ -231,7 +255,7 @@
+                 'json', 'yaml', 'yml', 'toml', 'ini', 'cfg',
+                 'txt', 'log', 'csv', 'sql',
+                 'php', 'asp', 'aspx', 'jsp',
+-                'vue', 'svelte'
++                'vue', 'svelte', 'fcmacro'  
+             ]);
+             const markdownExtensions = new Set(['md', 'markdown', 'mdown', 'mkd', 'mkdown']);
+             if (markdownExtensions.has(ext)) return false;
+@@ -246,8 +270,15 @@
+     const autoSource = shouldAutoSourceMode(rawMarkdownUrl);
+     const sourceMode = explicitSource || autoSource;
+ 
+-    if (explicitSource) console.log('🔧 Explicit &source mode active');
+-    if (autoSource && !explicitSource) console.log('🤖 Auto source mode active (non-markdown file)');
++    // Get file extension for syntax hint
++    function getFileExtension(url) {
++        try {
++            const path = new URL(url, window.location.href).pathname;
++            const ext = path.split('.').pop()?.toLowerCase();
++            return ext || '';
++        } catch { return ''; }
++    }
++    const fileExtension = getFileExtension(rawMarkdownUrl);
+ 
+     // --------------------------------------------------------------
+     // 4. Fetch content
+@@ -269,7 +300,22 @@
+     }
+ 
+     // --------------------------------------------------------------
+-    // 5. Render: markdown (with math) or source code (delete empty lines + escape <>)
++    // 5. Processing: delete empty lines, escape HTML
++    // --------------------------------------------------------------
++    function processSourceText(rawText) {
++        const lines = rawText.split(/\r?\n/);
++        const nonEmptyLines = lines.filter(line => line.trim() !== '');
++        const trimmedContent = nonEmptyLines.join('\n');
++        return trimmedContent.replace(/[&<>]/g, (m) => {
++            if (m === '&') return '&amp;';
++            if (m === '<') return '&lt;';
++            if (m === '>') return '&gt;';
++            return m;
++        });
++    }
++
++    // --------------------------------------------------------------
++    // 6. Renderers
+     // --------------------------------------------------------------
+     async function renderWithMath(htmlContent, container) {
+         container.innerHTML = htmlContent;
+@@ -301,40 +347,41 @@
+         await renderWithMath(html, container);
+     }
+ 
+-    // Core: delete empty lines, then escape < > & (safe for HTML)
+-    function processSourceText(rawText) {
+-        // Split lines, remove lines that are empty or contain only whitespace
+-        const lines = rawText.split(/\r?\n/);
+-        const nonEmptyLines = lines.filter(line => line.trim() !== '');
+-        const trimmedContent = nonEmptyLines.join('\n');
+-        // Escape HTML special characters: &, <, >
+-        return trimmedContent.replace(/[&<>]/g, (m) => {
+-            if (m === '&') return '&amp;';
+-            if (m === '<') return '&lt;';
+-            if (m === '>') return '&gt;';
+-            return m;
+-        });
+-    }
+-
+-    async function renderAsSourceCode(rawText, container) {
+-        // Step 1: delete empty lines
+-        // Step 2: escape < and > (and & for safety)
++    async function renderAsSourceCode(rawText, container, extension) {
+         const processed = processSourceText(rawText);
+-        // Build pre/code block
+-        const codeHtml = `<pre><code>${processed}</code></pre>`;
+-        const wrapper = document.createElement('div');
+-        wrapper.innerHTML = codeHtml;
++        // Map common extensions to highlight.js language aliases
++        let langClass = '';
++        if (extension) {
++            const langMap = {
++                'js': 'javascript', 'mjs': 'javascript', 'cjs': 'javascript',
++                'ts': 'typescript', 'jsx': 'jsx', 'tsx': 'tsx',
++                'sh': 'bash', 'bash': 'bash', 'zsh': 'bash',
++                'py': 'python', 'rb': 'ruby', 'go': 'go', 'rs': 'rust',
++                'c': 'c', 'cpp': 'cpp', 'h': 'c', 'hpp': 'cpp', 'java': 'java',
++                'css': 'css', 'scss': 'scss', 'html': 'html', 'xml': 'xml',
++                'json': 'json', 'yaml': 'yaml', 'yml': 'yaml',
++                'sql': 'sql', 'php': 'php', 'pl': 'perl'
++            };
++            const hljsLang = langMap[extension] || extension;
++            langClass = `language-${hljsLang}`;
++        }
++        const codeHtml = `<pre><code class="${langClass}">${processed}</code></pre>`;
+         container.innerHTML = '';
+-        container.appendChild(wrapper);
+-        // Additional monospace styling
+-        const style = document.createElement('style');
+-        style.textContent = `.markdown-body pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow: auto; } .markdown-body code { font-family: 'SF Mono', Consolas, monospace; }`;
+-        container.appendChild(style);
++        container.insertAdjacentHTML('beforeend', codeHtml);
++
++        // Apply syntax highlighting if available
++        if (typeof hljs !== 'undefined' && hljs.highlightElement) {
++            const codeBlock = container.querySelector('code');
++            if (codeBlock) {
++                hljs.highlightElement(codeBlock);
++                console.log('✓ Syntax highlighting applied');
++            }
++        } else {
++            console.log('Highlight.js not loaded, showing plain text');
++        }
+     }
+ 
+-    // --------------------------------------------------------------
+-    // 6. Append clean raw file download link (no extra parameters)
+-    // --------------------------------------------------------------
++    // Append raw file link (clean, without any query params)
+     function appendRawFileLink(container, rawUrl) {
+         const rawDiv = document.createElement('div');
+         rawDiv.className = 'raw-link-container';
+@@ -356,6 +403,7 @@
+         try {
+             container.innerHTML = '<div class="loader">Loading dependencies (CSS, marked, KaTeX)...</div>';
+ 
++            // Load core dependencies in parallel
+             const [markedLib, katexLoaded] = await Promise.all([
+                 loadMarked(),
+                 loadKaTeX().catch(e => {
+@@ -365,24 +413,30 @@
+                 loadMarkdownCSS().catch(e => console.warn('CSS optional:', e))
+             ]);
+ 
++            // If source mode, also load Highlight.js
++            let highlightLoaded = false;
++            if (sourceMode) {
++                container.innerHTML = '<div class="loader">Loading syntax highlighter for source mode...</div>';
++                highlightLoaded = await loadHighlightJS();
++            }
++
+             container.innerHTML = '<div class="loader">Fetching file content...</div>';
+             const rawContent = await fetchContent(rawMarkdownUrl);
+ 
+             if (sourceMode) {
+-                // SOURCE MODE: delete empty lines + escape <>
+-                await renderAsSourceCode(rawContent, container);
++                await renderAsSourceCode(rawContent, container, fileExtension);
++                // Add info badge about source mode & highlighting
+                 const note = document.createElement('div');
+                 note.className = 'source-mode-note';
+                 if (explicitSource) {
+-                    note.innerHTML = `<strong>Source mode (explicit &source)</strong> — Empty lines removed, HTML special characters escaped.`;
++                    note.innerHTML = `<strong>Source mode (explicit &source)</strong> — Empty lines removed, HTML escaped${highlightLoaded ? ', syntax highlighting active.' : '. Highlight.js not loaded.'}`;
+                 } else if (autoSource) {
+-                    note.innerHTML = `<strong>Auto source mode</strong> — Detected non-markdown file. Empty lines removed, <code>&lt;</code> and <code>&gt;</code> escaped. Add <code>&source</code> to force this view.`;
++                    note.innerHTML = `<strong>Auto source mode</strong> — Detected code file (${fileExtension || 'unknown'}). Empty lines removed, <code>&lt;</code> and <code>&gt;</code> escaped${highlightLoaded ? ', syntax highlighting on.' : '.'}`;
+                 } else {
+-                    note.innerHTML = `<strong>Source mode active</strong> — Blank lines deleted, angle brackets escaped.`;
++                    note.innerHTML = `<strong>Source mode</strong> — Raw content${highlightLoaded ? ' with syntax highlighting' : ''}.`;
+                 }
+                 container.prepend(note);
+             } else {
+-                // Normal markdown rendering (preserve original content, no line deletion)
+                 await renderMarkdown(rawContent, markedLib, container);
+             }
+ 
+@@ -390,11 +444,11 @@
+             const footer = document.createElement('div');
+             footer.className = 'footer-version';
+             let modeStr = '';
+-            if (sourceMode) modeStr = explicitSource ? ' · 🔍 Explicit source mode (no empty lines, escaped <>)' : (autoSource ? ' · 🤖 Auto source mode (no empty lines, escaped <>)' : ' · 🔍 Source mode');
++            if (sourceMode) modeStr = explicitSource ? ' · 🔍 Explicit source + syntax highlight' : (autoSource ? ' · 🤖 Auto source + syntax highlight' : ' · 🔍 Source mode');
+             footer.innerText = `Version ${PAGE_VERSION}${modeStr}`;
+             container.appendChild(footer);
+ 
+-            // Raw file download link – clean URL (no ?source)
++            // Always show raw file download link
+             appendRawFileLink(container, rawMarkdownUrl);
+ 
+         } catch (err) {
+@@ -419,4 +473,4 @@
+     else init();
+ </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>

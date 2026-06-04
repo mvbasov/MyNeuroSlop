@@ -1,0 +1,231 @@
+--- md_1_4_0.html	2026-05-31 19:17:26.505529886 +0300
++++ md_1_5_0.html	2026-06-04 23:45:58.378315732 +0300
+@@ -3,7 +3,7 @@
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Markdown Viewer with KaTeX</title>
++    <title>Markdown Viewer with KaTeX (local-first fallback)</title>
+     <!-- Minimal custom styles – only layout & non‑markdown elements -->
+     <style>
+         * {
+@@ -52,61 +52,63 @@
+ 
+ <script>
+     // --------------------------------------------------------------
+-    // 1. CONFIGURATION
++    // 1. CONFIGURATION (local-first, remote fallback)
+     // --------------------------------------------------------------
+     const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/markdown_example.md';
+-    const PAGE_VERSION = '1.4.0';   // Incremented version
++    const PAGE_VERSION = '1.5.0';   // Updated: local-first loading order
+ 
+-    // Marked.js (CDN + local fallback inside fallback_js/)
+-    const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
++    // All assets: LOCAL (fallback_js/) first, then CDN as fallback
++    // Marked.js
+     const MARKED_LOCAL = 'fallback_js/marked.min.js';
++    const MARKED_CDN  = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+ 
+-    // GitHub Markdown CSS (CDN + local fallback)
+-    const MD_CSS_CDN = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown.min.css';
++    // GitHub Markdown CSS
+     const MD_CSS_LOCAL = 'fallback_js/github-markdown.min.css';
++    const MD_CSS_CDN   = 'https://cdn.jsdelivr.net/npm/github-markdown-css@5.5.0/github-markdown.min.css';
+ 
+-    // KaTeX resources (CSS + core + auto-render) with local fallbacks in fallback_js/
+-    const KATEX_CSS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
++    // KaTeX resources
+     const KATEX_CSS_LOCAL = 'fallback_js/katex.min.css';
+-    const KATEX_JS_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js';
+-    const KATEX_JS_LOCAL = 'fallback_js/katex.min.js';
+-    const KATEX_AUTO_CDN = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js';
++    const KATEX_CSS_CDN   = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css';
++    const KATEX_JS_LOCAL  = 'fallback_js/katex.min.js';
++    const KATEX_JS_CDN    = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js';
+     const KATEX_AUTO_LOCAL = 'fallback_js/auto-render.min.js';
++    const KATEX_AUTO_CDN   = 'https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js';
+ 
+     // --------------------------------------------------------------
+-    // 2. Helper: load CSS (returns promise)
++    // 2. Helper: load CSS (tries primary first, secondary as fallback)
++    //    Now primary = local, fallback = remote
+     // --------------------------------------------------------------
+-    function loadCSS(href, fallbackHref = null) {
++    function loadCSS(primaryHref, fallbackHref = null) {
+         return new Promise((resolve, reject) => {
+             const link = document.createElement('link');
+             link.rel = 'stylesheet';
+-            link.href = href;
++            link.href = primaryHref;
+             link.onload = () => resolve();
+             link.onerror = () => {
+-                if (fallbackHref && fallbackHref !== href) {
+-                    console.warn(`CSS failed: ${href}, trying fallback: ${fallbackHref}`);
+-                    loadCSS(fallbackHref).then(resolve).catch(reject);
++                if (fallbackHref && fallbackHref !== primaryHref) {
++                    console.warn(`CSS local failed: ${primaryHref}, trying fallback (remote): ${fallbackHref}`);
++                    loadCSS(fallbackHref, null).then(resolve).catch(reject);
+                 } else {
+-                    reject(new Error(`Failed to load CSS: ${href}`));
++                    reject(new Error(`Failed to load CSS: ${primaryHref}`));
+                 }
+             };
+             document.head.appendChild(link);
+         });
+     }
+ 
+-    // Helper: load script (returns promise)
+-    function loadScript(src, fallbackSrc = null) {
++    // Helper: load script (primary first = local, fallback = remote)
++    function loadScript(primarySrc, fallbackSrc = null) {
+         return new Promise((resolve, reject) => {
+             const script = document.createElement('script');
+-            script.src = src;
++            script.src = primarySrc;
+             script.async = true;
+             script.onload = () => resolve();
+             script.onerror = () => {
+-                if (fallbackSrc && fallbackSrc !== src) {
+-                    console.warn(`Script failed: ${src}, trying fallback: ${fallbackSrc}`);
+-                    loadScript(fallbackSrc).then(resolve).catch(reject);
++                if (fallbackSrc && fallbackSrc !== primarySrc) {
++                    console.warn(`Script local failed: ${primarySrc}, trying fallback (remote): ${fallbackSrc}`);
++                    loadScript(fallbackSrc, null).then(resolve).catch(reject);
+                 } else {
+-                    reject(new Error(`Failed to load script: ${src}`));
++                    reject(new Error(`Failed to load script: ${primarySrc}`));
+                 }
+             };
+             document.head.appendChild(script);
+@@ -114,38 +116,41 @@
+     }
+ 
+     // --------------------------------------------------------------
+-    // 3. Load Markdown CSS (with fallback)
++    // 3. Load Markdown CSS (local first → remote fallback)
+     // --------------------------------------------------------------
+     async function loadMarkdownCSS() {
+         try {
+-            await loadCSS(MD_CSS_CDN, MD_CSS_LOCAL);
+-            console.log('✓ Markdown CSS loaded');
++            await loadCSS(MD_CSS_LOCAL, MD_CSS_CDN);
++            console.log('✓ Markdown CSS loaded (local-first)');
+         } catch (e) {
+-            console.warn('Markdown CSS failed, using fallback styles', e);
++            console.warn('Markdown CSS failed (both local and remote), using fallback styles', e);
+         }
+     }
+ 
+     // --------------------------------------------------------------
+-    // 4. Load KaTeX fully (CSS + core + auto-render)
++    // 4. Load KaTeX fully: CSS + core + auto-render (local-first)
+     // --------------------------------------------------------------
+     async function loadKaTeX() {
++        // KaTeX CSS: local → remote
+         try {
+-            await loadCSS(KATEX_CSS_CDN, KATEX_CSS_LOCAL);
+-            console.log('✓ KaTeX CSS loaded');
++            await loadCSS(KATEX_CSS_LOCAL, KATEX_CSS_CDN);
++            console.log('✓ KaTeX CSS loaded (local-first)');
+         } catch (e) {
+             console.warn('KaTeX CSS failed, math may look ugly', e);
+         }
+ 
++        // KaTeX core JS: local → remote
+         try {
+-            await loadScript(KATEX_JS_CDN, KATEX_JS_LOCAL);
+-            console.log('✓ KaTeX core loaded');
++            await loadScript(KATEX_JS_LOCAL, KATEX_JS_CDN);
++            console.log('✓ KaTeX core loaded (local-first)');
+         } catch (e) {
+             throw new Error(`KaTeX core load failed: ${e.message}`);
+         }
+ 
++        // KaTeX auto-render: local → remote
+         try {
+-            await loadScript(KATEX_AUTO_CDN, KATEX_AUTO_LOCAL);
+-            console.log('✓ KaTeX auto-render loaded');
++            await loadScript(KATEX_AUTO_LOCAL, KATEX_AUTO_CDN);
++            console.log('✓ KaTeX auto-render loaded (local-first)');
+         } catch (e) {
+             throw new Error(`KaTeX auto-render failed: ${e.message}`);
+         }
+@@ -156,20 +161,20 @@
+         return true;
+     }
+ 
+-    // Load marked.js with fallback
++    // Load marked.js with local-first strategy
+     async function loadMarked() {
+         if (window.marked && typeof window.marked.parse === 'function') return window.marked;
+         try {
+-            await loadScript(MARKED_CDN, MARKED_LOCAL);
++            await loadScript(MARKED_LOCAL, MARKED_CDN);
+             if (window.marked && typeof window.marked.parse === 'function') return window.marked;
+             throw new Error('Marked not available after load');
+         } catch (e) {
+-            throw new Error(`Marked load failed: ${e.message}`);
++            throw new Error(`Marked load failed (local + remote): ${e.message}`);
+         }
+     }
+ 
+     // --------------------------------------------------------------
+-    // 5. Get markdown URL (query parameter support)
++    // 5. Get markdown URL from query parameter (unchanged)
+     // --------------------------------------------------------------
+     function getMarkdownUrlFromQuery() {
+         const search = window.location.search;
+@@ -188,7 +193,7 @@
+     const rawMarkdownUrl = getMarkdownUrlFromQuery() || DEFAULT_MARKDOWN_URL;
+ 
+     // --------------------------------------------------------------
+-    // 6. Fetch markdown content
++    // 6. Fetch markdown content (unchanged)
+     // --------------------------------------------------------------
+     async function fetchMarkdown(url) {
+         let absoluteUrl;
+@@ -243,14 +248,15 @@
+     }
+ 
+     // --------------------------------------------------------------
+-    // 8. Main: load all dependencies first, then fetch and render
++    // 8. MAIN: load all dependencies (local-first) → fetch → render
+     // --------------------------------------------------------------
+     async function init() {
+         const container = document.getElementById('content');
+         try {
+-            container.innerHTML = '<div class="loader">Loading dependencies (CSS, marked.js, KaTeX)...</div>';
++            container.innerHTML = '<div class="loader">Loading dependencies (local-first: fallback_js → CDN)...</div>';
+ 
+-            // Load Markdown CSS, marked, and KaTeX in parallel
++            // Load: Markdown CSS, marked.js, KaTeX (all local-first, fallback remote)
++            // Run in parallel for efficiency
+             const [markedLib, katexLoaded] = await Promise.all([
+                 loadMarked(),
+                 loadKaTeX().catch(e => {
+@@ -273,7 +279,7 @@
+             // Add version footer
+             const footer = document.createElement('div');
+             footer.className = 'footer-version';
+-            footer.innerText = `Version ${PAGE_VERSION}`;
++            footer.innerText = `Version ${PAGE_VERSION} (local-first loading)`;
+             container.appendChild(footer);
+         } catch (err) {
+             console.error(err);
+@@ -289,7 +295,7 @@
+             }
+ 
+             // --- FALLBACK LINK: always show a direct link to the raw markdown file ---
+-            const rawLink = `<a href="${escapeHtml(rawMarkdownUrl)}" target="_blank" rel="noopener noreferrer">View raw markdown file</a>`;
++            const rawLink = `<a href="${escapeHtml(rawMarkdownUrl)}" target="_blank" rel="noopener noreferrer">📄 View raw markdown file</a>`;
+             container.innerHTML = `<div class="error">❌ ${escapeHtml(errorMessage)}<br><br>${rawLink}</div>`;
+         }
+     }
+@@ -302,4 +308,4 @@
+     else init();
+ </script>
+ </body>
+-</html>
++</html>
+\ No newline at end of file

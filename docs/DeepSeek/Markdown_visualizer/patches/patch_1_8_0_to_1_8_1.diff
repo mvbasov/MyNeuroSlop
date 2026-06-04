@@ -1,0 +1,18 @@
+--- md_1_8_0.html	2026-06-04 23:54:10.415233403 +0300
++++ md_1_8_1.html	2026-06-05 00:11:09.028745113 +0300
+@@ -93,7 +93,7 @@
+     // --------------------------------------------------------------
+     // 1. CONFIGURATION – LOCAL FIRST, CDN FALLBACK
+     // --------------------------------------------------------------
+-    const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/markdown_example.md';
++    const DEFAULT_MARKDOWN_URL = 'https://mvbasov.github.io/MyNeuroSlop/DeepSeek/Markdown_visualizer/docs/markdown_example.md';
+     const PAGE_VERSION = '1.8.0';   // local-first loading order
+ 
+     // Marked.js (local first, then CDN)
+@@ -480,4 +480,4 @@
+     else init();
+ </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>
