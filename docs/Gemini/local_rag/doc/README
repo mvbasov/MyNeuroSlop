@@ -1,0 +1,103 @@
+mvb@NeedleFile:~/local-rag$ docker-compose restart
+Restarting rag-app      ... done
+Restarting model-puller ... done
+Restarting qdrant       ... done
+Restarting ollama       ... done
+mvb@NeedleFile:~/local-rag$ docker-compose down
+Stopping rag-app ... done
+Stopping qdrant  ... done
+Stopping ollama  ... done
+Removing rag-app      ... done
+Removing model-puller ... done
+Removing qdrant       ... done
+Removing ollama       ... done
+Removing network local-rag_default
+mvb@NeedleFile:~/local-rag$ docker-compose up -d
+Creating network "local-rag_default" with the default driver
+Creating qdrant ... done
+Creating ollama ... done
+Creating model-puller ... done
+Creating rag-app      ... done
+mvb@NeedleFile:~/local-rag$ 
+
+
+
+mvb@NeedleFile:~/local-rag$ docker-compose up -d --build
+Creating network "local-rag_default" with the default driver
+Building rag-app
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Sending build context to Docker daemon  30.21kB
+Step 1/7 : FROM python:3.10-slim
+ ---> 70f65c721aad
+Step 2/7 : WORKDIR /app
+ ---> Using cache
+ ---> 7160737246d5
+Step 3/7 : ENV PYTHONUNBUFFERED=1
+ ---> Using cache
+ ---> 0f6868547308
+Step 4/7 : COPY requirements.txt .
+ ---> Using cache
+ ---> 04dfdee4c20f
+Step 5/7 : RUN pip install --no-cache-dir -r requirements.txt
+ ---> Using cache
+ ---> df3aac49d08d
+Step 6/7 : COPY app.py .
+ ---> Using cache
+ ---> 4eafbc986baa
+Step 7/7 : CMD ["python", "app.py"]
+ ---> Using cache
+ ---> d4728366f82a
+Successfully built d4728366f82a
+Successfully tagged local-rag_rag-app:latest
+Creating ollama ... done
+Creating qdrant ... done
+Creating model-puller ... done
+Creating rag-app      ... done
+mvb@NeedleFile:~/local-rag$ 
+
+
+
+mvb@NeedleFile:~/local-rag$ docker logs -f rag-app
+Starting Web Application...
+Connecting to Qdrant at qdrant:6333
+Connecting to Ollama at http://ollama:11434
+Starting document ingestion in the background...
+Web server is starting immediately on port 5000!
+ * Serving Flask app 'app'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.18.0.4:5000
+Press CTRL+C to quit
+Processing index.md (chunk 1/1)...
+/usr/local/lib/python3.10/site-packages/qdrant_client/qdrant_remote.py:282: UserWarning: Qdrant client version 1.18.0 is incompatible with server version 1.12.0. Major versions should match and minor version difference must not exceed 1. Set check_compatibility=False to skip version check.
+  show_warning(
+Indexed: index.md (chunk 1/1)
+Processing QuickNotes.md (chunk 1/428)...
+Indexed: QuickNotes.md (chunk 1/428)
+Processing QuickNotes.md (chunk 2/428)...
+Indexed: QuickNotes.md (chunk 2/428)
+Processing QuickNotes.md (chunk 3/428)...
+Indexed: QuickNotes.md (chunk 3/428)
+
+
+Как сбросить базу данных и применить изменения:
+
+Поскольку в базе остались файлы-призраки (ошибочные дубликаты из предыдущих запусков), вам необходимо её очистить. В терминале поочередно выполните следующие команды:
+
+    Остановите контейнеры:
+    docker-compose down
+
+    Полностью очистите папку с базой данных (выполните команду в директории local-rag):
+    sudo rm -rf ./qdrant_storage/*
+
+    Замените код в файле app.py на тот, что сгенерирован выше.
+
+    Соберите и запустите всё заново:
+    docker-compose up -d --build
+
+
