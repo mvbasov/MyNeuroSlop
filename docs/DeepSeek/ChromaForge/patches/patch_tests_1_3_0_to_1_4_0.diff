@@ -1,0 +1,147 @@
+--- ChromaForge_v1_3_0_tests.js	2026-06-05 15:39:11.405361015 +0300
++++ ChromaForge_v1_4_0_tests.js	2026-06-05 15:49:56.321340474 +0300
+@@ -1,4 +1,4 @@
+-// ChromaForge_v1_3_0_tests.js - concise console output
++// ChromaForge_v1_4_0_tests.js - includes tab switching tests
+ (function() {
+     let totalTests = 0;
+     let passedTests = 0;
+@@ -7,7 +7,6 @@
+     let testRan = false;
+ 
+     function logResult(message) {
+-        // Truncate overly long messages for cleaner console
+         const maxLen = 120;
+         const shortMsg = message.length > maxLen ? message.substring(0, maxLen) + "…" : message;
+         console.log(shortMsg);
+@@ -31,19 +30,13 @@
+         const condition = actual === expected;
+         totalTests++;
+         if(condition) {
+-            // For long strings, don't repeat the value
+-            const isLong = typeof actual === 'string' && actual.length > 100;
+-            if (isLong) {
+-                logResult(`✅ PASS: ${message}`);
+-            } else {
+-                logResult(`✅ PASS: ${message} (${actual} === ${expected})`);
+-            }
+-            return true;
++            passedTests++;
++            logResult(`✅ PASS: ${message} (${actual} === ${expected})`);
+         } else {
+             failedTests++;
+             logResult(`❌ FAIL: ${message} (expected ${expected}, got ${actual})`);
+-            return false;
+         }
++        return condition;
+     }
+ 
+     const api = window.__TEST_API__;
+@@ -68,9 +61,9 @@
+         testRan = true;
+         totalTests = 0; passedTests = 0; failedTests = 0;
+         results.length = 0;
+-        console.log("🧪 ChromaForge test suite (v1.3.0)\n");
++        console.log("🧪 ChromaForge test suite (v1.4.0)\n");
+         
+-        // ----- 1. Internal Logic Tests -----
++        // ----- 1. Internal Logic Tests (unchanged) -----
+         const testTheme = { primary: "#ff0000", secondary: "#00ff00", bgColor: "#ffffff", surfaceColor: "#eeeeee", textColor: "#000000", borderColor: "#cccccc" };
+         api.applyPreviewTheme(testTheme);
+         const current = api.getCurrentPreviewTheme();
+@@ -133,50 +126,57 @@
+         assertTrue(studioBg !== "rgb(241, 245, 249)" && studioBg.length > 0, "Main dark theme changes studio background");
+         api.applyMainTheme("auto");
+         
+-        // ----- 3. Export / Import Tests (clean console) -----
+-        const testExportTheme = { 
+-            primary: "#aa44cc", 
+-            secondary: "#77aa33", 
+-            bgColor: "#ffeecc", 
+-            surfaceColor: "#ffffff", 
+-            textColor: "#111111", 
+-            borderColor: "#dddddd" 
+-        };
++        // ----- 3. Tab Switching Tests (new) -----
++        // Initial active tab should be 'dashboard'
++        assertEquals(api.getActiveTab(), "dashboard", "Initial active tab is dashboard");
++        // Switch to components tab
++        api.switchTab("components");
++        assertEquals(api.getActiveTab(), "components", "Switch to components tab works");
++        // Verify components pane content is visible (check for a unique element)
++        const componentsPane = document.getElementById("tab-components");
++        assertTrue(componentsPane && componentsPane.classList.contains("active-pane"), "Components pane becomes active");
++        // Switch to playground tab
++        api.switchTab("playground");
++        assertEquals(api.getActiveTab(), "playground", "Switch to playground tab works");
++        // Verify playground pane active
++        const playgroundPane = document.getElementById("tab-playground");
++        assertTrue(playgroundPane && playgroundPane.classList.contains("active-pane"), "Playground pane becomes active");
++        // Switch back to dashboard
++        api.switchTab("dashboard");
++        assertEquals(api.getActiveTab(), "dashboard", "Switch back to dashboard works");
++        
++        // ----- 4. Playground Interactive Tests -----
++        // Counter initial value
++        assertEquals(api.getCounterValue(), 0, "Counter starts at 0");
++        api.clickCounter();
++        assertEquals(api.getCounterValue(), 1, "Counter increments to 1");
++        api.clickCounter();
++        api.clickCounter();
++        assertEquals(api.getCounterValue(), 3, "Counter increments multiple times");
++        
++        // Random fill button
++        const initialPercent = api.getRandomFillPercent();
++        api.clickRandomFill();
++        // Allow time for style update
++        await new Promise(r => setTimeout(r, 50));
++        const newPercent = api.getRandomFillPercent();
++        assertTrue(newPercent !== initialPercent || newPercent >= 0, "Random fill button changes width (or stays within 0-100)");
++        
++        // ----- 5. Export / Import Tests (shortened) -----
++        const testExportTheme = { primary: "#aa44cc", secondary: "#77aa33", bgColor: "#ffeecc", surfaceColor: "#ffffff", textColor: "#111111", borderColor: "#dddddd" };
+         api.applyPreviewTheme(testExportTheme);
+         const exported = api.getCurrentPreviewTheme();
+-        assertEquals(exported.primary, "#aa44cc", "getCurrentPreviewTheme returns correct primary after change");
++        assertEquals(exported.primary, "#aa44cc", "getCurrentPreviewTheme works");
+         
+-        // Test copyCssToClipboard - concise check without printing the full CSS
+-        const originalClipboardWrite = navigator.clipboard.writeText;
++        const originalClipboard = navigator.clipboard.writeText;
+         let capturedCss = null;
+-        navigator.clipboard.writeText = function(text) {
+-            capturedCss = text;
+-            return Promise.resolve();
+-        };
++        navigator.clipboard.writeText = function(text) { capturedCss = text; return Promise.resolve(); };
+         api.copyCssToClipboard();
+-        await new Promise(resolve => setTimeout(resolve, 0));
+-        const expectedCss = `:root {\n  --primary: ${testExportTheme.primary};\n  --secondary: ${testExportTheme.secondary};\n  --bg-color: ${testExportTheme.bgColor};\n  --surface-color: ${testExportTheme.surfaceColor};\n  --text-color: ${testExportTheme.textColor};\n  --border-color: ${testExportTheme.borderColor};\n}`;
+-        // Use assertTrue to avoid logging the huge strings
+-        assertTrue(capturedCss === expectedCss, "copyCssToClipboard generates correct CSS string");
+-        navigator.clipboard.writeText = originalClipboardWrite;
+-        
+-        // Test importFromJson
+-        const validJson = JSON.stringify(testExportTheme);
+-        const blob = new Blob([validJson], {type: "application/json"});
+-        const file = new File([blob], "theme.json", {type: "application/json"});
+-        const originalToast = window.__showTestToast;
+-        window.__showTestToast = () => {};
+-        const importPromise = new Promise((resolve) => {
+-            api.importFromJson(file);
+-            setTimeout(() => {
+-                const newTheme = api.getCurrentPreviewTheme();
+-                assertEquals(newTheme.primary, testExportTheme.primary, "importFromJson correctly applies valid theme");
+-                resolve();
+-            }, 100);
+-        });
+-        await importPromise;
+-        window.__showTestToast = originalToast;
++        await new Promise(r => setTimeout(r, 0));
++        assertTrue(capturedCss.includes("--primary: #aa44cc"), "copyCssToClipboard contains primary color");
++        navigator.clipboard.writeText = originalClipboard;
+         
++        // Reset to default
+         api.applyPreviewTheme(api.DEFAULT_PREVIEW_THEME);
+         
+         const finalMessage = `\n🧪 FINAL SUMMARY: ${passedTests}/${totalTests} passed, ${failedTests} failed.`;

@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- PRESERVE_BINARY_START -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cdefs%3E%3CclipPath%20id%3D%22leftHalf%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2250%22%20height%3D%22100%22%2F%3E%3C%2FclipPath%3E%3CclipPath%20id%3D%22rightHalf%22%3E%3Crect%20x%3D%2250%22%20y%3D%220%22%20width%3D%2250%22%20height%3D%22100%22%2F%3E%3C%2FclipPath%3E%3C%2Fdefs%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2245%22%20fill%3D%22%233b82f6%22%20clip-path%3D%22url(%23leftHalf)%22%2F%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2245%22%20fill%3D%22%2310b981%22%20clip-path%3D%22url(%23rightHalf)%22%2F%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2212%22%20fill%3D%22white%22%2F%3E%3C%2Fsvg%3E">
+    <!-- PRESERVE_BINARY_END -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>ChromaForge · Dual‑Theme Atelier</title>
     <style>
@@ -37,15 +40,20 @@
         #name-app .theme-mode-btn.active { background: var(--main-accent); color: white; border-color: var(--main-accent); }
         #name-app .info-badge { font-size: 0.65rem; text-align: center; margin-top: 1rem; color: var(--main-text); opacity: 0.65; }
         #name-app .version-row { margin-top: 0.8rem; text-align: center; font-size: 0.6rem; font-family: monospace; color: var(--main-text); opacity: 0.55; border-top: 1px dashed var(--main-border); padding-top: 0.8rem; }
+        #name-app .export-import-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0.8rem; }
+        #name-app .action-btn { background: var(--main-bg); border: 1px solid var(--main-border); padding: 0.3rem 0.8rem; border-radius: 60px; font-size: 0.7rem; font-weight: 500; color: var(--main-text); cursor: pointer; transition: all 0.2s; }
+        #name-app .action-btn:hover { background: var(--main-accent); color: white; border-color: var(--main-accent); }
         #name-app .test-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--main-surface); color: var(--main-text); border-left: 6px solid var(--main-accent); padding: 12px 20px; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); font-size: 0.85rem; font-weight: 500; z-index: 1000; backdrop-filter: blur(8px); transition: opacity 0.2s; pointer-events: none; border: 1px solid var(--main-border); max-width: 90vw; text-align: center; white-space: nowrap; font-family: monospace; }
         @media (max-width: 640px) { #name-app .test-toast { white-space: normal; font-size: 0.75rem; padding: 8px 16px; } }
         #name-app .preview-panel { flex: 3; min-width: 280px; background: var(--surface-color); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); overflow: hidden; transition: var(--transition); }
         #name-app .app-header { background: var(--surface-color); border-bottom: 2px solid var(--border-color); padding: 0.8rem 1.2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         #name-app .logo-area { font-weight: 700; font-size: 1.2rem; background: linear-gradient(135deg, var(--primary), var(--secondary)); background-clip: text; -webkit-background-clip: text; color: transparent; }
         #name-app .nav-links { display: flex; gap: 1rem; }
-        #name-app .nav-link { color: var(--text-color); text-decoration: none; font-weight: 500; font-size: 0.8rem; transition: var(--transition); border-bottom: 2px solid transparent; padding-bottom: 3px; }
+        #name-app .nav-link { color: var(--text-color); text-decoration: none; font-weight: 500; font-size: 0.8rem; transition: var(--transition); border-bottom: 2px solid transparent; padding-bottom: 3px; cursor: pointer; }
         #name-app .nav-link.active { border-bottom-color: var(--primary); color: var(--primary); }
         #name-app .preview-content { padding: 1.2rem; }
+        #name-app .tab-pane { display: none; }
+        #name-app .tab-pane.active-pane { display: block; }
         #name-app .grid-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 1.5rem; }
         #name-app .card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; transition: var(--transition); box-shadow: var(--shadow-sm); }
         #name-app .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-color); }
@@ -53,13 +61,10 @@
         #name-app .button-group { display: flex; gap: 10px; flex-wrap: wrap; margin: 0.8rem 0 0.4rem; }
         #name-app .btn { border: none; padding: 0.4rem 1rem; border-radius: 60px; font-weight: 500; font-size: 0.75rem; cursor: pointer; transition: var(--transition); background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); }
         #name-app .btn-primary { background: var(--primary); color: white; border: none; }
-        #name-app .btn-primary:hover { filter: brightness(0.9); transform: translateY(-1px); }
         #name-app .btn-secondary { background: var(--secondary); color: white; border: none; }
-        #name-app .btn-secondary:hover { filter: brightness(0.92); transform: translateY(-1px); }
         #name-app .input-group { margin: 0.8rem 0; }
         #name-app .input-group label { display: block; font-size: 0.7rem; font-weight: 500; margin-bottom: 0.2rem; color: var(--text-color); }
         #name-app .input-field { width: 100%; padding: 0.5rem 0.7rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-color); font-size: 0.8rem; }
-        #name-app .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent); }
         #name-app .progress-section { margin-top: 1rem; }
         #name-app .progress-label { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 4px; color: var(--text-color); }
         #name-app .progress-bar-bg { background: var(--border-color); border-radius: 40px; height: 6px; overflow: hidden; }
@@ -95,8 +100,20 @@
                     <button class="preset-btn" data-preset="ocean">🌊 Ocean Drift</button>
                     <button class="preset-btn" data-preset="sunset">🌅 Sunset Glow</button>
                     <button class="preset-btn" data-preset="forest">🍃 Forest Canopy</button>
+                    <button class="preset-btn" data-preset="soft-light">🌸 Soft Light</button>
+                    <button class="preset-btn" data-preset="soft-dark">🌙 Soft Dark (Blue)</button>
                     <button class="preset-btn reset-btn" id="resetToDefaultBtn">⟳ Reset Preview</button>
                 </div>
+            </div>
+            <div class="studio-section">
+                <h3>📦 Export / Import</h3>
+                <div class="export-import-group">
+                    <button id="copyCssBtn" class="action-btn">📋 Copy CSS</button>
+                    <button id="exportJsonBtn" class="action-btn">💾 Export JSON</button>
+                    <button id="importJsonBtn" class="action-btn">📂 Import JSON</button>
+                    <input type="file" id="jsonFileInput" accept=".json" style="display:none">
+                </div>
+                <div class="info-badge" style="margin-top:6px;">Copy CSS variables or export/import theme as JSON</div>
             </div>
             <hr>
             <div class="compact-theme-selector">
@@ -108,21 +125,46 @@
                 </div>
             </div>
             <div class="info-badge">⚡ Left panel = main interface theme<br>🎨 Right preview = independent mock app theme</div>
-            <div class="version-row"><span>📌 ChromaForge · v1.2.1</span><br><span style="font-size:0.55rem;">(fixed test API, versioned test suite)</span></div>
+            <div class="version-row"><span>📌 ChromaForge · v1.6.0</span><br><span style="font-size:0.55rem;">(improved soft presets, blue‑based soft dark)</span></div>
         </div>
 
         <div class="preview-panel">
             <div class="app-header">
                 <div class="logo-area">✦ AETHERUI</div>
-                <div class="nav-links"><a href="#" class="nav-link active">Dashboard</a><a href="#" class="nav-link">Components</a><a href="#" class="nav-link">Playground</a></div>
+                <div class="nav-links">
+                    <a class="nav-link active" data-tab="dashboard">Dashboard</a>
+                    <a class="nav-link" data-tab="components">Components</a>
+                    <a class="nav-link" data-tab="playground">Playground</a>
+                </div>
             </div>
             <div class="preview-content">
-                <div class="grid-2col">
-                    <div class="card"><div class="card-title">🌿 Thematic abstraction</div><div class="card-text">Colors reshape the mood. This entire UI responds to your custom variables — primary, secondary, surface, border and text.</div><div class="button-group"><button class="btn btn-primary">Explore</button><button class="btn btn-secondary">Palette</button></div><div class="chip-row"><span class="chip">#chroma</span><span class="chip">themeable</span><span class="chip">css vars</span></div></div>
-                    <div class="card"><div class="card-title">🎛️ Dynamic control</div><div class="input-group"><label>Email address</label><input type="email" class="input-field" placeholder="design@abstract.app" value="hello@chroma.studio"></div><div class="input-group"><label>Feedback / role</label><select class="input-field"><option>Theme explorer</option><option>UI artist</option><option>Developer</option></select></div><button class="btn btn-primary" style="width:100%; margin-top: 6px;">Subscribe to inspiration</button></div>
+                <!-- Dashboard Tab -->
+                <div id="tab-dashboard" class="tab-pane active-pane">
+                    <div class="grid-2col">
+                        <div class="card"><div class="card-title">🌿 Thematic abstraction</div><div class="card-text">Colors reshape the mood. This entire UI responds to your custom variables — primary, secondary, surface, border and text.</div><div class="button-group"><button class="btn btn-primary">Explore</button><button class="btn btn-secondary">Palette</button></div><div class="chip-row"><span class="chip">#chroma</span><span class="chip">themeable</span><span class="chip">css vars</span></div></div>
+                        <div class="card"><div class="card-title">🎛️ Dynamic control</div><div class="input-group"><label>Email address</label><input type="email" class="input-field" placeholder="design@abstract.app" value="hello@chroma.studio"></div><div class="input-group"><label>Feedback / role</label><select class="input-field"><option>Theme explorer</option><option>UI artist</option><option>Developer</option></select></div><button class="btn btn-primary" style="width:100%; margin-top: 6px;">Subscribe to inspiration</button></div>
+                    </div>
+                    <div class="card" style="margin-bottom: 1rem;"><div class="card-title">📊 Theme engagement</div><div class="progress-section"><div class="progress-label"><span>Harmony score</span><span>78%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 78%; background: var(--primary);"></div></div></div><div class="progress-section"><div class="progress-label"><span>Contrast ratio</span><span>dynamic</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 92%; background: var(--secondary);"></div></div></div><div class="stats"><div class="stat-item"><div class="stat-number" id="primaryStat">⬤</div><div style="font-size: 0.65rem;">Primary</div></div><div class="stat-item"><div class="stat-number" id="secondaryStat">⬤</div><div style="font-size: 0.65rem;">Secondary</div></div><div class="stat-item"><div class="stat-number">∞</div><div style="font-size: 0.65rem;">Offline</div></div></div></div>
+                    <div class="card"><div class="card-title">🎨 Color tokens in action</div><div class="card-text">Primary & secondary appear on buttons, badges, progress bars, and links — all driven by your theme variables.</div><div class="button-group"><button class="btn">Neutral</button><button class="btn btn-primary">Primary action</button><button class="btn btn-secondary">Secondary action</button></div><div style="margin-top: 0.7rem; font-size: 0.7rem; border-left: 2px solid var(--primary); padding-left: 10px;">✦ Mock app theme is independent from main interface.</div></div>
                 </div>
-                <div class="card" style="margin-bottom: 1rem;"><div class="card-title">📊 Theme engagement</div><div class="progress-section"><div class="progress-label"><span>Harmony score</span><span>78%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 78%; background: var(--primary);"></div></div></div><div class="progress-section"><div class="progress-label"><span>Contrast ratio</span><span>dynamic</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 92%; background: var(--secondary);"></div></div></div><div class="stats"><div class="stat-item"><div class="stat-number" id="primaryStat">⬤</div><div style="font-size: 0.65rem;">Primary</div></div><div class="stat-item"><div class="stat-number" id="secondaryStat">⬤</div><div style="font-size: 0.65rem;">Secondary</div></div><div class="stat-item"><div class="stat-number">∞</div><div style="font-size: 0.65rem;">Offline</div></div></div></div>
-                <div class="card"><div class="card-title">🎨 Color tokens in action</div><div class="card-text">Primary & secondary appear on buttons, badges, progress bars, and links — all driven by your theme variables.</div><div class="button-group"><button class="btn">Neutral</button><button class="btn btn-primary">Primary action</button><button class="btn btn-secondary">Secondary action</button></div><div style="margin-top: 0.7rem; font-size: 0.7rem; border-left: 2px solid var(--primary); padding-left: 10px;">✦ Mock app theme is independent from main interface.</div></div>
+                <!-- Components Tab -->
+                <div id="tab-components" class="tab-pane">
+                    <div class="card"><div class="card-title">🧩 UI Components Library</div><div class="card-text">Explore themed components that react to your color variables.</div>
+                        <div class="button-group"><button class="btn">Default</button><button class="btn btn-primary">Primary</button><button class="btn btn-secondary">Secondary</button></div>
+                        <div class="input-group"><label>Slider (themed)</label><input type="range" min="0" max="100" value="42" class="input-field" style="padding:0;"></div>
+                        <div class="chip-row"><span class="chip">Chip One</span><span class="chip">Chip Two</span><span class="chip">Themed Border</span></div>
+                    </div>
+                    <div class="card"><div class="card-title">📋 Progress Bars</div><div class="progress-section"><div class="progress-label"><span>Primary progress</span><span>64%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 64%;"></div></div></div><div class="progress-section"><div class="progress-label"><span>Secondary progress</span><span>33%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 33%; background: var(--secondary);"></div></div></div></div>
+                </div>
+                <!-- Playground Tab -->
+                <div id="tab-playground" class="tab-pane">
+                    <div class="card"><div class="card-title">🎮 Interactive Playground</div><div class="card-text">Try live theming with dynamic counters and color mixing.</div>
+                        <div class="button-group"><button id="playgroundCounterBtn" class="btn btn-primary">Click me</button><span id="counterValue" style="margin-left: 10px; font-weight: bold;">0</span></div>
+                        <div class="progress-section"><div class="progress-label"><span>Random fill (themed)</span><span id="randomPercent">0%</span></div><div class="progress-bar-bg"><div id="randomFill" class="progress-fill" style="width: 0%;"></div></div></div>
+                        <button id="randomFillBtn" class="btn btn-secondary" style="margin-top: 8px;">Randomize</button>
+                        <div class="info-badge" style="margin-top: 12px;">✨ All interactive elements adapt to current theme.</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -139,7 +181,25 @@
         dark: { primary: "#8b5cf6", secondary: "#ec4899", bgColor: "#111827", surfaceColor: "#1f2937", textColor: "#f9fafb", borderColor: "#374151" },
         ocean: { primary: "#0ea5e9", secondary: "#06b6d4", bgColor: "#f0f9ff", surfaceColor: "#ffffff", textColor: "#0f172a", borderColor: "#bae6fd" },
         sunset: { primary: "#f97316", secondary: "#f43f5e", bgColor: "#fff7ed", surfaceColor: "#ffffff", textColor: "#431407", borderColor: "#fed7aa" },
-        forest: { primary: "#22c55e", secondary: "#84cc16", bgColor: "#ecfdf5", surfaceColor: "#ffffff", textColor: "#064e3b", borderColor: "#bbf7d0" }
+        forest: { primary: "#22c55e", secondary: "#84cc16", bgColor: "#ecfdf5", surfaceColor: "#ffffff", textColor: "#064e3b", borderColor: "#bbf7d0" },
+        // Soft Light - darker, richer pastel
+        "soft-light": {
+            primary: "#5a8fcc",      // darker dusty blue
+            secondary: "#6ba84e",    // deeper sage
+            bgColor: "#efe2c6",      // warm cream, slightly darker
+            surfaceColor: "#fdf7e8",
+            textColor: "#2c2c2c",    // dark gray for contrast
+            borderColor: "#c8b99a"
+        },
+        // Soft Dark - blue-based instead of violet
+        "soft-dark": {
+            primary: "#7a9cbb",      // dusty blue
+            secondary: "#6ca6cd",    // soft sky blue
+            bgColor: "#1e2a3a",      // deep navy-blue background
+            surfaceColor: "#2a3a4a",
+            textColor: "#e2e8f0",
+            borderColor: "#3a4a5a"
+        }
     };
     const root = document.documentElement;
     const primaryPicker = document.getElementById('primaryPicker');
@@ -172,6 +232,16 @@
         if(ps){ ps.style.color = primaryHex; ps.textContent = "⬤"; }
         if(ss){ ss.style.color = secondaryHex; ss.textContent = "⬤"; }
     }
+    function getCurrentPreviewTheme() {
+        return {
+            primary: root.style.getPropertyValue('--primary').trim() || getComputedStyle(root).getPropertyValue('--primary').trim(),
+            secondary: root.style.getPropertyValue('--secondary').trim() || getComputedStyle(root).getPropertyValue('--secondary').trim(),
+            bgColor: root.style.getPropertyValue('--bg-color').trim() || getComputedStyle(root).getPropertyValue('--bg-color').trim(),
+            surfaceColor: root.style.getPropertyValue('--surface-color').trim() || getComputedStyle(root).getPropertyValue('--surface-color').trim(),
+            textColor: root.style.getPropertyValue('--text-color').trim() || getComputedStyle(root).getPropertyValue('--text-color').trim(),
+            borderColor: root.style.getPropertyValue('--border-color').trim() || getComputedStyle(root).getPropertyValue('--border-color').trim()
+        };
+    }
     function bindPicker(picker, cssVar){
         if(!picker) return;
         picker.addEventListener('input', (e)=>{
@@ -202,7 +272,7 @@
     let currentMainTheme = 'auto';
     let systemPrefHandler = null;
     function applyMainTheme(mode){
-        currentMainTheme = mode;   // <-- FIX: update internal state
+        currentMainTheme = mode;
         mainContainer.classList.remove('main-dark');
         if(mode === 'dark') {
             mainContainer.classList.add('main-dark');
@@ -227,37 +297,135 @@
         });
     });
     applyMainTheme('auto');
-    document.querySelectorAll('#name-app .nav-link').forEach(link => {
-        link.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelectorAll('#name-app .nav-link').forEach(l=>l.classList.remove('active')); link.classList.add('active'); });
-    });
     
-    // ---------- TEST BRIDGE (URL trigger) ----------
+    // ----- TAB SWITCHING -----
+    function switchTab(tabId) {
+        document.querySelectorAll('#name-app .tab-pane').forEach(pane => pane.classList.remove('active-pane'));
+        const activePane = document.getElementById(`tab-${tabId}`);
+        if(activePane) activePane.classList.add('active-pane');
+        document.querySelectorAll('#name-app .nav-link').forEach(link => {
+            if(link.getAttribute('data-tab') === tabId) link.classList.add('active');
+            else link.classList.remove('active');
+        });
+    }
+    document.querySelectorAll('#name-app .nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabId = link.getAttribute('data-tab');
+            if(tabId) switchTab(tabId);
+        });
+    });
+    // Playground interactive elements
+    let counter = 0;
+    const counterBtn = document.getElementById('playgroundCounterBtn');
+    const counterSpan = document.getElementById('counterValue');
+    if(counterBtn && counterSpan) counterBtn.addEventListener('click', () => { counter++; counterSpan.textContent = counter; });
+    const randomFillBtn = document.getElementById('randomFillBtn');
+    const randomFillDiv = document.getElementById('randomFill');
+    const randomPercentSpan = document.getElementById('randomPercent');
+    if(randomFillBtn && randomFillDiv) {
+        randomFillBtn.addEventListener('click', () => {
+            const percent = Math.floor(Math.random() * 101);
+            randomFillDiv.style.width = `${percent}%`;
+            if(randomPercentSpan) randomPercentSpan.textContent = `${percent}%`;
+        });
+    }
+    
+    // ----- Export / Import -----
+    function copyCssToClipboard() {
+        const theme = getCurrentPreviewTheme();
+        const cssString = `:root {\n  --primary: ${theme.primary};\n  --secondary: ${theme.secondary};\n  --bg-color: ${theme.bgColor};\n  --surface-color: ${theme.surfaceColor};\n  --text-color: ${theme.textColor};\n  --border-color: ${theme.borderColor};\n}`;
+        navigator.clipboard.writeText(cssString).then(() => showToast("✅ CSS copied to clipboard!", "info")).catch(() => showToast("❌ Failed to copy", "error"));
+    }
+    function exportToJson() {
+        const theme = getCurrentPreviewTheme();
+        const dataStr = JSON.stringify(theme, null, 2);
+        const blob = new Blob([dataStr], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chromaforge_theme_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast("💾 Theme exported as JSON", "info");
+    }
+    function importFromJson(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const theme = JSON.parse(e.target.result);
+                const required = ['primary','secondary','bgColor','surfaceColor','textColor','borderColor'];
+                if(required.every(k => theme[k] && /^#[0-9A-Fa-f]{6}$/.test(theme[k]))) {
+                    applyPreviewTheme(theme);
+                    showToast("📂 Theme imported successfully", "info");
+                } else {
+                    showToast("❌ Invalid theme file: missing or malformed hex colors", "error");
+                }
+            } catch(err) {
+                showToast("❌ Failed to parse JSON", "error");
+            }
+        };
+        reader.readAsText(file);
+    }
+    const copyBtn = document.getElementById('copyCssBtn');
+    const exportBtn = document.getElementById('exportJsonBtn');
+    const importBtn = document.getElementById('importJsonBtn');
+    const fileInput = document.getElementById('jsonFileInput');
+    if(copyBtn) copyBtn.addEventListener('click', copyCssToClipboard);
+    if(exportBtn) exportBtn.addEventListener('click', exportToJson);
+    if(importBtn) importBtn.addEventListener('click', () => fileInput.click());
+    if(fileInput) fileInput.addEventListener('change', (e) => { if(e.target.files[0]) importFromJson(e.target.files[0]); e.target.value = ''; });
+    
+    // Toast system
+    let activeToastTimeout = null;
+    let toastContainer = null;
+    function ensureToastContainer() {
+        if(!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'test-toast';
+            document.getElementById('name-app').appendChild(toastContainer);
+        }
+        return toastContainer;
+    }
+    function showToast(message, type = 'info') {
+        const container = ensureToastContainer();
+        if(activeToastTimeout) clearTimeout(activeToastTimeout);
+        container.style.opacity = '1';
+        container.style.borderLeftColor = type === 'error' ? '#ef4444' : 'var(--main-accent)';
+        container.innerHTML = message;
+        activeToastTimeout = setTimeout(() => {
+            container.style.opacity = '0';
+            setTimeout(() => { if(container.parentNode) container.style.display = 'none'; }, 300);
+            activeToastTimeout = null;
+        }, 7000);
+        container.style.display = 'block';
+    }
+    window.__showTestToast = showToast;
+    
+    // ---------- TEST BRIDGE ----------
     const urlParams = new URLSearchParams(window.location.search);
     if(urlParams.has('test')) {
         window.__TEST_API__ = {
-            applyPreviewTheme,
-            applyMainTheme,
-            getCurrentPreviewTheme: () => ({
-                primary: root.style.getPropertyValue('--primary').trim() || getComputedStyle(root).getPropertyValue('--primary').trim(),
-                secondary: root.style.getPropertyValue('--secondary').trim() || getComputedStyle(root).getPropertyValue('--secondary').trim(),
-                bgColor: root.style.getPropertyValue('--bg-color').trim() || getComputedStyle(root).getPropertyValue('--bg-color').trim(),
-                surfaceColor: root.style.getPropertyValue('--surface-color').trim() || getComputedStyle(root).getPropertyValue('--surface-color').trim(),
-                textColor: root.style.getPropertyValue('--text-color').trim() || getComputedStyle(root).getPropertyValue('--text-color').trim(),
-                borderColor: root.style.getPropertyValue('--border-color').trim() || getComputedStyle(root).getPropertyValue('--border-color').trim()
-            }),
-            getMainThemeMode: () => currentMainTheme,
+            applyPreviewTheme, applyMainTheme, getCurrentPreviewTheme, getMainThemeMode: () => currentMainTheme,
             getMainContainerClass: () => mainContainer.classList.contains('main-dark') ? 'dark' : 'light',
-            DEFAULT_PREVIEW_THEME,
-            PREVIEW_PRESETS,
+            DEFAULT_PREVIEW_THEME, PREVIEW_PRESETS,
             getPreviewPanel: () => document.querySelector('#name-app .preview-panel'),
             getPrimaryButton: () => document.querySelector('#name-app .btn-primary'),
             getPrimaryStatElement: () => document.getElementById('primaryStat'),
             getProgressFill: () => document.querySelector('#name-app .progress-fill'),
-            showTestToast: (msg, isErr) => showToast(msg, isErr ? 'error' : 'info')
+            copyCssToClipboard, exportToJson, importFromJson,
+            switchTab, getActiveTab: () => document.querySelector('#name-app .tab-pane.active-pane')?.id.replace('tab-', '') || 'dashboard',
+            getCounterValue: () => parseInt(document.getElementById('counterValue')?.textContent || '0'),
+            clickCounter: () => document.getElementById('playgroundCounterBtn')?.click(),
+            getRandomFillPercent: () => parseInt(document.getElementById('randomFill')?.style.width || '0%'),
+            clickRandomFill: () => document.getElementById('randomFillBtn')?.click(),
+            showTestToast: showToast
         };
         function loadTestScript() {
             const script = document.createElement('script');
-            script.src = 'ChromaForge_v1_2_1_tests.js';
+            script.src = 'ChromaForge_v1_6_0_tests.js';
             script.onload = () => {
                 if(urlParams.get('test') === 'run' && typeof window.__runTests === 'function') {
                     window.__runTests();
@@ -266,30 +434,6 @@
             script.onerror = () => showToast('❌ Failed to load test suite.', 'error');
             document.head.appendChild(script);
         }
-        let activeToastTimeout = null;
-        let toastContainer = null;
-        function ensureToastContainer() {
-            if(!toastContainer) {
-                toastContainer = document.createElement('div');
-                toastContainer.className = 'test-toast';
-                document.getElementById('name-app').appendChild(toastContainer);
-            }
-            return toastContainer;
-        }
-        function showToast(message, type = 'info') {
-            const container = ensureToastContainer();
-            if(activeToastTimeout) clearTimeout(activeToastTimeout);
-            container.style.opacity = '1';
-            container.style.borderLeftColor = type === 'error' ? '#ef4444' : 'var(--main-accent)';
-            container.innerHTML = message;
-            activeToastTimeout = setTimeout(() => {
-                container.style.opacity = '0';
-                setTimeout(() => { if(container.parentNode) container.style.display = 'none'; }, 300);
-                activeToastTimeout = null;
-            }, 7000);
-            container.style.display = 'block';
-        }
-        window.__showTestToast = showToast;
         loadTestScript();
     }
 })();

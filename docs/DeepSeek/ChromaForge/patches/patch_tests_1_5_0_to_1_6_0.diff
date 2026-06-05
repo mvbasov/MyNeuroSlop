@@ -1,0 +1,71 @@
+--- ChromaForge_v1_5_0_tests.js	2026-06-05 16:54:19.048458963 +0300
++++ ChromaForge_v1_6_0_tests.js	2026-06-05 16:06:23.765192468 +0300
+@@ -1,4 +1,4 @@
+-// ChromaForge_v1_5_0_tests.js - includes soft pastel preset tests
++// ChromaForge_v1_6_0_tests.js - updated soft preset expectations
+ (function() {
+     let totalTests = 0;
+     let passedTests = 0;
+@@ -61,7 +61,7 @@
+         testRan = true;
+         totalTests = 0; passedTests = 0; failedTests = 0;
+         results.length = 0;
+-        console.log("🧪 ChromaForge test suite (v1.5.0)\n");
++        console.log("🧪 ChromaForge test suite (v1.6.0)\n");
+         
+         // ----- 1. Internal Logic Tests -----
+         const testTheme = { primary: "#ff0000", secondary: "#00ff00", bgColor: "#ffffff", surfaceColor: "#eeeeee", textColor: "#000000", borderColor: "#cccccc" };
+@@ -79,16 +79,16 @@
+         assertEquals(darkPreview.primary, "#8b5cf6", "Dark preset primary is purple");
+         assertEquals(darkPreview.bgColor, "#111827", "Dark preset background is dark");
+         
+-        // Test new soft presets
++        // Test updated soft presets
+         api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-light"]);
+         const softLight = api.getCurrentPreviewTheme();
+-        assertEquals(softLight.primary, "#a7c5eb", "Soft Light preset primary is pastel blue");
+-        assertEquals(softLight.bgColor, "#fff9f0", "Soft Light preset background is warm off-white");
++        assertEquals(softLight.primary, "#5a8fcc", "Soft Light preset primary is darker pastel blue");
++        assertEquals(softLight.bgColor, "#efe2c6", "Soft Light preset background is warm cream");
+         
+         api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-dark"]);
+         const softDark = api.getCurrentPreviewTheme();
+-        assertEquals(softDark.primary, "#b8a9e6", "Soft Dark preset primary is pastel lavender");
+-        assertEquals(softDark.bgColor, "#2d2b3a", "Soft Dark preset background is deep muted purple");
++        assertEquals(softDark.primary, "#7a9cbb", "Soft Dark preset primary is dusty blue");
++        assertEquals(softDark.bgColor, "#1e2a3a", "Soft Dark preset background is deep navy-blue");
+         
+         // Main theme switching
+         api.applyMainTheme("light");
+@@ -99,10 +99,10 @@
+         assertTrue(api.getMainContainerClass() === "dark", "Dark mode adds main-dark class");
+         api.applyMainTheme("auto");
+         
+-        // ----- 2. DOM / UI State Tests (with one soft preset) -----
++        // ----- 2. DOM / UI State Tests (using new soft-light values) -----
+         api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-light"]);
+-        const softPrimaryRgb = "rgb(167, 197, 235)"; // #a7c5eb
+-        const softBorderRgb = "rgb(230, 223, 204)"; // #e6dfcc
++        const softPrimaryRgb = "rgb(90, 143, 204)"; // #5a8fcc
++        const softBorderRgb = "rgb(200, 185, 154)"; // #c8b99a
+         
+         const primaryBtn = api.getPrimaryButton();
+         if(primaryBtn) {
+@@ -137,7 +137,7 @@
+         assertTrue(studioBg !== "rgb(241, 245, 249)" && studioBg.length > 0, "Main dark theme changes studio background");
+         api.applyMainTheme("auto");
+         
+-        // ----- 3. Tab Switching & Playground Tests (unchanged) -----
++        // ----- 3. Tab Switching & Playground Tests -----
+         assertEquals(api.getActiveTab(), "dashboard", "Initial active tab is dashboard");
+         api.switchTab("components");
+         assertEquals(api.getActiveTab(), "components", "Switch to components tab works");
+@@ -156,7 +156,7 @@
+         const newPercent = api.getRandomFillPercent();
+         assertTrue(newPercent !== initialPercent || newPercent >= 0, "Random fill button changes width");
+         
+-        // ----- 4. Export / Import Tests -----
++        // ----- 4. Export / Import -----
+         const testExportTheme = { primary: "#aa44cc", secondary: "#77aa33", bgColor: "#ffeecc", surfaceColor: "#ffffff", textColor: "#111111", borderColor: "#dddddd" };
+         api.applyPreviewTheme(testExportTheme);
+         const exported = api.getCurrentPreviewTheme();

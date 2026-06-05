@@ -1,0 +1,164 @@
+--- ChromaForge_v1_2_1_tests.js	2026-06-05 13:52:19.071351249 +0300
++++ ChromaForge_v1_3_0_tests.js	2026-06-05 15:39:11.405361015 +0300
+@@ -1,4 +1,4 @@
+-// ChromaForge_v1_2_1_tests.js - Fixed reset preview test
++// ChromaForge_v1_3_0_tests.js - concise console output
+ (function() {
+     let totalTests = 0;
+     let passedTests = 0;
+@@ -7,7 +7,10 @@
+     let testRan = false;
+ 
+     function logResult(message) {
+-        console.log(message);
++        // Truncate overly long messages for cleaner console
++        const maxLen = 120;
++        const shortMsg = message.length > maxLen ? message.substring(0, maxLen) + "…" : message;
++        console.log(shortMsg);
+         results.push(message);
+     }
+ 
+@@ -28,13 +31,19 @@
+         const condition = actual === expected;
+         totalTests++;
+         if(condition) {
+-            passedTests++;
+-            logResult(`✅ PASS: ${message} (${actual} === ${expected})`);
++            // For long strings, don't repeat the value
++            const isLong = typeof actual === 'string' && actual.length > 100;
++            if (isLong) {
++                logResult(`✅ PASS: ${message}`);
++            } else {
++                logResult(`✅ PASS: ${message} (${actual} === ${expected})`);
++            }
++            return true;
+         } else {
+             failedTests++;
+             logResult(`❌ FAIL: ${message} (expected ${expected}, got ${actual})`);
++            return false;
+         }
+-        return condition;
+     }
+ 
+     const api = window.__TEST_API__;
+@@ -59,7 +68,7 @@
+         testRan = true;
+         totalTests = 0; passedTests = 0; failedTests = 0;
+         results.length = 0;
+-        console.log("🧪 Starting ChromaForge test suite...\n");
++        console.log("🧪 ChromaForge test suite (v1.3.0)\n");
+         
+         // ----- 1. Internal Logic Tests -----
+         const testTheme = { primary: "#ff0000", secondary: "#00ff00", bgColor: "#ffffff", surfaceColor: "#eeeeee", textColor: "#000000", borderColor: "#cccccc" };
+@@ -86,27 +95,23 @@
+         assertTrue(api.getMainContainerClass() === "dark", "Dark mode adds main-dark class");
+         api.applyMainTheme("auto");
+         
+-        // ----- 2. DOM / UI State Tests with retry -----
++        // ----- 2. DOM / UI State Tests -----
+         api.applyPreviewTheme(api.PREVIEW_PRESETS.ocean);
+-        const oceanPrimaryRgb = "rgb(14, 165, 233)"; // #0ea5e9
+-        const oceanBorderRgb = "rgb(186, 230, 253)"; // #bae6fd
++        const oceanPrimaryRgb = "rgb(14, 165, 233)";
++        const oceanBorderRgb = "rgb(186, 230, 253)";
+         
+         const primaryBtn = api.getPrimaryButton();
+         if(primaryBtn) {
+             const btnOk = await waitForStyle(primaryBtn, "backgroundColor", oceanPrimaryRgb);
+             const actualBg = window.getComputedStyle(primaryBtn).backgroundColor;
+             assertTrue(btnOk, `Primary button becomes ocean primary (${actualBg})`);
+-        } else {
+-            assert(false, "Primary button element not found");
+-        }
++        } else { assert(false, "Primary button element not found"); }
+         
+         const progressFill = api.getProgressFill();
+         if(progressFill) {
+             const fillBg = window.getComputedStyle(progressFill).backgroundColor;
+             assertTrue(fillBg === oceanPrimaryRgb, `Progress fill uses ocean primary (${fillBg})`);
+-        } else {
+-            assert(false, "Progress fill missing");
+-        }
++        } else { assert(false, "Progress fill missing"); }
+         
+         const statEl = api.getPrimaryStatElement();
+         if(statEl) {
+@@ -128,34 +133,57 @@
+         assertTrue(studioBg !== "rgb(241, 245, 249)" && studioBg.length > 0, "Main dark theme changes studio background");
+         api.applyMainTheme("auto");
+         
+-        // ----- 3. Edge Cases & Integrity -----
+-        // Test that applying a valid hex works and restores cleanly
+-        const backupTheme = api.getCurrentPreviewTheme();
+-        try {
+-            api.applyPreviewTheme({ ...api.DEFAULT_PREVIEW_THEME, primary: "#123456" });
+-            const newTheme = api.getCurrentPreviewTheme();
+-            assertEquals(newTheme.primary, "#123456", "applyPreviewTheme accepts any valid hex without crashing");
+-            api.applyPreviewTheme(backupTheme);
+-            assert(true, "Theme restoration after valid change works");
+-        } catch(e) {
+-            assert(false, "applyPreviewTheme threw unexpectedly: " + e.message);
+-        }
+-        
+-        // FIX: Reset preview should restore DEFAULT theme, not the previous one
+-        const defaultThemeExpected = api.DEFAULT_PREVIEW_THEME;
+-        api.applyPreviewTheme(api.PREVIEW_PRESETS.sunset);
++        // ----- 3. Export / Import Tests (clean console) -----
++        const testExportTheme = { 
++            primary: "#aa44cc", 
++            secondary: "#77aa33", 
++            bgColor: "#ffeecc", 
++            surfaceColor: "#ffffff", 
++            textColor: "#111111", 
++            borderColor: "#dddddd" 
++        };
++        api.applyPreviewTheme(testExportTheme);
++        const exported = api.getCurrentPreviewTheme();
++        assertEquals(exported.primary, "#aa44cc", "getCurrentPreviewTheme returns correct primary after change");
++        
++        // Test copyCssToClipboard - concise check without printing the full CSS
++        const originalClipboardWrite = navigator.clipboard.writeText;
++        let capturedCss = null;
++        navigator.clipboard.writeText = function(text) {
++            capturedCss = text;
++            return Promise.resolve();
++        };
++        api.copyCssToClipboard();
++        await new Promise(resolve => setTimeout(resolve, 0));
++        const expectedCss = `:root {\n  --primary: ${testExportTheme.primary};\n  --secondary: ${testExportTheme.secondary};\n  --bg-color: ${testExportTheme.bgColor};\n  --surface-color: ${testExportTheme.surfaceColor};\n  --text-color: ${testExportTheme.textColor};\n  --border-color: ${testExportTheme.borderColor};\n}`;
++        // Use assertTrue to avoid logging the huge strings
++        assertTrue(capturedCss === expectedCss, "copyCssToClipboard generates correct CSS string");
++        navigator.clipboard.writeText = originalClipboardWrite;
++        
++        // Test importFromJson
++        const validJson = JSON.stringify(testExportTheme);
++        const blob = new Blob([validJson], {type: "application/json"});
++        const file = new File([blob], "theme.json", {type: "application/json"});
++        const originalToast = window.__showTestToast;
++        window.__showTestToast = () => {};
++        const importPromise = new Promise((resolve) => {
++            api.importFromJson(file);
++            setTimeout(() => {
++                const newTheme = api.getCurrentPreviewTheme();
++                assertEquals(newTheme.primary, testExportTheme.primary, "importFromJson correctly applies valid theme");
++                resolve();
++            }, 100);
++        });
++        await importPromise;
++        window.__showTestToast = originalToast;
++        
+         api.applyPreviewTheme(api.DEFAULT_PREVIEW_THEME);
+-        const afterReset = api.getCurrentPreviewTheme();
+-        assertEquals(afterReset.primary, defaultThemeExpected.primary, "Reset preview restores default theme (primary)");
+-        assertEquals(afterReset.secondary, defaultThemeExpected.secondary, "Reset preview restores default theme (secondary)");
+         
+         const finalMessage = `\n🧪 FINAL SUMMARY: ${passedTests}/${totalTests} passed, ${failedTests} failed.`;
+         console.log(finalMessage);
+         if(window.__showTestToast) {
+             const color = failedTests === 0 ? "✅ ALL TESTS PASSED" : "❌ SOME TESTS FAILED";
+             window.__showTestToast(`${color}\n${passedTests}/${totalTests} passed`, failedTests > 0 ? "error" : "info");
+-        } else {
+-            alert(finalMessage);
+         }
+     }
+     

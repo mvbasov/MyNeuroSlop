@@ -1,0 +1,168 @@
+--- ChromaForge_v1_3_0.html	2026-06-05 15:31:20.385136117 +0300
++++ ChromaForge_v1_4_0.html	2026-06-05 15:49:24.137345709 +0300
+@@ -46,9 +46,12 @@
+         #name-app .app-header { background: var(--surface-color); border-bottom: 2px solid var(--border-color); padding: 0.8rem 1.2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+         #name-app .logo-area { font-weight: 700; font-size: 1.2rem; background: linear-gradient(135deg, var(--primary), var(--secondary)); background-clip: text; -webkit-background-clip: text; color: transparent; }
+         #name-app .nav-links { display: flex; gap: 1rem; }
+-        #name-app .nav-link { color: var(--text-color); text-decoration: none; font-weight: 500; font-size: 0.8rem; transition: var(--transition); border-bottom: 2px solid transparent; padding-bottom: 3px; }
++        #name-app .nav-link { color: var(--text-color); text-decoration: none; font-weight: 500; font-size: 0.8rem; transition: var(--transition); border-bottom: 2px solid transparent; padding-bottom: 3px; cursor: pointer; }
+         #name-app .nav-link.active { border-bottom-color: var(--primary); color: var(--primary); }
+         #name-app .preview-content { padding: 1.2rem; }
++        /* Tab content panels */
++        #name-app .tab-pane { display: none; }
++        #name-app .tab-pane.active-pane { display: block; }
+         #name-app .grid-2col { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 1.5rem; }
+         #name-app .card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; transition: var(--transition); box-shadow: var(--shadow-sm); }
+         #name-app .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-color); }
+@@ -118,21 +121,46 @@
+                 </div>
+             </div>
+             <div class="info-badge">⚡ Left panel = main interface theme<br>🎨 Right preview = independent mock app theme</div>
+-            <div class="version-row"><span>📌 ChromaForge · v1.3.0</span><br><span style="font-size:0.55rem;">(export/import + tests)</span></div>
++            <div class="version-row"><span>📌 ChromaForge · v1.4.0</span><br><span style="font-size:0.55rem;">(working tabs + tests)</span></div>
+         </div>
+ 
+         <div class="preview-panel">
+             <div class="app-header">
+                 <div class="logo-area">✦ AETHERUI</div>
+-                <div class="nav-links"><a href="#" class="nav-link active">Dashboard</a><a href="#" class="nav-link">Components</a><a href="#" class="nav-link">Playground</a></div>
++                <div class="nav-links">
++                    <a class="nav-link active" data-tab="dashboard">Dashboard</a>
++                    <a class="nav-link" data-tab="components">Components</a>
++                    <a class="nav-link" data-tab="playground">Playground</a>
++                </div>
+             </div>
+             <div class="preview-content">
+-                <div class="grid-2col">
+-                    <div class="card"><div class="card-title">🌿 Thematic abstraction</div><div class="card-text">Colors reshape the mood. This entire UI responds to your custom variables — primary, secondary, surface, border and text.</div><div class="button-group"><button class="btn btn-primary">Explore</button><button class="btn btn-secondary">Palette</button></div><div class="chip-row"><span class="chip">#chroma</span><span class="chip">themeable</span><span class="chip">css vars</span></div></div>
+-                    <div class="card"><div class="card-title">🎛️ Dynamic control</div><div class="input-group"><label>Email address</label><input type="email" class="input-field" placeholder="design@abstract.app" value="hello@chroma.studio"></div><div class="input-group"><label>Feedback / role</label><select class="input-field"><option>Theme explorer</option><option>UI artist</option><option>Developer</option></select></div><button class="btn btn-primary" style="width:100%; margin-top: 6px;">Subscribe to inspiration</button></div>
++                <!-- Dashboard Tab (original content) -->
++                <div id="tab-dashboard" class="tab-pane active-pane">
++                    <div class="grid-2col">
++                        <div class="card"><div class="card-title">🌿 Thematic abstraction</div><div class="card-text">Colors reshape the mood. This entire UI responds to your custom variables — primary, secondary, surface, border and text.</div><div class="button-group"><button class="btn btn-primary">Explore</button><button class="btn btn-secondary">Palette</button></div><div class="chip-row"><span class="chip">#chroma</span><span class="chip">themeable</span><span class="chip">css vars</span></div></div>
++                        <div class="card"><div class="card-title">🎛️ Dynamic control</div><div class="input-group"><label>Email address</label><input type="email" class="input-field" placeholder="design@abstract.app" value="hello@chroma.studio"></div><div class="input-group"><label>Feedback / role</label><select class="input-field"><option>Theme explorer</option><option>UI artist</option><option>Developer</option></select></div><button class="btn btn-primary" style="width:100%; margin-top: 6px;">Subscribe to inspiration</button></div>
++                    </div>
++                    <div class="card" style="margin-bottom: 1rem;"><div class="card-title">📊 Theme engagement</div><div class="progress-section"><div class="progress-label"><span>Harmony score</span><span>78%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 78%; background: var(--primary);"></div></div></div><div class="progress-section"><div class="progress-label"><span>Contrast ratio</span><span>dynamic</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 92%; background: var(--secondary);"></div></div></div><div class="stats"><div class="stat-item"><div class="stat-number" id="primaryStat">⬤</div><div style="font-size: 0.65rem;">Primary</div></div><div class="stat-item"><div class="stat-number" id="secondaryStat">⬤</div><div style="font-size: 0.65rem;">Secondary</div></div><div class="stat-item"><div class="stat-number">∞</div><div style="font-size: 0.65rem;">Offline</div></div></div></div>
++                    <div class="card"><div class="card-title">🎨 Color tokens in action</div><div class="card-text">Primary & secondary appear on buttons, badges, progress bars, and links — all driven by your theme variables.</div><div class="button-group"><button class="btn">Neutral</button><button class="btn btn-primary">Primary action</button><button class="btn btn-secondary">Secondary action</button></div><div style="margin-top: 0.7rem; font-size: 0.7rem; border-left: 2px solid var(--primary); padding-left: 10px;">✦ Mock app theme is independent from main interface.</div></div>
++                </div>
++                <!-- Components Tab -->
++                <div id="tab-components" class="tab-pane">
++                    <div class="card"><div class="card-title">🧩 UI Components Library</div><div class="card-text">Explore themed components that react to your color variables.</div>
++                        <div class="button-group"><button class="btn">Default</button><button class="btn btn-primary">Primary</button><button class="btn btn-secondary">Secondary</button></div>
++                        <div class="input-group"><label>Slider (themed)</label><input type="range" min="0" max="100" value="42" class="input-field" style="padding:0;"></div>
++                        <div class="chip-row"><span class="chip">Chip One</span><span class="chip">Chip Two</span><span class="chip">Themed Border</span></div>
++                    </div>
++                    <div class="card"><div class="card-title">📋 Progress Bars</div><div class="progress-section"><div class="progress-label"><span>Primary progress</span><span>64%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 64%;"></div></div></div><div class="progress-section"><div class="progress-label"><span>Secondary progress</span><span>33%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 33%; background: var(--secondary);"></div></div></div></div>
++                </div>
++                <!-- Playground Tab -->
++                <div id="tab-playground" class="tab-pane">
++                    <div class="card"><div class="card-title">🎮 Interactive Playground</div><div class="card-text">Try live theming with dynamic counters and color mixing.</div>
++                        <div class="button-group"><button id="playgroundCounterBtn" class="btn btn-primary">Click me</button><span id="counterValue" style="margin-left: 10px; font-weight: bold;">0</span></div>
++                        <div class="progress-section"><div class="progress-label"><span>Random fill (themed)</span><span id="randomPercent">0%</span></div><div class="progress-bar-bg"><div id="randomFill" class="progress-fill" style="width: 0%;"></div></div></div>
++                        <button id="randomFillBtn" class="btn btn-secondary" style="margin-top: 8px;">Randomize</button>
++                        <div class="info-badge" style="margin-top: 12px;">✨ All interactive elements adapt to current theme.</div>
++                    </div>
+                 </div>
+-                <div class="card" style="margin-bottom: 1rem;"><div class="card-title">📊 Theme engagement</div><div class="progress-section"><div class="progress-label"><span>Harmony score</span><span>78%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 78%; background: var(--primary);"></div></div></div><div class="progress-section"><div class="progress-label"><span>Contrast ratio</span><span>dynamic</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 92%; background: var(--secondary);"></div></div></div><div class="stats"><div class="stat-item"><div class="stat-number" id="primaryStat">⬤</div><div style="font-size: 0.65rem;">Primary</div></div><div class="stat-item"><div class="stat-number" id="secondaryStat">⬤</div><div style="font-size: 0.65rem;">Secondary</div></div><div class="stat-item"><div class="stat-number">∞</div><div style="font-size: 0.65rem;">Offline</div></div></div></div>
+-                <div class="card"><div class="card-title">🎨 Color tokens in action</div><div class="card-text">Primary & secondary appear on buttons, badges, progress bars, and links — all driven by your theme variables.</div><div class="button-group"><button class="btn">Neutral</button><button class="btn btn-primary">Primary action</button><button class="btn btn-secondary">Secondary action</button></div><div style="margin-top: 0.7rem; font-size: 0.7rem; border-left: 2px solid var(--primary); padding-left: 10px;">✦ Mock app theme is independent from main interface.</div></div>
+             </div>
+         </div>
+     </div>
+@@ -247,9 +275,52 @@
+         });
+     });
+     applyMainTheme('auto');
++    
++    // ----- TAB SWITCHING FUNCTIONALITY -----
++    function switchTab(tabId) {
++        // Hide all panes
++        document.querySelectorAll('#name-app .tab-pane').forEach(pane => {
++            pane.classList.remove('active-pane');
++        });
++        // Show selected pane
++        const activePane = document.getElementById(`tab-${tabId}`);
++        if(activePane) activePane.classList.add('active-pane');
++        // Update nav link active states
++        document.querySelectorAll('#name-app .nav-link').forEach(link => {
++            if(link.getAttribute('data-tab') === tabId) {
++                link.classList.add('active');
++            } else {
++                link.classList.remove('active');
++            }
++        });
++    }
+     document.querySelectorAll('#name-app .nav-link').forEach(link => {
+-        link.addEventListener('click', (e)=>{ e.preventDefault(); document.querySelectorAll('#name-app .nav-link').forEach(l=>l.classList.remove('active')); link.classList.add('active'); });
++        link.addEventListener('click', (e) => {
++            e.preventDefault();
++            const tabId = link.getAttribute('data-tab');
++            if(tabId) switchTab(tabId);
++        });
+     });
++    // Playground interactive elements (counter, random fill)
++    let counter = 0;
++    const counterBtn = document.getElementById('playgroundCounterBtn');
++    const counterSpan = document.getElementById('counterValue');
++    if(counterBtn && counterSpan) {
++        counterBtn.addEventListener('click', () => {
++            counter++;
++            counterSpan.textContent = counter;
++        });
++    }
++    const randomFillBtn = document.getElementById('randomFillBtn');
++    const randomFillDiv = document.getElementById('randomFill');
++    const randomPercentSpan = document.getElementById('randomPercent');
++    if(randomFillBtn && randomFillDiv) {
++        randomFillBtn.addEventListener('click', () => {
++            const percent = Math.floor(Math.random() * 101);
++            randomFillDiv.style.width = `${percent}%`;
++            if(randomPercentSpan) randomPercentSpan.textContent = `${percent}%`;
++        });
++    }
+     
+     // ----- Export / Import functionality -----
+     function copyCssToClipboard() {
+@@ -276,7 +347,6 @@
+         reader.onload = (e) => {
+             try {
+                 const theme = JSON.parse(e.target.result);
+-                // validate required fields
+                 const required = ['primary','secondary','bgColor','surfaceColor','textColor','borderColor'];
+                 if(required.every(k => theme[k] && /^#[0-9A-Fa-f]{6}$/.test(theme[k]))) {
+                     applyPreviewTheme(theme);
+@@ -299,7 +369,7 @@
+     if(importBtn) importBtn.addEventListener('click', () => fileInput.click());
+     if(fileInput) fileInput.addEventListener('change', (e) => { if(e.target.files[0]) importFromJson(e.target.files[0]); e.target.value = ''; });
+     
+-    // Toast system (also used by tests)
++    // Toast system
+     let activeToastTimeout = null;
+     let toastContainer = null;
+     function ensureToastContainer() {
+@@ -325,7 +395,7 @@
+     }
+     window.__showTestToast = showToast;
+     
+-    // ---------- TEST BRIDGE (URL trigger) ----------
++    // ---------- TEST BRIDGE ----------
+     const urlParams = new URLSearchParams(window.location.search);
+     if(urlParams.has('test')) {
+         window.__TEST_API__ = {
+@@ -337,11 +407,16 @@
+             getPrimaryStatElement: () => document.getElementById('primaryStat'),
+             getProgressFill: () => document.querySelector('#name-app .progress-fill'),
+             copyCssToClipboard, exportToJson, importFromJson,
++            switchTab, getActiveTab: () => document.querySelector('#name-app .tab-pane.active-pane')?.id.replace('tab-', '') || 'dashboard',
++            getCounterValue: () => parseInt(document.getElementById('counterValue')?.textContent || '0'),
++            clickCounter: () => document.getElementById('playgroundCounterBtn')?.click(),
++            getRandomFillPercent: () => parseInt(document.getElementById('randomFill')?.style.width || '0%'),
++            clickRandomFill: () => document.getElementById('randomFillBtn')?.click(),
+             showTestToast: showToast
+         };
+         function loadTestScript() {
+             const script = document.createElement('script');
+-            script.src = 'ChromaForge_v1_3_0_tests.js';
++            script.src = 'ChromaForge_v1_4_0_tests.js';
+             script.onload = () => {
+                 if(urlParams.get('test') === 'run' && typeof window.__runTests === 'function') {
+                     window.__runTests();

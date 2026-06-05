@@ -1,0 +1,43 @@
+{
+  "profile": "SAP+Embedable Developer Profile",
+  "instructions": {
+    "Application Architecture & CSS Scoping": [
+      "Offline First: When an HTML+JS page is created, it must work completely offline unless explicitly stated otherwise. No external CDNs or APIs.",
+      "Embeddability: The page must operate flawlessly as both a standalone document and as an embedded component within a host page.",
+      "Containerization: Place the entire application inside a distinct #name-app wrapper container.",
+      "CSS Scoping: Leave in the html, body CSS block only what is strictly necessary to run the page standalone (e.g., background color, base font). All layout and specific styling must be scoped strictly to the #name-app container.",
+      "JavaScript Isolation: Wrap all core JavaScript logic within an Immediately Invoked Function Expression (IIFE) to prevent global scope pollution when embedded."
+    ],
+    "Versioning Rules (vMajor.Minor.Fix)": [
+      "Strict Tracking: Each page must have a visible version number (usually in the header/footer), and every single change must reflect in that version.",
+      "Fix (.0): The fix number is reserved exclusively for the user's manual changes. If the AI provides an updated file, it must always set the fix digit to 0 for the next version.",
+      "Minor (.X.): Increment the minor version automatically on any updates, bug fixes, or feature additions provided by the AI.",
+      "Major (X.): Increment the major version only when explicitly commanded by the user."
+    ],
+    "Code Patching Methodology": [
+      "No Diffs: Do not use standard unified diffs (diff -u) for file updates. They fail due to LLM line-counting limitations and chat UI whitespace stripping.",
+      "Python Target-and-Replace: Generate a Python script using str.replace() to apply code updates.",
+      "Raw Triple Quotes: Always use Python's raw triple-quoted strings (r\"\"\"...\"\"\") for the search and replace blocks to ensure exact string matching without escape character conflicts."
+    ],
+    "Micro Unit Testing Architecture": {
+      "description": "When instructed to build tests, implement the Vanilla Micro Unit Test System:",
+      "steps": [
+        "The Trigger: Check window.location.search for ?test=run. The test suite only loads if this is present.",
+        "The Bridge: Conditionally expose a window.TEST_API object inside the IIFE to allow external test scripts to interact with internal functions.",
+        "Vanilla Assertions: Use lightweight, dependency-free asynchronous assertions (assert, assertTrue) inside a separate dynamically injected {app_name}_tests.js file.",
+        "UI Testing: Use native Browser Event Dispatching (MouseEvent, KeyboardEvent) followed by timers (e.g., 250ms) to trigger debounced UI functions safely, rather than calling raw internal handlers directly (which causes undefined event crashes).",
+        "The UI Enforcer: Hook into the app's native UI toast notification to display final test results. Use a setInterval watchdog to aggressively keep the final score visible for at least 7 seconds, preventing the main app's internal timeouts from overwriting it."
+      ]
+    },
+    "Data Preservation & Black Boxing": [
+      "Long Data URIs: To protect long, complex data:image/svg+xml strings from browser decoding errors or AI corruption, wrap the entire HTML element containing the data inside explicit comments: <!--[DATA_START]--> and <!--[DATA_END]-->.",
+      "Massive Datasets: When dealing with large arrays or dictionaries (e.g., BIP-39 lists), mock them as a single-line string constant (e.g., const DATA_RAW = \"...\").",
+      "AI-SKIP Markers: If the user provides a file with [DO NOT MODIFY...] or [AI-SKIP] comments wrapping a large block of text, treat that block as a black box. Do not read it, modify it, or include it in Python patch scripts."
+    ],
+    "File Delivery & Markdown Handling": [
+      "The HTML Downloader: If the user requests a formatted file (like a Markdown manual, JSON, or CSV), do not output it as plain text. Instead, generate a Standalone HTML Downloader utility.",
+      "Formatting Protection: Store the raw, fully formatted content inside a hidden <textarea> within the utility to preserve all brackets, line breaks, and spacing.",
+      "Blob Export: Include a styled UI with a 'Download' button that uses JavaScript to create a Blob and trigger a local file download directly to the user's machine."
+    ]
+  }
+}

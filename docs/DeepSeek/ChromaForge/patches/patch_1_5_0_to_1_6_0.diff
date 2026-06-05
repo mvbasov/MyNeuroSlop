@@ -1,0 +1,74 @@
+--- ChromaForge_v1_5_0.html	2026-06-05 16:53:37.564470102 +0300
++++ ChromaForge_v1_6_0.html	2026-06-05 16:51:15.228508322 +0300
+@@ -2,6 +2,9 @@
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
++    <!-- PRESERVE_BINARY_START -->
++    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cdefs%3E%3CclipPath%20id%3D%22leftHalf%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2250%22%20height%3D%22100%22%2F%3E%3C%2FclipPath%3E%3CclipPath%20id%3D%22rightHalf%22%3E%3Crect%20x%3D%2250%22%20y%3D%220%22%20width%3D%2250%22%20height%3D%22100%22%2F%3E%3C%2FclipPath%3E%3C%2Fdefs%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2245%22%20fill%3D%22%233b82f6%22%20clip-path%3D%22url(%23leftHalf)%22%2F%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2245%22%20fill%3D%22%2310b981%22%20clip-path%3D%22url(%23rightHalf)%22%2F%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2212%22%20fill%3D%22white%22%2F%3E%3C%2Fsvg%3E">
++    <!-- PRESERVE_BINARY_END -->
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+     <title>ChromaForge · Dual‑Theme Atelier</title>
+     <style>
+@@ -98,7 +101,7 @@
+                     <button class="preset-btn" data-preset="sunset">🌅 Sunset Glow</button>
+                     <button class="preset-btn" data-preset="forest">🍃 Forest Canopy</button>
+                     <button class="preset-btn" data-preset="soft-light">🌸 Soft Light</button>
+-                    <button class="preset-btn" data-preset="soft-dark">🌙 Soft Dark</button>
++                    <button class="preset-btn" data-preset="soft-dark">🌙 Soft Dark (Blue)</button>
+                     <button class="preset-btn reset-btn" id="resetToDefaultBtn">⟳ Reset Preview</button>
+                 </div>
+             </div>
+@@ -122,7 +125,7 @@
+                 </div>
+             </div>
+             <div class="info-badge">⚡ Left panel = main interface theme<br>🎨 Right preview = independent mock app theme</div>
+-            <div class="version-row"><span>📌 ChromaForge · v1.5.0</span><br><span style="font-size:0.55rem;">(soft pastel presets + full test coverage)</span></div>
++            <div class="version-row"><span>📌 ChromaForge · v1.6.0</span><br><span style="font-size:0.55rem;">(improved soft presets, blue‑based soft dark)</span></div>
+         </div>
+ 
+         <div class="preview-panel">
+@@ -179,13 +182,23 @@
+         ocean: { primary: "#0ea5e9", secondary: "#06b6d4", bgColor: "#f0f9ff", surfaceColor: "#ffffff", textColor: "#0f172a", borderColor: "#bae6fd" },
+         sunset: { primary: "#f97316", secondary: "#f43f5e", bgColor: "#fff7ed", surfaceColor: "#ffffff", textColor: "#431407", borderColor: "#fed7aa" },
+         forest: { primary: "#22c55e", secondary: "#84cc16", bgColor: "#ecfdf5", surfaceColor: "#ffffff", textColor: "#064e3b", borderColor: "#bbf7d0" },
++        // Soft Light - darker, richer pastel
+         "soft-light": {
+-            primary: "#a7c5eb", secondary: "#c7e9b0", bgColor: "#fff9f0",
+-            surfaceColor: "#ffffff", textColor: "#4a4a4a", borderColor: "#e6dfcc"
++            primary: "#5a8fcc",      // darker dusty blue
++            secondary: "#6ba84e",    // deeper sage
++            bgColor: "#efe2c6",      // warm cream, slightly darker
++            surfaceColor: "#fdf7e8",
++            textColor: "#2c2c2c",    // dark gray for contrast
++            borderColor: "#c8b99a"
+         },
++        // Soft Dark - blue-based instead of violet
+         "soft-dark": {
+-            primary: "#b8a9e6", secondary: "#a8e6cf", bgColor: "#2d2b3a",
+-            surfaceColor: "#3d3b4a", textColor: "#eae6ff", borderColor: "#5a5570"
++            primary: "#7a9cbb",      // dusty blue
++            secondary: "#6ca6cd",    // soft sky blue
++            bgColor: "#1e2a3a",      // deep navy-blue background
++            surfaceColor: "#2a3a4a",
++            textColor: "#e2e8f0",
++            borderColor: "#3a4a5a"
+         }
+     };
+     const root = document.documentElement;
+@@ -412,7 +425,7 @@
+         };
+         function loadTestScript() {
+             const script = document.createElement('script');
+-            script.src = 'ChromaForge_v1_5_0_tests.js';
++            script.src = 'ChromaForge_v1_6_0_tests.js';
+             script.onload = () => {
+                 if(urlParams.get('test') === 'run' && typeof window.__runTests === 'function') {
+                     window.__runTests();
+@@ -426,4 +439,4 @@
+ })();
+ </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>

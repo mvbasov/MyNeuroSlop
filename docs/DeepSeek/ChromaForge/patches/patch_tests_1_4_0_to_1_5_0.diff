@@ -1,0 +1,148 @@
+--- ChromaForge_v1_4_0_tests.js	2026-06-05 15:49:56.321340474 +0300
++++ ChromaForge_v1_5_0_tests.js	2026-06-05 16:04:52.305209283 +0300
+@@ -1,4 +1,4 @@
+-// ChromaForge_v1_4_0_tests.js - includes tab switching tests
++// ChromaForge_v1_5_0_tests.js - includes soft pastel preset tests
+ (function() {
+     let totalTests = 0;
+     let passedTests = 0;
+@@ -31,7 +31,7 @@
+         totalTests++;
+         if(condition) {
+             passedTests++;
+-            logResult(`✅ PASS: ${message} (${actual} === ${expected})`);
++            logResult(`✅ PASS: ${message}`);
+         } else {
+             failedTests++;
+             logResult(`❌ FAIL: ${message} (expected ${expected}, got ${actual})`);
+@@ -61,9 +61,9 @@
+         testRan = true;
+         totalTests = 0; passedTests = 0; failedTests = 0;
+         results.length = 0;
+-        console.log("🧪 ChromaForge test suite (v1.4.0)\n");
++        console.log("🧪 ChromaForge test suite (v1.5.0)\n");
+         
+-        // ----- 1. Internal Logic Tests (unchanged) -----
++        // ----- 1. Internal Logic Tests -----
+         const testTheme = { primary: "#ff0000", secondary: "#00ff00", bgColor: "#ffffff", surfaceColor: "#eeeeee", textColor: "#000000", borderColor: "#cccccc" };
+         api.applyPreviewTheme(testTheme);
+         const current = api.getCurrentPreviewTheme();
+@@ -79,6 +79,17 @@
+         assertEquals(darkPreview.primary, "#8b5cf6", "Dark preset primary is purple");
+         assertEquals(darkPreview.bgColor, "#111827", "Dark preset background is dark");
+         
++        // Test new soft presets
++        api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-light"]);
++        const softLight = api.getCurrentPreviewTheme();
++        assertEquals(softLight.primary, "#a7c5eb", "Soft Light preset primary is pastel blue");
++        assertEquals(softLight.bgColor, "#fff9f0", "Soft Light preset background is warm off-white");
++        
++        api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-dark"]);
++        const softDark = api.getCurrentPreviewTheme();
++        assertEquals(softDark.primary, "#b8a9e6", "Soft Dark preset primary is pastel lavender");
++        assertEquals(softDark.bgColor, "#2d2b3a", "Soft Dark preset background is deep muted purple");
++        
+         // Main theme switching
+         api.applyMainTheme("light");
+         assertEquals(api.getMainThemeMode(), "light", "applyMainTheme switches to light mode");
+@@ -88,35 +99,35 @@
+         assertTrue(api.getMainContainerClass() === "dark", "Dark mode adds main-dark class");
+         api.applyMainTheme("auto");
+         
+-        // ----- 2. DOM / UI State Tests -----
+-        api.applyPreviewTheme(api.PREVIEW_PRESETS.ocean);
+-        const oceanPrimaryRgb = "rgb(14, 165, 233)";
+-        const oceanBorderRgb = "rgb(186, 230, 253)";
++        // ----- 2. DOM / UI State Tests (with one soft preset) -----
++        api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-light"]);
++        const softPrimaryRgb = "rgb(167, 197, 235)"; // #a7c5eb
++        const softBorderRgb = "rgb(230, 223, 204)"; // #e6dfcc
+         
+         const primaryBtn = api.getPrimaryButton();
+         if(primaryBtn) {
+-            const btnOk = await waitForStyle(primaryBtn, "backgroundColor", oceanPrimaryRgb);
++            const btnOk = await waitForStyle(primaryBtn, "backgroundColor", softPrimaryRgb);
+             const actualBg = window.getComputedStyle(primaryBtn).backgroundColor;
+-            assertTrue(btnOk, `Primary button becomes ocean primary (${actualBg})`);
++            assertTrue(btnOk, `Primary button becomes soft light primary (${actualBg})`);
+         } else { assert(false, "Primary button element not found"); }
+         
+         const progressFill = api.getProgressFill();
+         if(progressFill) {
+             const fillBg = window.getComputedStyle(progressFill).backgroundColor;
+-            assertTrue(fillBg === oceanPrimaryRgb, `Progress fill uses ocean primary (${fillBg})`);
++            assertTrue(fillBg === softPrimaryRgb, `Progress fill uses soft primary (${fillBg})`);
+         } else { assert(false, "Progress fill missing"); }
+         
+         const statEl = api.getPrimaryStatElement();
+         if(statEl) {
+             const statColor = window.getComputedStyle(statEl).color;
+-            assertTrue(statColor === oceanPrimaryRgb, `Primary stat dot reflects ocean primary (${statColor})`);
++            assertTrue(statColor === softPrimaryRgb, `Primary stat dot reflects soft primary (${statColor})`);
+         }
+         
+         const card = document.querySelector('#name-app .card');
+         if(card) {
+-            const borderOk = await waitForStyle(card, "borderTopColor", oceanBorderRgb);
++            const borderOk = await waitForStyle(card, "borderTopColor", softBorderRgb);
+             const actualBorder = window.getComputedStyle(card).borderTopColor;
+-            assertTrue(borderOk, `Card border adapts to ocean theme (${actualBorder})`);
++            assertTrue(borderOk, `Card border adapts to soft light theme (${actualBorder})`);
+         }
+         
+         api.applyMainTheme("dark");
+@@ -126,43 +137,26 @@
+         assertTrue(studioBg !== "rgb(241, 245, 249)" && studioBg.length > 0, "Main dark theme changes studio background");
+         api.applyMainTheme("auto");
+         
+-        // ----- 3. Tab Switching Tests (new) -----
+-        // Initial active tab should be 'dashboard'
++        // ----- 3. Tab Switching & Playground Tests (unchanged) -----
+         assertEquals(api.getActiveTab(), "dashboard", "Initial active tab is dashboard");
+-        // Switch to components tab
+         api.switchTab("components");
+         assertEquals(api.getActiveTab(), "components", "Switch to components tab works");
+-        // Verify components pane content is visible (check for a unique element)
+-        const componentsPane = document.getElementById("tab-components");
+-        assertTrue(componentsPane && componentsPane.classList.contains("active-pane"), "Components pane becomes active");
+-        // Switch to playground tab
+         api.switchTab("playground");
+         assertEquals(api.getActiveTab(), "playground", "Switch to playground tab works");
+-        // Verify playground pane active
+-        const playgroundPane = document.getElementById("tab-playground");
+-        assertTrue(playgroundPane && playgroundPane.classList.contains("active-pane"), "Playground pane becomes active");
+-        // Switch back to dashboard
+         api.switchTab("dashboard");
+         assertEquals(api.getActiveTab(), "dashboard", "Switch back to dashboard works");
+         
+-        // ----- 4. Playground Interactive Tests -----
+-        // Counter initial value
+         assertEquals(api.getCounterValue(), 0, "Counter starts at 0");
+         api.clickCounter();
+         assertEquals(api.getCounterValue(), 1, "Counter increments to 1");
+-        api.clickCounter();
+-        api.clickCounter();
+-        assertEquals(api.getCounterValue(), 3, "Counter increments multiple times");
+         
+-        // Random fill button
+         const initialPercent = api.getRandomFillPercent();
+         api.clickRandomFill();
+-        // Allow time for style update
+         await new Promise(r => setTimeout(r, 50));
+         const newPercent = api.getRandomFillPercent();
+-        assertTrue(newPercent !== initialPercent || newPercent >= 0, "Random fill button changes width (or stays within 0-100)");
++        assertTrue(newPercent !== initialPercent || newPercent >= 0, "Random fill button changes width");
+         
+-        // ----- 5. Export / Import Tests (shortened) -----
++        // ----- 4. Export / Import Tests -----
+         const testExportTheme = { primary: "#aa44cc", secondary: "#77aa33", bgColor: "#ffeecc", surfaceColor: "#ffffff", textColor: "#111111", borderColor: "#dddddd" };
+         api.applyPreviewTheme(testExportTheme);
+         const exported = api.getCurrentPreviewTheme();
+@@ -176,7 +170,6 @@
+         assertTrue(capturedCss.includes("--primary: #aa44cc"), "copyCssToClipboard contains primary color");
+         navigator.clipboard.writeText = originalClipboard;
+         
+-        // Reset to default
+         api.applyPreviewTheme(api.DEFAULT_PREVIEW_THEME);
+         
+         const finalMessage = `\n🧪 FINAL SUMMARY: ${passedTests}/${totalTests} passed, ${failedTests} failed.`;

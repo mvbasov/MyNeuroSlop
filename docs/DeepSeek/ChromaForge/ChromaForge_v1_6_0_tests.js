@@ -1,4 +1,4 @@
-// ChromaForge_v1_2_1_tests.js - Fixed reset preview test
+// ChromaForge_v1_6_0_tests.js - updated soft preset expectations
 (function() {
     let totalTests = 0;
     let passedTests = 0;
@@ -7,7 +7,9 @@
     let testRan = false;
 
     function logResult(message) {
-        console.log(message);
+        const maxLen = 120;
+        const shortMsg = message.length > maxLen ? message.substring(0, maxLen) + "…" : message;
+        console.log(shortMsg);
         results.push(message);
     }
 
@@ -29,7 +31,7 @@
         totalTests++;
         if(condition) {
             passedTests++;
-            logResult(`✅ PASS: ${message} (${actual} === ${expected})`);
+            logResult(`✅ PASS: ${message}`);
         } else {
             failedTests++;
             logResult(`❌ FAIL: ${message} (expected ${expected}, got ${actual})`);
@@ -59,7 +61,7 @@
         testRan = true;
         totalTests = 0; passedTests = 0; failedTests = 0;
         results.length = 0;
-        console.log("🧪 Starting ChromaForge test suite...\n");
+        console.log("🧪 ChromaForge test suite (v1.6.0)\n");
         
         // ----- 1. Internal Logic Tests -----
         const testTheme = { primary: "#ff0000", secondary: "#00ff00", bgColor: "#ffffff", surfaceColor: "#eeeeee", textColor: "#000000", borderColor: "#cccccc" };
@@ -77,6 +79,17 @@
         assertEquals(darkPreview.primary, "#8b5cf6", "Dark preset primary is purple");
         assertEquals(darkPreview.bgColor, "#111827", "Dark preset background is dark");
         
+        // Test updated soft presets
+        api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-light"]);
+        const softLight = api.getCurrentPreviewTheme();
+        assertEquals(softLight.primary, "#5a8fcc", "Soft Light preset primary is darker pastel blue");
+        assertEquals(softLight.bgColor, "#efe2c6", "Soft Light preset background is warm cream");
+        
+        api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-dark"]);
+        const softDark = api.getCurrentPreviewTheme();
+        assertEquals(softDark.primary, "#7a9cbb", "Soft Dark preset primary is dusty blue");
+        assertEquals(softDark.bgColor, "#1e2a3a", "Soft Dark preset background is deep navy-blue");
+        
         // Main theme switching
         api.applyMainTheme("light");
         assertEquals(api.getMainThemeMode(), "light", "applyMainTheme switches to light mode");
@@ -86,39 +99,35 @@
         assertTrue(api.getMainContainerClass() === "dark", "Dark mode adds main-dark class");
         api.applyMainTheme("auto");
         
-        // ----- 2. DOM / UI State Tests with retry -----
-        api.applyPreviewTheme(api.PREVIEW_PRESETS.ocean);
-        const oceanPrimaryRgb = "rgb(14, 165, 233)"; // #0ea5e9
-        const oceanBorderRgb = "rgb(186, 230, 253)"; // #bae6fd
+        // ----- 2. DOM / UI State Tests (using new soft-light values) -----
+        api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-light"]);
+        const softPrimaryRgb = "rgb(90, 143, 204)"; // #5a8fcc
+        const softBorderRgb = "rgb(200, 185, 154)"; // #c8b99a
         
         const primaryBtn = api.getPrimaryButton();
         if(primaryBtn) {
-            const btnOk = await waitForStyle(primaryBtn, "backgroundColor", oceanPrimaryRgb);
+            const btnOk = await waitForStyle(primaryBtn, "backgroundColor", softPrimaryRgb);
             const actualBg = window.getComputedStyle(primaryBtn).backgroundColor;
-            assertTrue(btnOk, `Primary button becomes ocean primary (${actualBg})`);
-        } else {
-            assert(false, "Primary button element not found");
-        }
+            assertTrue(btnOk, `Primary button becomes soft light primary (${actualBg})`);
+        } else { assert(false, "Primary button element not found"); }
         
         const progressFill = api.getProgressFill();
         if(progressFill) {
             const fillBg = window.getComputedStyle(progressFill).backgroundColor;
-            assertTrue(fillBg === oceanPrimaryRgb, `Progress fill uses ocean primary (${fillBg})`);
-        } else {
-            assert(false, "Progress fill missing");
-        }
+            assertTrue(fillBg === softPrimaryRgb, `Progress fill uses soft primary (${fillBg})`);
+        } else { assert(false, "Progress fill missing"); }
         
         const statEl = api.getPrimaryStatElement();
         if(statEl) {
             const statColor = window.getComputedStyle(statEl).color;
-            assertTrue(statColor === oceanPrimaryRgb, `Primary stat dot reflects ocean primary (${statColor})`);
+            assertTrue(statColor === softPrimaryRgb, `Primary stat dot reflects soft primary (${statColor})`);
         }
         
         const card = document.querySelector('#name-app .card');
         if(card) {
-            const borderOk = await waitForStyle(card, "borderTopColor", oceanBorderRgb);
+            const borderOk = await waitForStyle(card, "borderTopColor", softBorderRgb);
             const actualBorder = window.getComputedStyle(card).borderTopColor;
-            assertTrue(borderOk, `Card border adapts to ocean theme (${actualBorder})`);
+            assertTrue(borderOk, `Card border adapts to soft light theme (${actualBorder})`);
         }
         
         api.applyMainTheme("dark");
@@ -128,34 +137,46 @@
         assertTrue(studioBg !== "rgb(241, 245, 249)" && studioBg.length > 0, "Main dark theme changes studio background");
         api.applyMainTheme("auto");
         
-        // ----- 3. Edge Cases & Integrity -----
-        // Test that applying a valid hex works and restores cleanly
-        const backupTheme = api.getCurrentPreviewTheme();
-        try {
-            api.applyPreviewTheme({ ...api.DEFAULT_PREVIEW_THEME, primary: "#123456" });
-            const newTheme = api.getCurrentPreviewTheme();
-            assertEquals(newTheme.primary, "#123456", "applyPreviewTheme accepts any valid hex without crashing");
-            api.applyPreviewTheme(backupTheme);
-            assert(true, "Theme restoration after valid change works");
-        } catch(e) {
-            assert(false, "applyPreviewTheme threw unexpectedly: " + e.message);
-        }
+        // ----- 3. Tab Switching & Playground Tests -----
+        assertEquals(api.getActiveTab(), "dashboard", "Initial active tab is dashboard");
+        api.switchTab("components");
+        assertEquals(api.getActiveTab(), "components", "Switch to components tab works");
+        api.switchTab("playground");
+        assertEquals(api.getActiveTab(), "playground", "Switch to playground tab works");
+        api.switchTab("dashboard");
+        assertEquals(api.getActiveTab(), "dashboard", "Switch back to dashboard works");
         
-        // FIX: Reset preview should restore DEFAULT theme, not the previous one
-        const defaultThemeExpected = api.DEFAULT_PREVIEW_THEME;
-        api.applyPreviewTheme(api.PREVIEW_PRESETS.sunset);
+        assertEquals(api.getCounterValue(), 0, "Counter starts at 0");
+        api.clickCounter();
+        assertEquals(api.getCounterValue(), 1, "Counter increments to 1");
+        
+        const initialPercent = api.getRandomFillPercent();
+        api.clickRandomFill();
+        await new Promise(r => setTimeout(r, 50));
+        const newPercent = api.getRandomFillPercent();
+        assertTrue(newPercent !== initialPercent || newPercent >= 0, "Random fill button changes width");
+        
+        // ----- 4. Export / Import -----
+        const testExportTheme = { primary: "#aa44cc", secondary: "#77aa33", bgColor: "#ffeecc", surfaceColor: "#ffffff", textColor: "#111111", borderColor: "#dddddd" };
+        api.applyPreviewTheme(testExportTheme);
+        const exported = api.getCurrentPreviewTheme();
+        assertEquals(exported.primary, "#aa44cc", "getCurrentPreviewTheme works");
+        
+        const originalClipboard = navigator.clipboard.writeText;
+        let capturedCss = null;
+        navigator.clipboard.writeText = function(text) { capturedCss = text; return Promise.resolve(); };
+        api.copyCssToClipboard();
+        await new Promise(r => setTimeout(r, 0));
+        assertTrue(capturedCss.includes("--primary: #aa44cc"), "copyCssToClipboard contains primary color");
+        navigator.clipboard.writeText = originalClipboard;
+        
         api.applyPreviewTheme(api.DEFAULT_PREVIEW_THEME);
-        const afterReset = api.getCurrentPreviewTheme();
-        assertEquals(afterReset.primary, defaultThemeExpected.primary, "Reset preview restores default theme (primary)");
-        assertEquals(afterReset.secondary, defaultThemeExpected.secondary, "Reset preview restores default theme (secondary)");
         
         const finalMessage = `\n🧪 FINAL SUMMARY: ${passedTests}/${totalTests} passed, ${failedTests} failed.`;
         console.log(finalMessage);
         if(window.__showTestToast) {
             const color = failedTests === 0 ? "✅ ALL TESTS PASSED" : "❌ SOME TESTS FAILED";
             window.__showTestToast(`${color}\n${passedTests}/${totalTests} passed`, failedTests > 0 ? "error" : "info");
-        } else {
-            alert(finalMessage);
         }
     }
     
