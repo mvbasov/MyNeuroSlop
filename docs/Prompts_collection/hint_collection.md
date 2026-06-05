@@ -11,6 +11,8 @@
 
 "Create a standalone HTML utility to download this text as a file." Mentioning terms like "offline HTML downloader", "client-side download button", or "use a JavaScript Blob to download" will always trigger this exact same approach!
 
+"Please provide the requested file wrapped in a standalone HTML Downloader utility. Store the raw, fully formatted content (like Markdown or code) safely inside a hidden <textarea> to preserve all brackets and spacing. Include a simple, styled UI with a 'Download' button that uses JavaScript to create a Blob and trigger a local file download directly to my machine."
+
 ### App requre large amount of well known data (BIP-39 dictionary as example
 
 "Mock the large dataset as a single-line string (e.g., const DATA_RAW = "...") inside the IIFE to keep patch scripts clean. I will insert the real data later"
