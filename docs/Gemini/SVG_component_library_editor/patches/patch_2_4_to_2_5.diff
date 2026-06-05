@@ -1,0 +1,139 @@
+--- svg_component_editor_v2_4.html	2026-05-31 19:17:26.525529956 +0300
++++ svg_component_editor_v2_5.html	2026-05-31 19:17:26.529529970 +0300
+@@ -368,7 +368,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v2.4</footer>
++    <footer>v2.5</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -558,7 +558,7 @@
+                     activeSub = getActiveSubElement(tagStr, relPos, activeTagInfo.tagName.toLowerCase(), activeNode);
+                     
+                     // If a specific movable point is detected, draw an overlay dot
+-                    if (activeSub && (activeSub.cx !== undefined && activeSub.cy !== undefined || activeSub.qData)) {
++                    if (activeSub && (activeSub.cx !== undefined && activeSub.cy !== undefined || activeSub.qData || activeSub.cData)) {
+                         const vw = parseFloat(userSvgContainer.getAttribute('width') || 100);
+                         const r = vw * 0.02; // Dynamic radius based on viewport
+                         
+@@ -583,7 +583,24 @@
+                             return {tx, ty};
+                         };
+ 
+-                        if (activeSub.qData) {
++                        if (activeSub.cData) {
++                            const pStart = getMappedCoords(activeSub.cData.startX, activeSub.cData.startY);
++                            const pC1 = getMappedCoords(activeSub.cData.c1x, activeSub.cData.c1y);
++                            const pC2 = getMappedCoords(activeSub.cData.c2x, activeSub.cData.c2y);
++                            const pEnd = getMappedCoords(activeSub.cData.endX, activeSub.cData.endY);
++                            
++                            let c1Color = (activeSub.cData.activePoint === 'c1' || activeSub.cData.activePoint === 'both') ? 'var(--danger)' : 'var(--primary)';
++                            let c2Color = (activeSub.cData.activePoint === 'c2' || activeSub.cData.activePoint === 'both') ? 'var(--danger)' : 'var(--primary)';
++                            let endColor = (activeSub.cData.activePoint === 'end' || activeSub.cData.activePoint === 'both') ? 'var(--danger)' : 'var(--primary)';
++                            
++                            overlayGroup.innerHTML = `
++                                <line x1="${pStart.tx}" y1="${pStart.ty}" x2="${pC1.tx}" y2="${pC1.ty}" stroke="var(--primary)" stroke-width="1.5" stroke-dasharray="2,2" />
++                                <line x1="${pC2.tx}" y1="${pC2.ty}" x2="${pEnd.tx}" y2="${pEnd.ty}" stroke="var(--primary)" stroke-width="1.5" stroke-dasharray="2,2" />
++                                <circle cx="${pC1.tx}" cy="${pC1.ty}" r="${r}" fill="${c1Color}" stroke="#fff" stroke-width="${r * 0.2}" />
++                                <circle cx="${pC2.tx}" cy="${pC2.ty}" r="${r}" fill="${c2Color}" stroke="#fff" stroke-width="${r * 0.2}" />
++                                <circle cx="${pEnd.tx}" cy="${pEnd.ty}" r="${r}" fill="${endColor}" stroke="#fff" stroke-width="${r * 0.2}" />
++                            `;
++                        } else if (activeSub.qData) {
+                             const pStart = getMappedCoords(activeSub.qData.startX, activeSub.qData.startY);
+                             const pC1 = getMappedCoords(activeSub.qData.c1x, activeSub.qData.c1y);
+                             const pEnd = getMappedCoords(activeSub.qData.endX, activeSub.qData.endY);
+@@ -887,6 +904,64 @@
+                                     if (foundSub) return foundSub;
+                                 }
+ 
++                                if (upper === 'C') {
++                                    let currentStartX = qStartX;
++                                    let currentStartY = qStartY;
++                                    let foundSub = null;
++                                    let pMatch;
++                                    const pairRegex = /(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g;
++                                    let pairIndex = 0;
++
++                                    while ((pMatch = pairRegex.exec(chunk)) !== null) {
++                                        const pStart = cMatch.index + pMatch.index;
++                                        const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
++
++                                        let pointType = pairIndex % 3; // 0: c1, 1: c2, 2: end
++                                        let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
++                                        let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
++
++                                        let numIdx = pairIndex * 2;
++                                        let segmentData = null;
++                                        
++                                        let baseIdx = Math.floor(pairIndex / 3) * 6;
++                                        if (baseIdx + 5 < nums.length) {
++                                            segmentData = {
++                                                startX: currentStartX,
++                                                startY: currentStartY,
++                                                c1x: isRel ? currentStartX + nums[baseIdx] : nums[baseIdx],
++                                                c1y: isRel ? currentStartY + nums[baseIdx+1] : nums[baseIdx+1],
++                                                c2x: isRel ? currentStartX + nums[baseIdx+2] : nums[baseIdx+2],
++                                                c2y: isRel ? currentStartY + nums[baseIdx+3] : nums[baseIdx+3],
++                                                endX: isRel ? currentStartX + nums[baseIdx+4] : nums[baseIdx+4],
++                                                endY: isRel ? currentStartY + nums[baseIdx+5] : nums[baseIdx+5],
++                                                activePoint: pointType === 0 ? 'c1' : (pointType === 1 ? 'c2' : 'end')
++                                            };
++                                        }
++
++                                        if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
++                                            foundSub = {
++                                                start: valStart + pStart,
++                                                end: valStart + pEnd,
++                                                cx: absX,
++                                                cy: absY,
++                                                cData: segmentData || {
++                                                    startX: currentStartX, startY: currentStartY,
++                                                    c1x: absX, c1y: absY, c2x: absX, c2y: absY, endX: absX, endY: absY,
++                                                    activePoint: pointType === 0 ? 'c1' : (pointType === 1 ? 'c2' : 'end')
++                                                }
++                                            };
++                                            break;
++                                        }
++
++                                        if (pointType === 2) {
++                                            currentStartX = absX;
++                                            currentStartY = absY;
++                                        }
++                                        pairIndex++;
++                                    }
++                                    if (foundSub) return foundSub;
++                                }
++
+                                 let ret = {
+                                     start: valStart + cMatch.index,
+                                     end: valStart + cMatch.index + chunk.length,
+@@ -905,6 +980,18 @@
+                                         endY: isRel ? qStartY + nums[3] : nums[3],
+                                         activePoint: 'both'
+                                     };
++                                } else if (upper === 'C' && nums.length >= 6) {
++                                    ret.cData = {
++                                        startX: qStartX,
++                                        startY: qStartY,
++                                        c1x: isRel ? qStartX + nums[0] : nums[0],
++                                        c1y: isRel ? qStartY + nums[1] : nums[1],
++                                        c2x: isRel ? qStartX + nums[2] : nums[2],
++                                        c2y: isRel ? qStartY + nums[3] : nums[3],
++                                        endX: isRel ? qStartX + nums[4] : nums[4],
++                                        endY: isRel ? qStartY + nums[5] : nums[5],
++                                        activePoint: 'both'
++                                    };
+                                 }
+                                 return ret;
+                             }
+@@ -1207,7 +1294,7 @@
+                                 const letter = chunk.trim()[0];
+                                 const upper = letter.toUpperCase();
+ 
+-                                if (upper === 'Q') {
++                                if (upper === 'Q' || upper === 'C') {
+                                     const pairRegex = /(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g;
+                                     let pMatch;
+                                     let modifiedChunk = chunk;

@@ -1,0 +1,49 @@
+--- svg_component_editor_v7_0_0_tests.js	2026-06-04 15:53:07.143980629 +0300
++++ svg_component_editor_v7_1_0_tests.js	2026-06-04 15:58:12.844300000 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v7.0.0)
++ * SVG Component Editor - Micro Unit Test Suite (v7.1.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -269,6 +269,39 @@
+                 assertTrue(`Direct Coordinates Rotation (${angle}°): Mathematically mapped vertices directly without transform matrix`, rewroteCoordinatesDirectly);
+             }
+ 
++            // Test 9: Direct Coordinates Recalculation (Flips)
++            // Validates that horizontal and vertical flips mathematically rewrite coordinates directly without appending a transform matrix.
++            const flipsToTest = ['flip_h', 'flip_v'];
++            for (let flipCmd of flipsToTest) {
++                // Use an asymmetrical triangle to ensure flips are mathematically visible
++                await loadTestData('<svg><polygon points="10,10 50,10 10,50" /></svg>', 'polygon');
++                const origCode = window.TEST_API.textarea.value;
++                
++                const attrIdx = origCode.search(/points=/);
++                window.TEST_API.textarea.selectionStart = attrIdx + 3;
++                window.TEST_API.textarea.selectionEnd = attrIdx + 3;
++                
++                // Force synchronous state update to bypass debounce race conditions
++                if (typeof window.TEST_API.getActiveTag === 'function') {
++                    window.TEST_API.getActiveTag();
++                }
++                await new Promise(r => setTimeout(r, 10)); 
++                
++                const commands = [[flipCmd], ['mirror', flipCmd === 'flip_h' ? 'horizontal' : 'vertical'], [flipCmd === 'flip_h' ? 'flipH' : 'flipV']];
++                for (let args of commands) {
++                    try {
++                        window.TEST_API.transformShape(...args);
++                        await new Promise(r => setTimeout(r, 40));
++                        if (window.TEST_API.textarea.value !== origCode) break;
++                    } catch (e) {}
++                }
++                
++                const newCode = window.TEST_API.textarea.value;
++                const rewroteCoordinatesDirectly = !newCode.includes('transform=') && newCode !== origCode;
++                const flipName = flipCmd === 'flip_h' ? 'Horizontal' : 'Vertical';
++                assertTrue(`Direct Coordinates Flip (${flipName}): Mathematically mapped vertices directly without transform matrix`, rewroteCoordinatesDirectly);
++            }
++
+         } catch (error) {
+             console.error("❌ FATAL TEST EXECUTION ERROR:", error);
+             failed++;

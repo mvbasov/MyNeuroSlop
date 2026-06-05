@@ -1,0 +1,23 @@
+--- svg_component_editor_v3_17.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_18.html	2026-05-31 19:17:26.529529970 +0300
+@@ -374,7 +374,7 @@
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+         </div>
+-        <div>v3.17</div>
++        <div>v3.18</div>
+     </footer>
+ 
+     <script>
+@@ -1745,7 +1745,10 @@
+                                     else if (dy !== 0) args.push(dy); 
+                                 } else if (type === 'rotate') {
+                                     let dir = dx - dy; // Standardizing rotation to dx-dy (up/right increase, down/left decrease)
+-                                    if (args.length >= 1) args[0] += dir;
++                                    if (args.length >= 1) {
++                                        if (dir > 0) args[0] = Math.ceil((args[0] + 1) / 45) * 45;
++                                        else if (dir < 0) args[0] = Math.floor((args[0] - 1) / 45) * 45;
++                                    }
+                                 } else if (type === 'scale' || type === 'skewx' || type === 'skewy') {
+                                     let dir = (dx - dy) * 0.1;
+                                     if (args.length >= 1) args[0] += dir;

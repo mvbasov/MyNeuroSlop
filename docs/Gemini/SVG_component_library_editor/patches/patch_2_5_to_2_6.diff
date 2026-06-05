@@ -1,0 +1,62 @@
+--- svg_component_editor_v2_5.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v2_6.html	2026-05-31 19:17:26.529529970 +0300
+@@ -368,7 +368,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v2.5</footer>
++    <footer>v2.6</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -1024,6 +1024,7 @@
+                     if (stack.length > 0) {
+                         let top = stack.pop();
+                         top.fullEnd = end;
++                        top.closeStart = start;
+                     }
+                     continue;
+                 }
+@@ -1032,7 +1033,7 @@
+                 const tagNameMatch = text.match(/<([a-z0-9:-]+)/i);
+                 const tagName = tagNameMatch ? tagNameMatch[1] : '';
+ 
+-                const el = { domIndex: domIndex++, start: start, tagEnd: end, fullEnd: end, tagName: tagName };
++                const el = { domIndex: domIndex++, start: start, tagEnd: end, fullEnd: end, closeStart: isSelfClosing ? end : -1, tagName: tagName };
+                 elements.push(el);
+ 
+                 if (!isSelfClosing && tagName.toLowerCase() !== 'br' && tagName.toLowerCase() !== 'hr') {
+@@ -1040,7 +1041,10 @@
+                 }
+             }
+ 
+-            for (let s of stack) s.fullEnd = html.length;
++            for (let s of stack) {
++                s.fullEnd = html.length;
++                s.closeStart = html.length;
++            }
+ 
+             let active = null;
+             let minSize = Infinity;
+@@ -1648,8 +1652,19 @@
+             const code = textarea.value;
+             let insertPos = textarea.selectionStart;
+             
+-            if (activeTagInfo && insertPos > activeTagInfo.start && insertPos < activeTagInfo.tagEnd) {
+-                insertPos = activeTagInfo.tagEnd;
++            if (activeTagInfo) {
++                const nonContainers = ['circle', 'line', 'path', 'polygon', 'polyline', 'rect', 'text', 'tspan', 'ellipse', 'image', 'use'];
++                if (nonContainers.includes(activeTagInfo.tagName.toLowerCase())) {
++                    if (insertPos > activeTagInfo.start && insertPos < activeTagInfo.fullEnd) {
++                        insertPos = activeTagInfo.fullEnd;
++                    }
++                } else {
++                    if (insertPos > activeTagInfo.start && insertPos < activeTagInfo.tagEnd) {
++                        insertPos = activeTagInfo.tagEnd;
++                    } else if (activeTagInfo.closeStart !== undefined && activeTagInfo.closeStart !== -1 && insertPos > activeTagInfo.closeStart && insertPos < activeTagInfo.fullEnd) {
++                        insertPos = activeTagInfo.fullEnd;
++                    }
++                }
+             }
+             
+             const lineStart = code.lastIndexOf('\n', insertPos - 1);

@@ -1,0 +1,224 @@
+--- svg_component_editor_v5_4_0.html	2026-06-02 02:42:49.560616794 +0300
++++ svg_component_editor_v5_5_0.html	2026-06-02 02:39:14.308420320 +0300
+@@ -471,7 +471,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v5.4.0</div>
++                <div class="footer-right">v5.5.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -565,8 +565,91 @@
+             
+             const domParser = new DOMParser();
+ 
++            // --- Matrix Squashing Mathematics ---
++            const multiplyMatrix = (m1, m2) => ({
++                a: m1.a * m2.a + m1.c * m2.b,
++                b: m1.b * m2.a + m1.d * m2.b,
++                c: m1.a * m2.c + m1.c * m2.d,
++                d: m1.b * m2.c + m1.d * m2.d,
++                e: m1.a * m2.e + m1.c * m2.f + m1.e,
++                f: m1.b * m2.e + m1.d * m2.f + m1.f
++            });
++
++            const createIdentity = () => ({a: 1, b: 0, c: 0, d: 1, e: 0, f: 0});
++
+             // --- Core Application Utilities ---
+             const SVGUtils = {
++                squashTransforms: (str) => {
++                    if (!str) return "";
++                    let m = createIdentity();
++                    const cmdRegex = /(translate|rotate|scale|matrix|skewX|skewY)\s*\(([^)]+)\)/ig;
++                    let match;
++                    let matchedSomething = false;
++                    
++                    // Multiply left to right structurally evaluates right to left mathematically
++                    while ((match = cmdRegex.exec(str)) !== null) {
++                        matchedSomething = true;
++                        const type = match[1].toLowerCase();
++                        const args = match[2].split(/[,\s]+/).map(parseFloat).filter(n => !isNaN(n));
++                        let nextM = createIdentity();
++
++                        if (type === 'translate') {
++                            nextM.e = args[0] || 0;
++                            nextM.f = args.length > 1 ? args[1] : 0;
++                        } else if (type === 'rotate') {
++                            const angle = (args[0] || 0) * Math.PI / 180;
++                            const cx = args[1] || 0;
++                            const cy = args[2] || 0;
++                            const cos = Math.cos(angle);
++                            const sin = Math.sin(angle);
++                            
++                            if (cx !== 0 || cy !== 0) {
++                                m = multiplyMatrix(m, {a: 1, b: 0, c: 0, d: 1, e: cx, f: cy});
++                            }
++                            nextM.a = cos; nextM.b = sin; nextM.c = -sin; nextM.d = cos;
++                            if (cx !== 0 || cy !== 0) {
++                                nextM = multiplyMatrix(nextM, {a: 1, b: 0, c: 0, d: 1, e: -cx, f: -cy});
++                            }
++                        } else if (type === 'scale') {
++                            nextM.a = args[0] || 1;
++                            nextM.d = args.length > 1 ? args[1] : (args[0] || 1);
++                        } else if (type === 'matrix') {
++                            nextM.a = args[0] || 1; nextM.b = args[1] || 0;
++                            nextM.c = args[2] || 0; nextM.d = args[3] || 1;
++                            nextM.e = args[4] || 0; nextM.f = args[5] || 0;
++                        } else if (type === 'skewx') {
++                            nextM.c = Math.tan((args[0] || 0) * Math.PI / 180);
++                        } else if (type === 'skewy') {
++                            nextM.b = Math.tan((args[0] || 0) * Math.PI / 180);
++                        }
++                        
++                        m = multiplyMatrix(m, nextM);
++                    }
++
++                    if (!matchedSomething) return str;
++
++                    const f = n => {
++                        const val = parseFloat(n.toFixed(3));
++                        return Object.is(val, -0) ? 0 : val;
++                    };
++
++                    const a = f(m.a), b = f(m.b), c = f(m.c), d = f(m.d), e = f(m.e), f_val = f(m.f);
++
++                    // If it evaluates precisely to a simple translation or zero
++                    if (a === 1 && b === 0 && c === 0 && d === 1) {
++                        if (e === 0 && f_val === 0) return "";
++                        return `translate(${e}, ${f_val})`;
++                    }
++                    
++                    // Compress back to clean rotate if it happens to be perfectly symmetrical on origin
++                    if (e === 0 && f_val === 0 && a === d && b === -c) {
++                        const angle = Math.round(Math.atan2(b, a) * 180 / Math.PI * 1000) / 1000;
++                        if (!isNaN(angle)) return `rotate(${angle})`;
++                    }
++
++                    return `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f_val})`;
++                },
++
+                 getAttrMatch: (tagStr, attr) => {
+                     const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+                     return m ? { start: m.index, end: m.index + m[0].length, val: m[0] } : null;
+@@ -735,7 +818,7 @@
+                         if (matchVal) {
+                             const vStart = matchVal.index + matchVal[0].indexOf(matchVal[1]);
+                             const localRelPos = relPos - vStart;
+-                            const cmdRegex = /(translate|rotate|scale|skewX|skewY)\s*\(([^)]+)\)/ig;
++                            const cmdRegex = /(translate|rotate|scale|skewX|skewY|matrix)\s*\(([^)]+)\)/ig;
+                             let m;
+                             while ((m = cmdRegex.exec(matchVal[1])) !== null) {
+                                 if (localRelPos >= m.index - 1 && localRelPos <= m.index + m[0].length + 1) {
+@@ -831,7 +914,7 @@
+                         
+                         if (relPos >= valStart && relPos <= valEnd) {
+                             const localRelPos = relPos - valStart;
+-                            const cmdRegex = /(translate|rotate|scale|skewX|skewY)\s*\(([^)]+)\)/ig;
++                            const cmdRegex = /(translate|rotate|scale|skewX|skewY|matrix)\s*\(([^)]+)\)/ig;
+                             let m;
+                             let newVal = transformMatch[1];
+                             
+@@ -861,11 +944,18 @@
+                                         let dir = Math.sign(dx - dy) * 0.1;
+                                         if (args.length >= 1) args[0] += dir;
+                                         if (args.length >= 2) args[1] += dir;
++                                    } else if (type === 'matrix') {
++                                        // Standard affine matrices map translate x/y components to argument 5 and 6 (e and f).
++                                        if (args.length >= 5) args[4] += dx;
++                                        if (args.length >= 6) args[5] += dy;
+                                     }
+                                     
+                                     const newCmd = `${m[1]}(${args.map(n => Number(n.toFixed(3))).join(', ')})`;
+                                     newVal = newVal.substring(0, m.index) + newCmd + newVal.substring(m.index + m[0].length);
+-                                    return { modified: true, tagStr: tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd) };
++                                    
++                                    // Apply matrix squasher dynamically to clean up any nested commands immediately after nudging
++                                    const squashedNewVal = SVGUtils.squashTransforms(newVal);
++                                    return { modified: true, tagStr: tagStr.substring(0, valStart) + squashedNewVal + tagStr.substring(valEnd) };
+                                 }
+                             }
+                         }
+@@ -1181,8 +1271,13 @@
+                             newTransformCmd = `translate(0, ${f(2*cy)}) scale(1, -1)`;
+                         }
+ 
+-                        if (currentTransform) return SVGUtils.setOrReplaceAttr(tagStr, 'transform', `${newTransformCmd} ${currentTransform}`);
+-                        return SVGUtils.setOrReplaceAttr(tagStr, 'transform', newTransformCmd);
++                        if (currentTransform && newTransformCmd) {
++                            return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(`${currentTransform} ${newTransformCmd}`));
++                        } else if (newTransformCmd) {
++                            return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(newTransformCmd));
++                        }
++                        
++                        return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(currentTransform));
+                     }
+                 },
+                 use: {
+@@ -1209,20 +1304,12 @@
+                             if (hasY) t = SVGUtils.adjustAttr(t, 'y', dy);
+                             return t;
+                         } else {
+-                            // If no hardcoded coordinates exist, apply/append translate dynamically
++                            // Automatically prepend coordinate translation and mathematically squash it!
+                             let transformMatch = tagStr.match(/\btransform=["']([^"']+)["']/i);
+                             if (transformMatch) {
+-                                const transRegex = /\btranslate\s*\(\s*(-?\d+(?:\.\d+)?)(?:,\s*(-?\d+(?:\.\d+)?))?\s*\)/i;
+-                                let tMatch = transformMatch[1].match(transRegex);
+-                                if (tMatch) {
+-                                    let oldX = parseFloat(tMatch[1]);
+-                                    let oldY = tMatch[2] !== undefined ? parseFloat(tMatch[2]) : 0;
+-                                    let newTransform = transformMatch[1].replace(transRegex, `translate(${oldX + dx}, ${oldY + dy})`);
+-                                    return SVGUtils.setOrReplaceAttr(tagStr, 'transform', newTransform);
+-                                }
+-                                return SVGUtils.setOrReplaceAttr(tagStr, 'transform', `translate(${dx}, ${dy}) ${transformMatch[1]}`);
++                                return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(`translate(${dx}, ${dy}) ${transformMatch[1]}`));
+                             } else {
+-                                return SVGUtils.setOrReplaceAttr(tagStr, 'transform', `translate(${dx}, ${dy})`);
++                                return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(`translate(${dx}, ${dy})`));
+                             }
+                         }
+                     },
+@@ -1271,36 +1358,21 @@
+ 
+                         if (action.startsWith('rot_')) {
+                             const angleDelta = parseFloat(action.replace('rot_', ''));
+-                            // Prevent doubled rotation logic - merge intelligently 
+-                            const rotRegex = /\brotate\s*\(\s*(-?\d+(?:\.\d+)?)(?:,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?))?\s*\)/i;
+-                            let match = currentTransform.match(rotRegex);
+-                            
+-                            if (match) {
+-                                let oldAngle = parseFloat(match[1]);
+-                                let newAngle = (oldAngle + angleDelta) % 360;
+-                                
+-                                if (match[2] !== undefined && match[3] !== undefined) {
+-                                    currentTransform = currentTransform.replace(rotRegex, `rotate(${newAngle}, ${match[2]}, ${match[3]})`);
+-                                } else {
+-                                    currentTransform = currentTransform.replace(rotRegex, `rotate(${newAngle})`);
+-                                }
+-                                return SVGUtils.setOrReplaceAttr(tagStr, 'transform', currentTransform);
+-                            } else {
+-                                newTransformCmd = `rotate(${angleDelta}, ${f(cx)}, ${f(cy)})`;
+-                            }
++                            newTransformCmd = `rotate(${angleDelta}, ${f(cx)}, ${f(cy)})`;
+                         } else if (action === 'flip_h') {
+                             newTransformCmd = `translate(${f(2*cx)}, 0) scale(-1, 1)`;
+                         } else if (action === 'flip_v') {
+                             newTransformCmd = `translate(0, ${f(2*cy)}) scale(1, -1)`;
+                         }
+                         
+-                        // Append matrix (right-side) to ensure transform resolves beautifully on local space
++                        // Append matrix dynamically to existing layout and squash to clean matrix() output
+                         if (currentTransform && newTransformCmd) {
+-                            return SVGUtils.setOrReplaceAttr(tagStr, 'transform', `${currentTransform} ${newTransformCmd}`);
++                            return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(`${currentTransform} ${newTransformCmd}`));
+                         } else if (newTransformCmd) {
+-                            return SVGUtils.setOrReplaceAttr(tagStr, 'transform', newTransformCmd);
++                            return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(newTransformCmd));
+                         }
+-                        return tagStr;
++                        
++                        return SVGUtils.setOrReplaceAttr(tagStr, 'transform', SVGUtils.squashTransforms(currentTransform));
+                     }
+                 },
+                 path: {

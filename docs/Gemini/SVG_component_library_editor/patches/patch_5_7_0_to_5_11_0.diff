@@ -1,0 +1,211 @@
+--- svg_component_editor_v5_7_0.html	2026-06-02 03:26:57.572920346 +0300
++++ svg_component_editor_v5_11_0.html	2026-06-02 04:51:46.629012590 +0300
+@@ -471,7 +471,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v5.7.0</div>
++                <div class="footer-right">v5.11.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -579,6 +579,62 @@
+ 
+             // --- Core Application Utilities ---
+             const SVGUtils = {
++                getLogicalCenter: (activeNode) => {
++                    if (!activeNode) return { cx: 0, cy: 0 };
++                    const tagName = activeNode.tagName.toLowerCase();
++                    const safeF = (val, fallback = 0) => {
++                        let v = parseFloat(val);
++                        return Number.isFinite(v) ? v : fallback;
++                    };
++                    
++                    if (tagName === 'use' || tagName === 'image') {
++                        let useX = safeF(activeNode.getAttribute('x'));
++                        let useY = safeF(activeNode.getAttribute('y'));
++                        let useW = safeF(activeNode.getAttribute('width'), NaN);
++                        let useH = safeF(activeNode.getAttribute('height'), NaN);
++                        
++                        if (Number.isFinite(useW) && Number.isFinite(useH) && useW > 0 && useH > 0) {
++                            return { cx: useX + useW / 2, cy: useY + useH / 2 };
++                        }
++                        
++                        const href = activeNode.getAttribute('href') || activeNode.getAttribute('xlink:href');
++                        if (href && href.startsWith('#')) {
++                            const refId = href.substring(1);
++                            const refNode = document.getElementById(refId) || document.querySelector(`[id="${refId}"]`);
++                            if (refNode) {
++                                if (refNode.viewBox && refNode.viewBox.baseVal && refNode.viewBox.baseVal.width > 0) {
++                                    return { cx: useX + refNode.viewBox.baseVal.width / 2, cy: useY + refNode.viewBox.baseVal.height / 2 };
++                                } else if (refNode.hasAttribute('width') && refNode.hasAttribute('height')) {
++                                    return { cx: useX + safeF(refNode.getAttribute('width')) / 2, cy: useY + safeF(refNode.getAttribute('height')) / 2 };
++                                }
++                            }
++                        }
++                    } else if (tagName === 'circle' || tagName === 'ellipse') {
++                        return { cx: safeF(activeNode.getAttribute('cx')), cy: safeF(activeNode.getAttribute('cy')) };
++                    } else if (tagName === 'rect') {
++                        let x = safeF(activeNode.getAttribute('x'));
++                        let y = safeF(activeNode.getAttribute('y'));
++                        let w = safeF(activeNode.getAttribute('width'));
++                        let h = safeF(activeNode.getAttribute('height'));
++                        return { cx: x + w / 2, cy: y + h / 2 };
++                    } else if (tagName === 'line') {
++                        let x1 = safeF(activeNode.getAttribute('x1'));
++                        let y1 = safeF(activeNode.getAttribute('y1'));
++                        let x2 = safeF(activeNode.getAttribute('x2'));
++                        let y2 = safeF(activeNode.getAttribute('y2'));
++                        return { cx: (x1 + x2) / 2, cy: (y1 + y2) / 2 };
++                    }
++
++                    try {
++                        let bbox = activeNode.getBBox();
++                        if (bbox.width > 0 || bbox.height > 0) {
++                            return { cx: safeF(bbox.x) + safeF(bbox.width) / 2, cy: safeF(bbox.y) + safeF(bbox.height) / 2 };
++                        }
++                    } catch (e) {}
++
++                    return { cx: safeF(activeNode.getAttribute('x')), cy: safeF(activeNode.getAttribute('y')) };
++                },
++
+                 getMatrix: (str) => {
+                     if (!str) return createIdentity();
+                     let m = createIdentity();
+@@ -830,19 +886,9 @@
+                                 if (localRelPos >= m.index - 1 && localRelPos <= m.index + m[0].length + 1) {
+                                     let cxVal = 0, cyVal = 0;
+                                     if (activeNode) {
+-                                        try {
+-                                            const bbox = activeNode.getBBox();
+-                                            if (bbox.width || bbox.height) {
+-                                                cxVal = bbox.x + bbox.width / 2;
+-                                                cyVal = bbox.y + bbox.height / 2;
+-                                            } else {
+-                                                cxVal = parseFloat(activeNode.getAttribute('x') || 0);
+-                                                cyVal = parseFloat(activeNode.getAttribute('y') || 0);
+-                                            }
+-                                        } catch(e) {
+-                                            cxVal = parseFloat(activeNode.getAttribute('x') || 0);
+-                                            cyVal = parseFloat(activeNode.getAttribute('y') || 0);
+-                                        }
++                                        const center = SVGUtils.getLogicalCenter(activeNode);
++                                        cxVal = center.cx;
++                                        cyVal = center.cy;
+                                     }
+                                     return {
+                                         start: vStart + m.index,
+@@ -1304,6 +1350,13 @@
+                             if (yMatch) ranges.push(yMatch);
+                             return { ranges: ranges, cx: parseFloat(activeNode.getAttribute('x') || 0), cy: parseFloat(activeNode.getAttribute('y') || 0) };
+                         }
++                        
++                        // Provide base point for future transformations when cursor is at the beginning of the tag
++                        const tagNameMatch = tagStr.match(/^<([a-z0-9:-]+)/i);
++                        if (tagNameMatch && relPos >= 0 && relPos <= tagNameMatch[0].length + 1) {
++                            const center = SVGUtils.getLogicalCenter(activeNode);
++                            return { start: 0, end: tagNameMatch[0].length, cx: center.cx, cy: center.cy };
++                        }
+                         return null;
+                     },
+                     movePoint: (tagStr, relPos, dx, dy) => SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['x', 'y'], dx, dy),
+@@ -1331,41 +1384,6 @@
+                         
+                         let cx = origCx;
+                         let cy = origCy;
+-                        
+-                        let bbox = { width: 0, height: 0, x: 0, y: 0 };
+-                        try { bbox = activeNode.getBBox(); } catch (e) {}
+-
+-                        // Failsafe: Dig into the referenced symbol logic if natively invisible dimensions
+-                        if (bbox.width === 0 && bbox.height === 0) {
+-                            const href = activeNode.getAttribute('href') || activeNode.getAttribute('xlink:href');
+-                            if (href && href.startsWith('#')) {
+-                                const refId = href.substring(1);
+-                                const refNode = document.getElementById(refId) || document.querySelector(`[id="${refId}"]`);
+-                                if (refNode) {
+-                                    let refX = 0, refY = 0, refW = 0, refH = 0;
+-                                    if (refNode.viewBox && refNode.viewBox.baseVal && refNode.viewBox.baseVal.width > 0) {
+-                                        refX = refNode.viewBox.baseVal.x;
+-                                        refY = refNode.viewBox.baseVal.y;
+-                                        refW = refNode.viewBox.baseVal.width;
+-                                        refH = refNode.viewBox.baseVal.height;
+-                                    } else {
+-                                        try { 
+-                                            const refBbox = refNode.getBBox();
+-                                            refX = refBbox.x;
+-                                            refY = refBbox.y;
+-                                            refW = refBbox.width;
+-                                            refH = refBbox.height;
+-                                        } catch (e) {}
+-                                    }
+-                                    if (refW > 0 || refH > 0) {
+-                                        let useX = parseFloat(activeNode.getAttribute('x') || 0);
+-                                        let useY = parseFloat(activeNode.getAttribute('y') || 0);
+-                                        cx = useX + refX + refW / 2;
+-                                        cy = useY + refY + refH / 2;
+-                                    }
+-                                }
+-                            }
+-                        }
+ 
+                         let transformMatch = tagStr.match(/\btransform=["']([^"']+)["']/i);
+                         let currentTransform = transformMatch ? transformMatch[1] : '';
+@@ -2229,17 +2247,21 @@
+             }
+ 
+             function renderVisualOverlay(activeNode, activeSub) {
+-                if (!activeSub || (!activeSub.cx && activeSub.cx !== 0 && !activeSub.qData && !activeSub.cData)) return;
++                if (!activeSub) return;
++                
++                const hasValidCenter = Number.isFinite(activeSub.cx) && Number.isFinite(activeSub.cy);
++                if (!hasValidCenter && !activeSub.qData && !activeSub.cData) return;
+                 
+                 const vw = parseFloat(userSvgContainer.getAttribute('width') || 100);
+                 const r = vw * 0.02;
+                 
+                 const getMappedCoords = (x, y) => {
+-                    let tx = x, ty = y;
++                    let tx = Number.isFinite(x) ? x : 0;
++                    let ty = Number.isFinite(y) ? y : 0;
+                     try {
+                         const pt = mainSvg.createSVGPoint();
+-                        pt.x = x;
+-                        pt.y = y;
++                        pt.x = tx;
++                        pt.y = ty;
+                         const ctm = activeNode.getScreenCTM();
+                         const inv = mainSvg.getScreenCTM().inverse();
+                         if (ctm && inv) {
+@@ -2355,28 +2377,9 @@
+                 
+                 if (!activeNode) return;
+ 
+-                let bbox;
+-                try {
+-                    bbox = activeNode.getBBox();
+-                    // Matrix Math Edge Case Validation
+-                    if (bbox.width === 0 && bbox.height === 0 && bbox.x === 0 && bbox.y === 0) {
+-                        let x = parseFloat(activeNode.getAttribute('x'));
+-                        let y = parseFloat(activeNode.getAttribute('y'));
+-                        if (isNaN(x) && isNaN(y)) {
+-                            // If spatial attributes and bounding box are entirely missing, abort safely.
+-                            if (!activeNode.getAttribute('d') && !activeNode.getAttribute('points')) {
+-                                return; 
+-                            }
+-                            x = 0; y = 0;
+-                        }
+-                        bbox = {x: x || 0, y: y || 0, width: 0, height: 0};
+-                    }
+-                } catch (e) {
+-                    return;
+-                }
+-
+-                const cx = bbox.x + bbox.width / 2;
+-                const cy = bbox.y + bbox.height / 2;
++                const center = SVGUtils.getLogicalCenter(activeNode);
++                const cx = center.cx;
++                const cy = center.cy;
+ 
+                 let tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+                 const tagName = activeTagInfo.tagName.toLowerCase();

@@ -1,0 +1,49 @@
+--- svg_component_editor_v3_11.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_11_1.html	2026-05-31 19:17:26.529529970 +0300
+@@ -299,7 +299,7 @@
+     <header>
+         <div class="toolbar-group">
+             <select class="toolbar-select wide" onchange="if(this.value){ insertShape(this.value); this.value=''; }" title="Add Element">
+-                <option value="" disabled selected>➕ Add Element</option>
++                <option value="" disabled selected>➕</option>
+                 <option value="circle">⭕ Circle</option>
+                 <option value="line">📏 Line</option>
+                 <option value="path">〰️ Path</option>
+@@ -310,12 +310,6 @@
+             </select>
+         </div>
+ 
+-        <div class="toolbar-group">
+-            <span id="error-badge" class="badge">Syntax Error</span>
+-            <label class="toggle">
+-                <input type="checkbox" id="toggle-grid" checked> Grid
+-            </label>
+-        </div>
+ 
+         <div class="toolbar-group">
+             <button onclick="moveShape(0, -1)" title="Move Up (↑)">▲</button>
+@@ -370,7 +364,16 @@
+         </div>
+     </div>
+ 
+-    <footer>v3.11</footer>
++    <footer>
++
++        <div class="toolbar-group">
++            <span id="error-badge" class="badge">Syntax Error</span>
++            <label class="toggle">
++                <input type="checkbox" id="toggle-grid" checked> Grid
++            </label>
++        </div>
++v3.11
++</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -2079,4 +2082,4 @@
+ 
+     </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>

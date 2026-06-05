@@ -1,0 +1,32 @@
+--- svg_theme_experimenter_v1_10_0.html	2026-06-02 20:13:59.570562188 +0300
++++ svg_theme_experimenter_v1_11_0.html	2026-06-02 20:18:52.266400952 +0300
+@@ -447,7 +447,7 @@
+             <div class="output-section">
+                 <button class="copy-btn" id="btn-copy">📋 Copy CSS Variables</button>
+                 <textarea id="css-export" readonly></textarea>
+-                <div class="app-version">v1.10.0</div>
++                <div class="app-version">v1.11.0</div>
+             </div>
+         </div>
+ 
+@@ -853,7 +853,19 @@
+                     if (className.includes('preview-panel')) varsToHighlight.add('--border');
+                     if (className.includes('editor-wrapper')) varsToHighlight.add('--panel-bg');
+                     
+-                    if (className.includes('backdrop') || tagName === 'button' || tagName === 'select' || className.includes('toolbar-select') || tagName === 'path') {
++                    // 3. Editor Panel specific mapping
++                    if (tagName === 'mark') {
++                        if (className.includes('point-mark')) {
++                            varsToHighlight.add('--danger');
++                        } else {
++                            varsToHighlight.add('--primary');
++                        }
++                    }
++                    
++                    if (className.includes('backdrop')) {
++                        varsToHighlight.add('--text-color');
++                        varsToHighlight.add('--panel-bg');
++                    } else if (tagName === 'button' || tagName === 'select' || className.includes('toolbar-select') || tagName === 'path') {
+                         if (!varsToHighlight.has('--primary') && !varsToHighlight.has('--danger')) {
+                             varsToHighlight.add('--text-color');
+                         }

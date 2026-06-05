@@ -1,0 +1,68 @@
+--- svg_component_editor_v2_2.html	2026-05-31 19:17:26.525529956 +0300
++++ svg_component_editor_v2_3.html	2026-05-31 19:17:26.525529956 +0300
+@@ -144,6 +144,18 @@
+             background: var(--border);
+         }
+ 
++        .toolbar-select.wide {
++            width: auto;
++            text-align: left;
++            text-align-last: left;
++            padding-left: 8px;
++            padding-right: 24px;
++            background-image: url("data:image/svg+xml,%3Csvg fill='%23f8f8f2' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
++            background-repeat: no-repeat;
++            background-position: right 2px center;
++            background-size: 18px;
++        }
++
+         .toolbar-select option {
+             background: var(--panel-bg);
+             color: var(--text-color);
+@@ -285,6 +297,18 @@
+ 
+     <header>
+         <div class="toolbar-group">
++            <select class="toolbar-select wide" onchange="if(this.value){ insertShape(this.value); this.value=''; }" title="Add Element">
++                <option value="" disabled selected>➕ Add Element</option>
++                <option value="circle">⭕ Circle</option>
++                <option value="line">📏 Line</option>
++                <option value="path">〰️ Path</option>
++                <option value="polygon">⬠ Polygon</option>
++                <option value="polyline">📈 Polyline</option>
++                <option value="rect">🟦 Rectangle</option>
++            </select>
++        </div>
++
++        <div class="toolbar-group">
+             <span id="error-badge" class="badge">Syntax Error</span>
+             <label class="toggle">
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+@@ -305,18 +329,6 @@
+                 <option value="-90">↺ -90°</option>
+                 <option value="180">↻ 180°</option>
+             </select>
+-        </div>
+-
+-        <div class="toolbar-group">
+-            <select class="toolbar-select" onchange="if(this.value){ insertShape(this.value); this.value=''; }" title="Insert">
+-                <option value="" disabled selected>➕</option>
+-                <option value="circle">⭕ Circle</option>
+-                <option value="line">📏 Line</option>
+-                <option value="path">〰️ Path</option>
+-                <option value="polygon">⬠ Polygon</option>
+-                <option value="polyline">📈 Polyline</option>
+-                <option value="rect">🟦 Rectangle</option>
+-            </select>
+             <div class="toolbar-divider"></div>
+             <button class="danger" onclick="deleteActiveShape()" title="Delete">🗑️</button>
+         </div>
+@@ -356,7 +368,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v2.2</footer>
++    <footer>v2.3</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->

@@ -1,0 +1,27 @@
+--- svg_component_editor_v7_1_0_tests.js	2026-06-04 15:58:12.844300000 +0300
++++ svg_component_editor_v7_2_0_tests.js	2026-06-04 16:00:03.040384457 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v7.1.0)
++ * SVG Component Editor - Micro Unit Test Suite (v7.2.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -281,11 +281,12 @@
+                 window.TEST_API.textarea.selectionStart = attrIdx + 3;
+                 window.TEST_API.textarea.selectionEnd = attrIdx + 3;
+                 
+-                // Force synchronous state update to bypass debounce race conditions
+-                if (typeof window.TEST_API.getActiveTag === 'function') {
+-                    window.TEST_API.getActiveTag();
+-                }
+-                await new Promise(r => setTimeout(r, 10)); 
++                // BUGFIX: Direct calls to getActiveTag() threw a TypeError because the internal function 
++                // expects a native DOM Event object. We securely bypass this by dispatching natural browser 
++                // events to trigger the app's listener natively, applying a 250ms delay to outwait the debounce timer!
++                window.TEST_API.textarea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
++                window.TEST_API.textarea.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
++                await new Promise(r => setTimeout(r, 250)); 
+                 
+                 const commands = [[flipCmd], ['mirror', flipCmd === 'flip_h' ? 'horizontal' : 'vertical'], [flipCmd === 'flip_h' ? 'flipH' : 'flipV']];
+                 for (let args of commands) {

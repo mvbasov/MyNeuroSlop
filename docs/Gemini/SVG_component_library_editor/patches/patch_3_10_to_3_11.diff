@@ -1,0 +1,100 @@
+--- svg_component_editor_v3_10.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_11.html	2026-05-31 19:17:26.529529970 +0300
+@@ -370,7 +370,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v3.10</footer>
++    <footer>v3.11</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -494,7 +494,14 @@
+         }
+ 
+         function applyState() {
++            const savedScrollTop = textarea.scrollTop;
++            const savedScrollLeft = textarea.scrollLeft;
++            
+             textarea.value = history[historyIndex];
++            
++            textarea.scrollTop = savedScrollTop;
++            textarea.scrollLeft = savedScrollLeft;
++            
+             processInput(true);
+         }
+ 
+@@ -1692,10 +1699,16 @@
+                 newCursor += offset;
+             }
+ 
++            const savedScrollTop = textarea.scrollTop;
++            const savedScrollLeft = textarea.scrollLeft;
++
+             updateCode(newCode, true);
+             textarea.focus();
+             textarea.setSelectionRange(newCursor, newCursor);
+             
++            textarea.scrollTop = savedScrollTop;
++            textarea.scrollLeft = savedScrollLeft;
++            
+             // Re-trigger selection using RAF for smoothness
+             if (selectionRafId) cancelAnimationFrame(selectionRafId);
+             selectionRafId = requestAnimationFrame(updateSelection);
+@@ -1911,11 +1924,17 @@
+             let newCursor = textarea.selectionStart;
+             if (newCursor > activeTagInfo.start) newCursor += offset;
+ 
++            const savedScrollTop = textarea.scrollTop;
++            const savedScrollLeft = textarea.scrollLeft;
++
+             updateCode(newCode, true);
+             
+             textarea.focus();
+             textarea.setSelectionRange(newCursor, newCursor);
+             
++            textarea.scrollTop = savedScrollTop;
++            textarea.scrollLeft = savedScrollLeft;
++            
+             if (selectionRafId) cancelAnimationFrame(selectionRafId);
+             selectionRafId = requestAnimationFrame(updateSelection);
+         }
+@@ -1958,12 +1977,19 @@
+             }
+ 
+             const newCode = code.substring(0, insertPos) + indent + template + code.substring(insertPos);
++            
++            const savedScrollTop = textarea.scrollTop;
++            const savedScrollLeft = textarea.scrollLeft;
++            
+             updateCode(newCode, true);
+             
+             const newPos = insertPos + indent.length + template.length;
+             textarea.focus();
+             textarea.setSelectionRange(newPos, newPos);
+             
++            textarea.scrollTop = savedScrollTop;
++            textarea.scrollLeft = savedScrollLeft;
++            
+             if (selectionRafId) cancelAnimationFrame(selectionRafId);
+             selectionRafId = requestAnimationFrame(updateSelection);
+         }
+@@ -1980,11 +2006,18 @@
+             if (start > 0 && code[start-1] === '\n') start--;
+ 
+             const newCode = code.substring(0, start) + code.substring(end);
++            
++            const savedScrollTop = textarea.scrollTop;
++            const savedScrollLeft = textarea.scrollLeft;
++            
+             updateCode(newCode, true);
+             
+             textarea.focus();
+             textarea.setSelectionRange(start, start);
+             
++            textarea.scrollTop = savedScrollTop;
++            textarea.scrollLeft = savedScrollLeft;
++            
+             if (selectionRafId) cancelAnimationFrame(selectionRafId);
+             selectionRafId = requestAnimationFrame(updateSelection);
+         }

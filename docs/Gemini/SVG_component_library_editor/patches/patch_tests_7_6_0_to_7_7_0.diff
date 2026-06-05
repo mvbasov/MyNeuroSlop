@@ -1,0 +1,59 @@
+--- svg_component_editor_v7_6_0_tests.js	2026-06-04 16:40:54.090012504 +0300
++++ svg_component_editor_v7_7_0_tests.js	2026-06-04 16:45:00.514142315 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v7.6.0)
++ * SVG Component Editor - Micro Unit Test Suite (v7.7.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -402,6 +402,49 @@
+             await new Promise(r => setTimeout(r, 100));
+             assertTrue("Parser Safe-Mode: Multiline HTML comments perfectly preserved during geometric manipulation", window.TEST_API.textarea.value.includes('My Safe'));
+ 
++            // --- Test 16: Uncomment Functionality (Inline & Multiline Ghost Lines) ---
++            console.log("Running Test 16: Uncomment functionality...");
++            const commentCode = `<svg viewBox="0 0 100 100">\n  <!--<rect width="10" height="10"/>-->\n  <!--\n    <circle cx="50" cy="50" r="40" />\n  -->\n</svg>`;
++            await loadTestData(commentCode, 'svg');
++            
++            // 1. Target Inline Comment
++            const inlineCommentIdx = window.TEST_API.textarea.value.indexOf('<rect');
++            window.TEST_API.textarea.selectionStart = inlineCommentIdx;
++            window.TEST_API.textarea.selectionEnd = inlineCommentIdx;
++            window.TEST_API.textarea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
++            window.TEST_API.textarea.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
++            await new Promise(r => setTimeout(r, 150)); // wait for selection tokenizer
++
++            const uncommentBtn = document.getElementById('tool-uncomment');
++            if (uncommentBtn && uncommentBtn.style.display !== 'none') {
++                uncommentBtn.click();
++                await new Promise(r => setTimeout(r, 100));
++                assertTrue("Uncomment: Inline comment markers removed correctly", window.TEST_API.textarea.value.includes('  <rect width="10" height="10"/>\n') && !window.TEST_API.textarea.value.includes('<!--<rect'));
++            } else {
++                console.error("❌ FAIL: Uncomment button not visible for inline comment.");
++                failed++;
++            }
++
++            // 2. Target Multiline Comment (Test Ghost Line eradication)
++            const multiCommentIdx = window.TEST_API.textarea.value.indexOf('<circle');
++            window.TEST_API.textarea.selectionStart = multiCommentIdx;
++            window.TEST_API.textarea.selectionEnd = multiCommentIdx;
++            window.TEST_API.textarea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
++            window.TEST_API.textarea.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
++            await new Promise(r => setTimeout(r, 150));
++
++            if (uncommentBtn && uncommentBtn.style.display !== 'none') {
++                uncommentBtn.click();
++                await new Promise(r => setTimeout(r, 100));
++                
++                const currentCode = window.TEST_API.textarea.value;
++                const noGhostLines = currentCode.includes('<circle') && !currentCode.includes('<!--') && !currentCode.includes('-->') && !currentCode.includes('\\n  \\n    <circle');
++                assertTrue("Uncomment: Multiline comment markers AND empty ghost lines eradicated", noGhostLines);
++            } else {
++                console.error("❌ FAIL: Uncomment button not visible for multiline comment.");
++                failed++;
++            }
++
+         } catch (error) {
+             console.error("❌ FATAL TEST EXECUTION ERROR:", error);
+             failed++;

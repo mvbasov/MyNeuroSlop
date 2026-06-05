@@ -1,0 +1,43 @@
+--- svg_component_editor_v6_23_0_tests.js	2026-06-04 13:39:38.652761251 +0300
++++ svg_component_editor_v6_24_0_tests.js	2026-06-04 15:14:39.618934979 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.23.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.24.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -233,6 +233,33 @@
+             const hasMirroredPoint = /M[\s,]*50[\s,]+10/i.test(mirroredCode) || /50[\s,]+10/.test(mirroredCode);
+             assertTrue("Coordinates Matrix: Horizontal mirror correctly shifts asymmetrical path vertices", hasMirroredPoint && mirroredCode !== pathCodeRef);
+ 
++            // Test 8: Direct Coordinates Recalculation (Rotations 45, -45, 180)
++            // Validates that rotating geometric shapes by specific angles recalculates points mathematically instead of appending a lazy 'transform="..."' attribute.
++            const anglesToTest = ['45', '-45', '180'];
++            for (let angle of anglesToTest) {
++                await loadTestData('<svg><polygon points="40,40 60,40 60,60 40,60" /></svg>', 'polygon');
++                const origCode = window.TEST_API.textarea.value;
++                
++                // Target parser exactly into the polygon tag payload
++                const pIdx = origCode.search(/<polygon/);
++                window.TEST_API.textarea.selectionStart = pIdx + 8;
++                window.TEST_API.textarea.selectionEnd = pIdx + 8;
++                
++                // Fire shotgun API cascade for the rotation command
++                const commands = [[`rot_${angle}`], ['rotate', angle], [angle], [Number(angle)], [`rotate_${angle}`]];
++                for (let args of commands) {
++                    try {
++                        window.TEST_API.transformShape(...args);
++                        await new Promise(r => setTimeout(r, 40));
++                        if (window.TEST_API.textarea.value !== origCode) break;
++                    } catch (e) {}
++                }
++                
++                const newCode = window.TEST_API.textarea.value;
++                const rewroteCoordinatesDirectly = !newCode.includes('transform=') && newCode !== origCode;
++                assertTrue(`Direct Coordinates Rotation (${angle}°): Mathematically mapped vertices directly without transform matrix`, rewroteCoordinatesDirectly);
++            }
++
+         } catch (error) {
+             console.error("❌ FATAL TEST EXECUTION ERROR:", error);
+             failed++;

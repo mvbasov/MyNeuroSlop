@@ -1,0 +1,424 @@
+--- svg_component_editor_v4_1.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v4_2.html	2026-05-31 19:17:26.533529984 +0300
+@@ -374,7 +374,7 @@
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+         </div>
+-        <div>v4.1</div>
++        <div>v4.2</div>
+     </footer>
+ 
+     <script>
+@@ -435,6 +435,15 @@
+                 });
+             },
+             
++            setOrReplaceAttr: (str, attr, val) => {
++                const regex = new RegExp(`\\b${attr}=["'][^"']*["']`, 'i');
++                if (regex.test(str)) {
++                    return str.replace(regex, `${attr}="${val}"`);
++                } else {
++                    return str.replace(/(<[a-zA-Z0-9:-]+)/, `$1 ${attr}="${val}"`);
++                }
++            },
++            
+             checkAndAdjustNearAttr: (tagStr, relPos, attrList, xDelta, yDelta, postFixFn = null) => {
+                 for (let attr of attrList) {
+                     const match = SVGUtils.getAttrMatch(tagStr, attr);
+@@ -783,7 +792,21 @@
+                     }
+                     return { modified: false };
+                 },
+-                moveElement: (tagStr, dx, dy) => SVGUtils.adjustPoints(tagStr, dx, dy)
++                moveElement: (tagStr, dx, dy) => SVGUtils.adjustPoints(tagStr, dx, dy),
++                rotateElement: (tagStr, angle, rotPoint) => {
++                    const f = n => parseFloat(n.toFixed(3));
++                    return tagStr.replace(/\bpoints=["']([^"']+)["']/i, (match, val) => {
++                        const newVals = (val.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
++                        let out = [];
++                        for (let i = 0; i < newVals.length; i += 2) {
++                            if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
++                                let [nx, ny] = rotPoint(newVals[i], newVals[i+1]);
++                                out.push(`${f(nx)},${f(ny)}`);
++                            }
++                        }
++                        return `points="${out.join(' ')}"`;
++                    });
++                }
+             },
+ 
+             line: {
+@@ -834,6 +857,22 @@
+                     t = SVGUtils.adjustAttr(t, 'x2', dx);
+                     t = SVGUtils.adjustAttr(t, 'y1', dy);
+                     return SVGUtils.adjustAttr(t, 'y2', dy);
++                },
++                rotateElement: (tagStr, angle, rotPoint, activeNode) => {
++                    const f = n => parseFloat(n.toFixed(3));
++                    let x1 = parseFloat(activeNode.getAttribute('x1') || 0);
++                    let y1 = parseFloat(activeNode.getAttribute('y1') || 0);
++                    let x2 = parseFloat(activeNode.getAttribute('x2') || 0);
++                    let y2 = parseFloat(activeNode.getAttribute('y2') || 0);
++                    
++                    let [nx1, ny1] = rotPoint(x1, y1);
++                    let [nx2, ny2] = rotPoint(x2, y2);
++                    
++                    let t = SVGUtils.setOrReplaceAttr(tagStr, 'x1', f(nx1));
++                    t = SVGUtils.setOrReplaceAttr(t, 'y1', f(ny1));
++                    t = SVGUtils.setOrReplaceAttr(t, 'x2', f(nx2));
++                    t = SVGUtils.setOrReplaceAttr(t, 'y2', f(ny2));
++                    return t;
+                 }
+             },
+ 
+@@ -908,6 +947,23 @@
+                 moveElement: (tagStr, dx, dy) => {
+                     let t = SVGUtils.adjustAttr(tagStr, 'x', dx);
+                     return SVGUtils.adjustAttr(t, 'y', dy);
++                },
++                rotateElement: (tagStr, angle, rotPoint, activeNode, cx, cy) => {
++                    const f = n => parseFloat(n.toFixed(3));
++                    let w = parseFloat(activeNode.getAttribute('width') || 0);
++                    let h = parseFloat(activeNode.getAttribute('height') || 0);
++
++                    if (Math.abs(angle) === 90) {
++                        let nw = h, nh = w;
++                        let nx = cx - nw / 2;
++                        let ny = cy - nh / 2;
++                        let t = SVGUtils.setOrReplaceAttr(tagStr, 'x', f(nx));
++                        t = SVGUtils.setOrReplaceAttr(t, 'y', f(ny));
++                        t = SVGUtils.setOrReplaceAttr(t, 'width', f(nw));
++                        t = SVGUtils.setOrReplaceAttr(t, 'height', f(nh));
++                        return t;
++                    }
++                    return tagStr;
+                 }
+             },
+ 
+@@ -951,6 +1007,19 @@
+                 moveElement: (tagStr, dx, dy) => {
+                     let t = SVGUtils.adjustAttr(tagStr, 'cx', dx);
+                     return SVGUtils.adjustAttr(t, 'cy', dy);
++                },
++                rotateElement: (tagStr, angle) => {
++                    // Ellipses (which map to circle's strategy) rotate by swapping rx and ry
++                    if (Math.abs(angle) === 90) {
++                        let rxMatch = tagStr.match(/\brx=["']([^"']+)["']/i);
++                        let ryMatch = tagStr.match(/\bry=["']([^"']+)["']/i);
++                        if (rxMatch && ryMatch) {
++                            let rx = rxMatch[1], ry = ryMatch[1];
++                            let t = tagStr.replace(/\brx=["'][^"']+["']/i, `rx="${ry}"`);
++                            return t.replace(/\bry=["'][^"']+["']/i, `ry="${rx}"`);
++                        }
++                    }
++                    return tagStr;
+                 }
+             },
+ 
+@@ -1278,6 +1347,114 @@
+                 },
+                 moveElement: (tagStr, dx, dy) => {
+                     return tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => `d="${SVGUtils.shiftPathD(val, dx, dy)}"`);
++                },
++                rotateElement: (tagStr, angle, rotPoint) => {
++                    const f = n => parseFloat(n.toFixed(3));
++                    return tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => {
++                        const commands = val.match(/[a-df-zA-Z][^a-df-zA-Z]*/g);
++                        if (!commands) return match;
++
++                        let currX = 0, currY = 0;
++                        let startX = 0, startY = 0;
++
++                        const processCommand = (cmdChunk) => {
++                            const letter = cmdChunk.trim()[0];
++                            const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
++                            const upper = letter.toUpperCase();
++                            const isRel = letter === letter.toLowerCase();
++
++                            if (upper === 'Z') {
++                                currX = startX;
++                                currY = startY;
++                                return 'Z';
++                            }
++
++                            let out = [];
++
++                            if (upper === 'H') {
++                                for (let n of nums) {
++                                    currX = isRel ? currX + n : n;
++                                    let [rx, ry] = rotPoint(currX, currY);
++                                    out.push(`L${f(rx)},${f(ry)}`);
++                                }
++                            } else if (upper === 'V') {
++                                for (let n of nums) {
++                                    currY = isRel ? currY + n : n;
++                                    let [rx, ry] = rotPoint(currX, currY);
++                                    out.push(`L${f(rx)},${f(ry)}`);
++                                }
++                            } else if (upper === 'M' || upper === 'L' || upper === 'T') {
++                                for (let i = 0; i < nums.length; i += 2) {
++                                    currX = isRel ? currX + nums[i] : nums[i];
++                                    currY = isRel ? currY + nums[i+1] : nums[i+1];
++                                    if (upper === 'M' && i === 0) {
++                                        startX = currX;
++                                        startY = currY;
++                                    }
++                                    let [rx, ry] = rotPoint(currX, currY);
++                                    out.push(`${(upper === 'M' && i === 0) ? 'M' : (upper === 'M' ? 'L' : upper)}${f(rx)},${f(ry)}`);
++                                }
++                            } else if (upper === 'Q' || upper === 'S') {
++                                for (let i = 0; i < nums.length; i += 4) {
++                                    let c1x = isRel ? currX + nums[i] : nums[i];
++                                    let c1y = isRel ? currY + nums[i+1] : nums[i+1];
++                                    let endX = isRel ? currX + nums[i+2] : nums[i+2];
++                                    let endY = isRel ? currY + nums[i+3] : nums[i+3];
++                                    
++                                    let [rc1x, rc1y] = rotPoint(c1x, c1y);
++                                    let [rendX, rendY] = rotPoint(endX, endY);
++                                    
++                                    out.push(`${upper}${f(rc1x)},${f(rc1y)} ${f(rendX)},${f(rendY)}`);
++                                    currX = endX;
++                                    currY = endY;
++                                }
++                            } else if (upper === 'C') {
++                                for (let i = 0; i < nums.length; i += 6) {
++                                    let c1x = isRel ? currX + nums[i] : nums[i];
++                                    let c1y = isRel ? currY + nums[i+1] : nums[i+1];
++                                    let c2x = isRel ? currX + nums[i+2] : nums[i+2];
++                                    let c2y = isRel ? currY + nums[i+3] : nums[i+3];
++                                    let endX = isRel ? currX + nums[i+4] : nums[i+4];
++                                    let endY = isRel ? currY + nums[i+5] : nums[i+5];
++                                    
++                                    let [rc1x, rc1y] = rotPoint(c1x, c1y);
++                                    let [rc2x, rc2y] = rotPoint(c2x, c2y);
++                                    let [rendX, rendY] = rotPoint(endX, endY);
++                                    
++                                    out.push(`C${f(rc1x)},${f(rc1y)} ${f(rc2x)},${f(rc2y)} ${f(rendX)},${f(rendY)}`);
++                                    currX = endX;
++                                    currY = endY;
++                                }
++                            } else if (upper === 'A') {
++                                for (let i = 0; i < nums.length; i += 7) {
++                                    let rx_val = nums[i];
++                                    let ry_val = nums[i+1];
++                                    let xRot = nums[i+2];
++                                    let largeArc = nums[i+3];
++                                    let sweep = nums[i+4];
++                                    let endX = isRel ? currX + nums[i+5] : nums[i+5];
++                                    let endY = isRel ? currY + nums[i+6] : nums[i+6];
++                                    
++                                    if (angle === 90 || angle === -90) {
++                                        let tmp = rx_val;
++                                        rx_val = ry_val;
++                                        ry_val = tmp;
++                                        xRot = (xRot + 90) % 360;
++                                    }
++
++                                    let [rendX, rendY] = rotPoint(endX, endY);
++                                    
++                                    out.push(`A${f(rx_val)},${f(ry_val)} ${f(xRot)} ${largeArc} ${sweep} ${f(rendX)},${f(rendY)}`);
++                                    currX = endX;
++                                    currY = endY;
++                                }
++                            }
++                            return out.join(' ');
++                        };
++
++                        let newD = commands.map(processCommand).join(' ').replace(/\s+/g, ' ').trim();
++                        return `d="${newD}"`;
++                    });
+                 }
+             },
+             default: { moveElement: (tagStr, dx, dy) => tagStr }
+@@ -1768,7 +1945,6 @@
+ 
+             const cx = bbox.x + bbox.width / 2;
+             const cy = bbox.y + bbox.height / 2;
+-            const f = n => parseFloat(n.toFixed(3));
+ 
+             let tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+             const tagName = activeTagInfo.tagName.toLowerCase();
+@@ -1780,176 +1956,15 @@
+                 return [px, py];
+             };
+ 
+-            function setOrReplace(str, attr, val) {
+-                const regex = new RegExp(`\\b${attr}=["'][^"']*["']`, 'i');
+-                if (regex.test(str)) {
+-                    return str.replace(regex, `${attr}="${val}"`);
+-                } else {
+-                    return str.replace(/(<[a-zA-Z0-9:-]+)/, `$1 ${attr}="${val}"`);
+-                }
+-            }
+-
++            const handler = ShapeRegistry[tagName] || ShapeRegistry.default;
+             let modified = false;
+ 
+-            if (tagName === 'line') {
+-                let x1 = parseFloat(activeNode.getAttribute('x1') || 0);
+-                let y1 = parseFloat(activeNode.getAttribute('y1') || 0);
+-                let x2 = parseFloat(activeNode.getAttribute('x2') || 0);
+-                let y2 = parseFloat(activeNode.getAttribute('y2') || 0);
+-                
+-                let [nx1, ny1] = rotPoint(x1, y1);
+-                let [nx2, ny2] = rotPoint(x2, y2);
+-                
+-                tagStr = setOrReplace(tagStr, 'x1', f(nx1));
+-                tagStr = setOrReplace(tagStr, 'y1', f(ny1));
+-                tagStr = setOrReplace(tagStr, 'x2', f(nx2));
+-                tagStr = setOrReplace(tagStr, 'y2', f(ny2));
+-                modified = true;
+-            } else if (tagName === 'rect') {
+-                let x = parseFloat(activeNode.getAttribute('x') || 0);
+-                let y = parseFloat(activeNode.getAttribute('y') || 0);
+-                let w = parseFloat(activeNode.getAttribute('width') || 0);
+-                let h = parseFloat(activeNode.getAttribute('height') || 0);
+-
+-                if (Math.abs(angle) === 90) {
+-                    let nw = h, nh = w;
+-                    let nx = cx - nw / 2;
+-                    let ny = cy - nh / 2;
+-                    tagStr = setOrReplace(tagStr, 'x', f(nx));
+-                    tagStr = setOrReplace(tagStr, 'y', f(ny));
+-                    tagStr = setOrReplace(tagStr, 'width', f(nw));
+-                    tagStr = setOrReplace(tagStr, 'height', f(nh));
+-                }
+-                modified = true;
+-            } else if (tagName === 'ellipse' && Math.abs(angle) === 90) {
+-                let rxMatch = tagStr.match(/\brx=["']([^"']+)["']/i);
+-                let ryMatch = tagStr.match(/\bry=["']([^"']+)["']/i);
+-                if (rxMatch && ryMatch) {
+-                    let rx = rxMatch[1], ry = ryMatch[1];
+-                    tagStr = tagStr.replace(/\brx=["'][^"']+["']/i, `rx="${ry}"`);
+-                    tagStr = tagStr.replace(/\bry=["'][^"']+["']/i, `ry="${rx}"`);
+-                }
+-                modified = true;
+-            } else if (tagName === 'polygon' || tagName === 'polyline') {
+-                tagStr = tagStr.replace(/\bpoints=["']([^"']+)["']/i, (match, val) => {
+-                    const newVals = (val.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+-                    let out = [];
+-                    for (let i = 0; i < newVals.length; i += 2) {
+-                        if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+-                            let [nx, ny] = rotPoint(newVals[i], newVals[i+1]);
+-                            out.push(`${f(nx)},${f(ny)}`);
+-                        }
+-                    }
+-                    return `points="${out.join(' ')}"`;
+-                });
+-                modified = true;
+-            } else if (tagName === 'path') {
+-                tagStr = tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => {
+-                    const commands = val.match(/[a-df-zA-Z][^a-df-zA-Z]*/g);
+-                    if (!commands) return match;
+-
+-                    let currX = 0, currY = 0;
+-                    let startX = 0, startY = 0;
+-
+-                    const processCommand = (cmdChunk) => {
+-                        const letter = cmdChunk.trim()[0];
+-                        const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+-                        const upper = letter.toUpperCase();
+-                        const isRel = letter === letter.toLowerCase();
+-
+-                        if (upper === 'Z') {
+-                            currX = startX;
+-                            currY = startY;
+-                            return 'Z';
+-                        }
+-
+-                        let out = [];
+-
+-                        if (upper === 'H') {
+-                            for (let n of nums) {
+-                                currX = isRel ? currX + n : n;
+-                                let [rx, ry] = rotPoint(currX, currY);
+-                                out.push(`L${f(rx)},${f(ry)}`);
+-                            }
+-                        } else if (upper === 'V') {
+-                            for (let n of nums) {
+-                                currY = isRel ? currY + n : n;
+-                                let [rx, ry] = rotPoint(currX, currY);
+-                                out.push(`L${f(rx)},${f(ry)}`);
+-                            }
+-                        } else if (upper === 'M' || upper === 'L' || upper === 'T') {
+-                            for (let i = 0; i < nums.length; i += 2) {
+-                                currX = isRel ? currX + nums[i] : nums[i];
+-                                currY = isRel ? currY + nums[i+1] : nums[i+1];
+-                                if (upper === 'M' && i === 0) {
+-                                    startX = currX;
+-                                    startY = currY;
+-                                }
+-                                let [rx, ry] = rotPoint(currX, currY);
+-                                out.push(`${(upper === 'M' && i === 0) ? 'M' : (upper === 'M' ? 'L' : upper)}${f(rx)},${f(ry)}`);
+-                            }
+-                        } else if (upper === 'Q' || upper === 'S') {
+-                            for (let i = 0; i < nums.length; i += 4) {
+-                                let c1x = isRel ? currX + nums[i] : nums[i];
+-                                let c1y = isRel ? currY + nums[i+1] : nums[i+1];
+-                                let endX = isRel ? currX + nums[i+2] : nums[i+2];
+-                                let endY = isRel ? currY + nums[i+3] : nums[i+3];
+-                                
+-                                let [rc1x, rc1y] = rotPoint(c1x, c1y);
+-                                let [rendX, rendY] = rotPoint(endX, endY);
+-                                
+-                                out.push(`${upper}${f(rc1x)},${f(rc1y)} ${f(rendX)},${f(rendY)}`);
+-                                currX = endX;
+-                                currY = endY;
+-                            }
+-                        } else if (upper === 'C') {
+-                            for (let i = 0; i < nums.length; i += 6) {
+-                                let c1x = isRel ? currX + nums[i] : nums[i];
+-                                let c1y = isRel ? currY + nums[i+1] : nums[i+1];
+-                                let c2x = isRel ? currX + nums[i+2] : nums[i+2];
+-                                let c2y = isRel ? currY + nums[i+3] : nums[i+3];
+-                                let endX = isRel ? currX + nums[i+4] : nums[i+4];
+-                                let endY = isRel ? currY + nums[i+5] : nums[i+5];
+-                                
+-                                let [rc1x, rc1y] = rotPoint(c1x, c1y);
+-                                let [rc2x, rc2y] = rotPoint(c2x, c2y);
+-                                let [rendX, rendY] = rotPoint(endX, endY);
+-                                
+-                                out.push(`C${f(rc1x)},${f(rc1y)} ${f(rc2x)},${f(rc2y)} ${f(rendX)},${f(rendY)}`);
+-                                currX = endX;
+-                                currY = endY;
+-                            }
+-                        } else if (upper === 'A') {
+-                            for (let i = 0; i < nums.length; i += 7) {
+-                                let rx_val = nums[i];
+-                                let ry_val = nums[i+1];
+-                                let xRot = nums[i+2];
+-                                let largeArc = nums[i+3];
+-                                let sweep = nums[i+4];
+-                                let endX = isRel ? currX + nums[i+5] : nums[i+5];
+-                                let endY = isRel ? currY + nums[i+6] : nums[i+6];
+-                                
+-                                if (angle === 90 || angle === -90) {
+-                                    let tmp = rx_val;
+-                                    rx_val = ry_val;
+-                                    ry_val = tmp;
+-                                    xRot = (xRot + 90) % 360;
+-                                }
+-
+-                                let [rendX, rendY] = rotPoint(endX, endY);
+-                                
+-                                out.push(`A${f(rx_val)},${f(ry_val)} ${f(xRot)} ${largeArc} ${sweep} ${f(rendX)},${f(rendY)}`);
+-                                currX = endX;
+-                                currY = endY;
+-                            }
+-                        }
+-                        return out.join(' ');
+-                    };
+-
+-                    let newD = commands.map(processCommand).join(' ').replace(/\s+/g, ' ').trim();
+-                    return `d="${newD}"`;
+-                });
+-                modified = true;
++            if (handler.rotateElement) {
++                const newTagStr = handler.rotateElement(tagStr, angle, rotPoint, activeNode, cx, cy);
++                if (newTagStr !== tagStr) {
++                    tagStr = newTagStr;
++                    modified = true;
++                }
+             }
+ 
+             if (!modified) return;

@@ -1,0 +1,375 @@
+--- svg_component_editor_v4_11_0.html	2026-06-01 01:01:14.334628481 +0300
++++ svg_component_editor_v4_12_0.html	2026-06-01 02:43:31.193276912 +0300
+@@ -371,11 +371,15 @@
+                 </div>
+ 
+                 <div class="toolbar-group">
+-                    <select class="toolbar-select" onchange="if(this.value){ rotateShape(Number(this.value)); this.value=''; }" title="Rotate">
++                    <select class="toolbar-select" onchange="if(this.value){ transformShape(this.value); this.value=''; }" title="Transform">
+                         <option value="" disabled selected>↻</option>
+-                        <option value="90">↻ 90°</option>
+-                        <option value="-90">↺ -90°</option>
+-                        <option value="180">↻ 180°</option>
++                        <option value="rot_90">↻ 90°</option>
++                        <option value="rot_-90">↺ -90°</option>
++                        <option value="rot_180">↻ 180°</option>
++                        <option value="rot_45">↻ 45°</option>
++                        <option value="rot_-45">↺ -45°</option>
++                        <option value="flip_h">↔ Flip H</option>
++                        <option value="flip_v">↕ Flip V</option>
+                     </select>
+                     <div class="toolbar-divider"></div>
+                     <button class="danger" onclick="deleteActiveShape()" title="Delete">🗑️</button>
+@@ -429,7 +433,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v4.11.0</div>
++                <div class="footer-right">v4.12.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -852,14 +856,14 @@
+                     return { modified: false };
+                 },
+                 moveElement: (tagStr, dx, dy) => SVGUtils.adjustPoints(tagStr, dx, dy),
+-                rotateElement: (tagStr, angle, rotPoint) => {
++                transformElement: (tagStr, action, transPoint) => {
+                     const f = n => parseFloat(n.toFixed(3));
+                     return tagStr.replace(/\bpoints=["']([^"']+)["']/i, (match, val) => {
+                         const newVals = (val.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                         let out = [];
+                         for (let i = 0; i < newVals.length; i += 2) {
+                             if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+-                                let [nx, ny] = rotPoint(newVals[i], newVals[i+1]);
++                                let [nx, ny] = transPoint(newVals[i], newVals[i+1]);
+                                 out.push(`${f(nx)},${f(ny)}`);
+                             }
+                         }
+@@ -917,15 +921,15 @@
+                     t = SVGUtils.adjustAttr(t, 'y1', dy);
+                     return SVGUtils.adjustAttr(t, 'y2', dy);
+                 },
+-                rotateElement: (tagStr, angle, rotPoint, activeNode) => {
++                transformElement: (tagStr, action, transPoint, activeNode) => {
+                     const f = n => parseFloat(n.toFixed(3));
+                     let x1 = parseFloat(activeNode.getAttribute('x1') || 0);
+                     let y1 = parseFloat(activeNode.getAttribute('y1') || 0);
+                     let x2 = parseFloat(activeNode.getAttribute('x2') || 0);
+                     let y2 = parseFloat(activeNode.getAttribute('y2') || 0);
+                     
+-                    let [nx1, ny1] = rotPoint(x1, y1);
+-                    let [nx2, ny2] = rotPoint(x2, y2);
++                    let [nx1, ny1] = transPoint(x1, y1);
++                    let [nx2, ny2] = transPoint(x2, y2);
+                     
+                     let t = SVGUtils.setOrReplaceAttr(tagStr, 'x1', f(nx1));
+                     t = SVGUtils.setOrReplaceAttr(t, 'y1', f(ny1));
+@@ -1007,22 +1011,43 @@
+                     let t = SVGUtils.adjustAttr(tagStr, 'x', dx);
+                     return SVGUtils.adjustAttr(t, 'y', dy);
+                 },
+-                rotateElement: (tagStr, angle, rotPoint, activeNode, cx, cy) => {
++                transformElement: (tagStr, action, transPoint, activeNode, cx, cy) => {
+                     const f = n => parseFloat(n.toFixed(3));
++                    let x = parseFloat(activeNode.getAttribute('x') || 0);
++                    let y = parseFloat(activeNode.getAttribute('y') || 0);
+                     let w = parseFloat(activeNode.getAttribute('width') || 0);
+                     let h = parseFloat(activeNode.getAttribute('height') || 0);
+ 
+-                    if (Math.abs(angle) === 90) {
+-                        let nw = h, nh = w;
+-                        let nx = cx - nw / 2;
+-                        let ny = cy - nh / 2;
+-                        let t = SVGUtils.setOrReplaceAttr(tagStr, 'x', f(nx));
+-                        t = SVGUtils.setOrReplaceAttr(t, 'y', f(ny));
+-                        t = SVGUtils.setOrReplaceAttr(t, 'width', f(nw));
+-                        t = SVGUtils.setOrReplaceAttr(t, 'height', f(nh));
+-                        return t;
++                    if (action.startsWith('rot_')) {
++                        const angle = parseFloat(action.replace('rot_', ''));
++                        if (Math.abs(angle) === 90) {
++                            let nw = h, nh = w;
++                            let nx = cx - nw / 2;
++                            let ny = cy - nh / 2;
++                            let t = SVGUtils.setOrReplaceAttr(tagStr, 'x', f(nx));
++                            t = SVGUtils.setOrReplaceAttr(t, 'y', f(ny));
++                            t = SVGUtils.setOrReplaceAttr(t, 'width', f(nw));
++                            t = SVGUtils.setOrReplaceAttr(t, 'height', f(nh));
++                            return t;
++                        } else if (angle % 90 !== 0) {
++                            // Non-orthogonal rotations require conversion to polygon to recalculate coordinates properly
++                            let pts = [[x, y], [x+w, y], [x+w, y+h], [x, y+h]];
++                            let outPts = pts.map(p => {
++                                let [nx, ny] = transPoint(p[0], p[1]);
++                                return `${f(nx)},${f(ny)}`;
++                            }).join(' ');
++
++                            let newTag = tagStr.replace(/^<rect/i, '<polygon')
++                                .replace(/\s+x=["'][^"']*["']/i, '')
++                                .replace(/\s+y=["'][^"']*["']/i, '')
++                                .replace(/\s+width=["'][^"']*["']/i, '')
++                                .replace(/\s+height=["'][^"']*["']/i, '')
++                                .replace(/\s+rx=["'][^"']*["']/i, '') 
++                                .replace(/\s+ry=["'][^"']*["']/i, '');
++                            return SVGUtils.setOrReplaceAttr(newTag, 'points', outPts);
++                        }
+                     }
+-                    return tagStr;
++                    return tagStr; // Flips and 180deg are no-ops natively since the origin is relative to itself
+                 }
+             },
+ 
+@@ -1067,15 +1092,48 @@
+                     let t = SVGUtils.adjustAttr(tagStr, 'cx', dx);
+                     return SVGUtils.adjustAttr(t, 'cy', dy);
+                 },
+-                rotateElement: (tagStr, angle) => {
+-                    // Ellipses (which map to circle's strategy) rotate by swapping rx and ry
+-                    if (Math.abs(angle) === 90) {
+-                        let rxMatch = tagStr.match(/\brx=["']([^"']+)["']/i);
+-                        let ryMatch = tagStr.match(/\bry=["']([^"']+)["']/i);
+-                        if (rxMatch && ryMatch) {
+-                            let rx = rxMatch[1], ry = ryMatch[1];
+-                            let t = tagStr.replace(/\brx=["'][^"']+["']/i, `rx="${ry}"`);
+-                            return t.replace(/\bry=["'][^"']+["']/i, `ry="${rx}"`);
++                transformElement: (tagStr, action, transPoint, activeNode, cx, cy) => {
++                    if (action.startsWith('rot_')) {
++                        const angle = parseFloat(action.replace('rot_', ''));
++                        // Ellipses (which map to circle's strategy) rotate by swapping rx and ry
++                        if (Math.abs(angle) === 90 && tagStr.startsWith('<ellipse')) {
++                            let rxMatch = tagStr.match(/\brx=["']([^"']+)["']/i);
++                            let ryMatch = tagStr.match(/\bry=["']([^"']+)["']/i);
++                            if (rxMatch && ryMatch) {
++                                let rx = rxMatch[1], ry = ryMatch[1];
++                                let t = tagStr.replace(/\brx=["'][^"']+["']/i, `rx="${ry}"`);
++                                return t.replace(/\bry=["'][^"']+["']/i, `ry="${rx}"`);
++                            }
++                        } else if (angle % 90 !== 0 && tagStr.startsWith('<ellipse')) {
++                            // Non-orthogonal rotations require conversion to path to mathematically manipulate the coordinates
++                            let cx_attr = parseFloat(activeNode.getAttribute('cx') || 0);
++                            let cy_attr = parseFloat(activeNode.getAttribute('cy') || 0);
++                            let rx = parseFloat(activeNode.getAttribute('rx') || 0);
++                            let ry = parseFloat(activeNode.getAttribute('ry') || 0);
++                            const f = n => parseFloat(n.toFixed(3));
++                            const kappa = 0.5522848; 
++                            let ox = rx * kappa, oy = ry * kappa;
++                            let pts = [
++                                ['M', cx_attr + rx, cy_attr],
++                                ['C', cx_attr + rx, cy_attr + oy, cx_attr + ox, cy_attr + ry, cx_attr, cy_attr + ry],
++                                ['C', cx_attr - ox, cy_attr + ry, cx_attr - rx, cy_attr + oy, cx_attr - rx, cy_attr],
++                                ['C', cx_attr - rx, cy_attr - oy, cx_attr - ox, cy_attr - ry, cx_attr, cy_attr - ry],
++                                ['C', cx_attr + ox, cy_attr - ry, cx_attr + rx, cy_attr - oy, cx_attr + rx, cy_attr]
++                            ];
++                            let d = '';
++                            for (let cmd of pts) {
++                                d += cmd[0];
++                                for (let i = 1; i < cmd.length; i += 2) {
++                                    let [nx, ny] = transPoint(cmd[i], cmd[i+1]);
++                                    d += `${f(nx)},${f(ny)} `;
++                                }
++                            }
++                            let newTag = tagStr.replace(/^<ellipse/i, '<path')
++                                .replace(/\s+cx=["'][^"']*["']/i, '')
++                                .replace(/\s+cy=["'][^"']*["']/i, '')
++                                .replace(/\s+rx=["'][^"']*["']/i, '')
++                                .replace(/\s+ry=["'][^"']*["']/i, '');
++                            return SVGUtils.setOrReplaceAttr(newTag, 'd', d.trim());
+                         }
+                     }
+                     return tagStr;
+@@ -1106,6 +1164,28 @@
+                 moveElement: (tagStr, dx, dy) => {
+                     let t = SVGUtils.adjustAttr(tagStr, 'x', dx);
+                     return SVGUtils.adjustAttr(t, 'y', dy);
++                },
++                transformElement: (tagStr, action, transPoint, activeNode, cx, cy) => {
++                    // Must add or update transform specifically for Text and Use nodes which can't natively recalculate coords seamlessly 
++                    const f = n => parseFloat(n.toFixed(3));
++                    let transformMatch = tagStr.match(/\btransform=["']([^"']+)["']/i);
++                    let currentTransform = transformMatch ? transformMatch[1] : '';
++                    let newTransformCmd = '';
++
++                    if (action.startsWith('rot_')) {
++                        const angle = parseFloat(action.replace('rot_', ''));
++                        newTransformCmd = `rotate(${angle}, ${f(cx)}, ${f(cy)})`;
++                    } else if (action === 'flip_h') {
++                        newTransformCmd = `translate(${f(2*cx)}, 0) scale(-1, 1)`;
++                    } else if (action === 'flip_v') {
++                        newTransformCmd = `translate(0, ${f(2*cy)}) scale(1, -1)`;
++                    }
++
++                    if (currentTransform) {
++                        return SVGUtils.setOrReplaceAttr(tagStr, 'transform', `${newTransformCmd} ${currentTransform}`);
++                    } else {
++                        return SVGUtils.setOrReplaceAttr(tagStr, 'transform', newTransformCmd);
++                    }
+                 }
+             },
+ 
+@@ -1407,7 +1487,7 @@
+                 moveElement: (tagStr, dx, dy) => {
+                     return tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => `d="${SVGUtils.shiftPathD(val, dx, dy)}"`);
+                 },
+-                rotateElement: (tagStr, angle, rotPoint) => {
++                transformElement: (tagStr, action, transPoint) => {
+                     const f = n => parseFloat(n.toFixed(3));
+                     return tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => {
+                         const commands = val.match(/[a-df-zA-Z][^a-df-zA-Z]*/g);
+@@ -1429,17 +1509,18 @@
+                             }
+ 
+                             let out = [];
++                            let isFlip = action === 'flip_h' || action === 'flip_v';
+ 
+                             if (upper === 'H') {
+                                 for (let n of nums) {
+                                     currX = isRel ? currX + n : n;
+-                                    let [rx, ry] = rotPoint(currX, currY);
++                                    let [rx, ry] = transPoint(currX, currY);
+                                     out.push(`L${f(rx)},${f(ry)}`);
+                                 }
+                             } else if (upper === 'V') {
+                                 for (let n of nums) {
+                                     currY = isRel ? currY + n : n;
+-                                    let [rx, ry] = rotPoint(currX, currY);
++                                    let [rx, ry] = transPoint(currX, currY);
+                                     out.push(`L${f(rx)},${f(ry)}`);
+                                 }
+                             } else if (upper === 'M' || upper === 'L' || upper === 'T') {
+@@ -1450,7 +1531,7 @@
+                                         startX = currX;
+                                         startY = currY;
+                                     }
+-                                    let [rx, ry] = rotPoint(currX, currY);
++                                    let [rx, ry] = transPoint(currX, currY);
+                                     out.push(`${(upper === 'M' && i === 0) ? 'M' : (upper === 'M' ? 'L' : upper)}${f(rx)},${f(ry)}`);
+                                 }
+                             } else if (upper === 'Q' || upper === 'S') {
+@@ -1460,8 +1541,8 @@
+                                     let endX = isRel ? currX + nums[i+2] : nums[i+2];
+                                     let endY = isRel ? currY + nums[i+3] : nums[i+3];
+                                     
+-                                    let [rc1x, rc1y] = rotPoint(c1x, c1y);
+-                                    let [rendX, rendY] = rotPoint(endX, endY);
++                                    let [rc1x, rc1y] = transPoint(c1x, c1y);
++                                    let [rendX, rendY] = transPoint(endX, endY);
+                                     
+                                     out.push(`${upper}${f(rc1x)},${f(rc1y)} ${f(rendX)},${f(rendY)}`);
+                                     currX = endX;
+@@ -1476,9 +1557,9 @@
+                                     let endX = isRel ? currX + nums[i+4] : nums[i+4];
+                                     let endY = isRel ? currY + nums[i+5] : nums[i+5];
+                                     
+-                                    let [rc1x, rc1y] = rotPoint(c1x, c1y);
+-                                    let [rc2x, rc2y] = rotPoint(c2x, c2y);
+-                                    let [rendX, rendY] = rotPoint(endX, endY);
++                                    let [rc1x, rc1y] = transPoint(c1x, c1y);
++                                    let [rc2x, rc2y] = transPoint(c2x, c2y);
++                                    let [rendX, rendY] = transPoint(endX, endY);
+                                     
+                                     out.push(`C${f(rc1x)},${f(rc1y)} ${f(rc2x)},${f(rc2y)} ${f(rendX)},${f(rendY)}`);
+                                     currX = endX;
+@@ -1494,14 +1575,17 @@
+                                     let endX = isRel ? currX + nums[i+5] : nums[i+5];
+                                     let endY = isRel ? currY + nums[i+6] : nums[i+6];
+                                     
+-                                    if (angle === 90 || angle === -90) {
+-                                        let tmp = rx_val;
+-                                        rx_val = ry_val;
+-                                        ry_val = tmp;
+-                                        xRot = (xRot + 90) % 360;
++                                    if (action.startsWith('rot_')) {
++                                        let angle = parseFloat(action.replace('rot_', ''));
++                                        xRot = (xRot + angle) % 360;
++                                    }
++
++                                    if (isFlip) {
++                                        sweep = sweep === 1 ? 0 : 1; 
++                                        if (action === 'flip_h' || action === 'flip_v') xRot = -xRot;
+                                     }
+ 
+-                                    let [rendX, rendY] = rotPoint(endX, endY);
++                                    let [rendX, rendY] = transPoint(endX, endY);
+                                     
+                                     out.push(`A${f(rx_val)},${f(ry_val)} ${f(xRot)} ${largeArc} ${sweep} ${f(rendX)},${f(rendY)}`);
+                                     currX = endX;
+@@ -1940,8 +2024,7 @@
+             return null;
+         }
+ 
+-        // --- Tools (Move, Insert, Delete) ---
+-        // Refactored moveShape using the Strategy Pattern
++        // --- Tools (Move, Insert, Delete, Transform) ---
+         function moveShape(dirX, dirY) {
+             if (!activeTagInfo) return;
+             const code = textarea.value;
+@@ -2001,7 +2084,8 @@
+             selectionRafId = requestAnimationFrame(updateSelection);
+         }
+ 
+-        function rotateShape(angle) {
++        // Handles generalized arbitrary rotation and mirroring actions
++        function transformShape(action) {
+             if (!activeTagInfo) return;
+             const code = textarea.value;
+             const liveElements = Array.from(userSvgContainer.querySelectorAll('*')).filter(node => node.nodeType === 1);
+@@ -2012,7 +2096,12 @@
+             let bbox;
+             try {
+                 bbox = activeNode.getBBox();
+-                if (bbox.width === 0 && bbox.height === 0 && bbox.x === 0 && bbox.y === 0) return;
++                // Failsafe layout handling
++                if (bbox.width === 0 && bbox.height === 0 && bbox.x === 0 && bbox.y === 0) {
++                    let x = parseFloat(activeNode.getAttribute('x')||0);
++                    let y = parseFloat(activeNode.getAttribute('y')||0);
++                    bbox = {x, y, width: 0, height: 0};
++                }
+             } catch (e) {
+                 return;
+             }
+@@ -2023,18 +2112,29 @@
+             let tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+             const tagName = activeTagInfo.tagName.toLowerCase();
+ 
+-            const rotPoint = (px, py) => {
+-                if (angle === 90) return [cx - (py - cy), cy + (px - cx)];
+-                if (angle === -90) return [cx + (py - cy), cy - (px - cx)];
+-                if (angle === 180) return [cx - (px - cx), cy - (py - cy)];
+-                return [px, py];
+-            };
++            // Establish translation matrix for coordinate recalculations
++            let transPoint;
++            if (action.startsWith('rot_')) {
++                const angle = parseFloat(action.replace('rot_', ''));
++                const rad = angle * Math.PI / 180;
++                const cos = Math.cos(rad);
++                const sin = Math.sin(rad);
++                transPoint = (px, py) => {
++                    const dx = px - cx;
++                    const dy = py - cy;
++                    return [cx + dx * cos - dy * sin, cy + dx * sin + dy * cos];
++                };
++            } else if (action === 'flip_h') {
++                transPoint = (px, py) => [cx - (px - cx), py];
++            } else if (action === 'flip_v') {
++                transPoint = (px, py) => [px, cy - (py - cy)];
++            }
+ 
+             const handler = ShapeRegistry[tagName] || ShapeRegistry.default;
+             let modified = false;
+ 
+-            if (handler.rotateElement) {
+-                const newTagStr = handler.rotateElement(tagStr, angle, rotPoint, activeNode, cx, cy);
++            if (handler.transformElement) {
++                const newTagStr = handler.transformElement(tagStr, action, transPoint, activeNode, cx, cy);
+                 if (newTagStr !== tagStr) {
+                     tagStr = newTagStr;
+                     modified = true;
+@@ -2241,4 +2341,4 @@
+ 
+     </script>
+ </body>
+-</html>
++</html>
+\ No newline at end of file

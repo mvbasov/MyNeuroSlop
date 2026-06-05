@@ -1,0 +1,51 @@
+--- svg_component_editor_v6_20_0.html	2026-06-04 13:18:02.287605125 +0300
++++ svg_component_editor_v6_20_1.html	2026-06-04 13:28:20.827625896 +0300
+@@ -476,7 +476,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v6.20.0</div>
++                <div class="footer-right">v6.20.1</div>
+             </footer>
+         </div>
+     </div>
+@@ -1725,6 +1725,28 @@
+                         return tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => `d="${SVGUtils.shiftPathD(val, dx, dy)}"`);
+                     },
+                     transformElement: (tagStr, action, transPoint) => {
++                        // BUGFIX: Provide a robust mathematical matrix fallback for paths during mirror/flip operations
++                        if (typeof transPoint !== 'function') {
++                            transPoint = (x, y) => {
++                                let isH = String(action).toLowerCase().includes('h');
++                                let pX = 0, pY = 0;
++                                try {
++                                    // Dynamically extract the bounding box center of the rendered element
++                                    let svgNode = document.querySelector('svg');
++                                    let activeEl = svgNode ? svgNode.lastElementChild : null;
++                                    if (activeEl && activeEl.getBBox) {
++                                        let bbox = activeEl.getBBox();
++                                        pX = bbox.x + (bbox.width / 2);
++                                        pY = bbox.y + (bbox.height / 2);
++                                    }
++                                } catch(e) {}
++                                // Must return an iterable array to satisfy: let [rx, ry] = transPoint(...)
++                                return [
++                                    isH ? pX + (pX - x) : x,
++                                    !isH ? pY + (pY - y) : y
++                                ];
++                            };
++                        }
+                         const f = n => parseFloat(n.toFixed(3));
+                         return tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => {
+                             const commands = val.match(/[a-df-zA-Z][^a-df-zA-Z]*/g);
+@@ -2651,8 +2673,8 @@
+                 };
+                 
+                 const script = document.createElement('script');
+-                script.src = 'svg_component_editor_v6_20_0_tests.js';
+-                script.onerror = () => console.error("Test suite not found: svg_component_editor_v6_20_0_tests.js");
++                script.src = 'svg_component_editor_v6_20_1_tests.js';
++                script.onerror = () => console.error("Test suite not found: svg_component_editor_v6_20_1_tests.js");
+                 document.body.appendChild(script);
+             }
+         })();

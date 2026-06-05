@@ -1,0 +1,60 @@
+--- svg_component_editor_v7_5_0.html	2026-06-04 16:36:56.537876677 +0300
++++ svg_component_editor_v7_6_0.html	2026-06-04 16:40:54.090012504 +0300
+@@ -477,7 +477,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v7.5.0</div>
++                <div class="footer-right">v7.6.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -2582,17 +2582,44 @@
+                 const code = textarea.value;
+                 let start = activeTagInfo.start;
+                 let end = activeTagInfo.fullEnd;
+-                let commentStr = code.substring(start, end);
+                 
+-                let uncommented = commentStr.replace(/^<!--/, '').replace(/-->$/, '');
+-                const newCode = code.substring(0, start) + uncommented + code.substring(end);
++                let tempStart = start;
++                while (tempStart > 0 && (code[tempStart - 1] === ' ' || code[tempStart - 1] === '\t')) tempStart--;
++                let startIsOnEmptyLine = (tempStart === 0 || code[tempStart - 1] === '\n');
++                
++                let tempEnd = end;
++                while (tempEnd < code.length && (code[tempEnd] === ' ' || code[tempEnd] === '\t')) tempEnd++;
++                let endIsOnEmptyLine = (tempEnd === code.length || code[tempEnd] === '\n' || code[tempEnd] === '\r');
++
++                let innerContent = code.substring(start, end).replace(/^<!--/, '').replace(/-->$/, '');
++                
++                let trimStart = startIsOnEmptyLine && /^[ \t]*\r?\n/.test(innerContent);
++                let trimEnd = endIsOnEmptyLine && /\r?\n[ \t]*$/.test(innerContent);
++                
++                // Eradicate the block entirely if it was an empty comment spanning lines
++                if (trimStart && trimEnd && /^[ \t]*\r?\n[ \t]*$/.test(innerContent)) {
++                    innerContent = '';
++                    start = tempStart;
++                    end = tempEnd;
++                } else {
++                    if (trimStart) {
++                        innerContent = innerContent.replace(/^[ \t]*\r?\n/, '');
++                        start = tempStart; 
++                    }
++                    if (trimEnd) {
++                        innerContent = innerContent.replace(/\r?\n[ \t]*$/, '');
++                        end = tempEnd;
++                    }
++                }
++                
++                const newCode = code.substring(0, start) + innerContent + code.substring(end);
+                 
+                 const savedScrollTop = textarea.scrollTop;
+                 const savedScrollLeft = textarea.scrollLeft;
+                 
+                 updateCode(newCode, true);
+                 textarea.focus();
+-                textarea.setSelectionRange(start, start + uncommented.length);
++                textarea.setSelectionRange(start, start + innerContent.length);
+                 textarea.scrollTop = savedScrollTop;
+                 textarea.scrollLeft = savedScrollLeft;
+                 

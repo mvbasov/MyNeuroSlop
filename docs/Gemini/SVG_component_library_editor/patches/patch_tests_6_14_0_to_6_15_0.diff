@@ -1,0 +1,19 @@
+--- svg_component_editor_v6_14_0_tests.js	2026-06-04 12:39:56.744023553 +0300
++++ svg_component_editor_v6_15_0_tests.js	2026-06-04 12:42:55.432247589 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.14.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.15.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -215,7 +215,8 @@
+             window.TEST_API.textarea.selectionEnd = pathTagIndex + 5;
+             
+             // Trigger matrix horizontal flip
+-            window.TEST_API.transformShape('mirror', 'horizontal');
++            // BUGFIX: The application's internal API expects 'H' or 'V' for mirror, not the full word 'horizontal'
++            window.TEST_API.transformShape('mirror', 'H');
+             await new Promise(r => setTimeout(r, 100));
+             
+             const mirroredCode = window.TEST_API.textarea.value;

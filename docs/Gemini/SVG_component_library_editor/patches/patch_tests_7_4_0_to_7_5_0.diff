@@ -1,0 +1,9 @@
+--- svg_component_editor_v7_4_0_tests.js	2026-06-04 16:15:57.440813066 +0300
++++ svg_component_editor_v7_5_0_tests.js	2026-06-04 16:36:56.537876677 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v7.4.0)
++ * SVG Component Editor - Micro Unit Test Suite (v7.5.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {

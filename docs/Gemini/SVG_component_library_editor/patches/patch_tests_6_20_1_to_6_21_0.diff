@@ -1,0 +1,18 @@
+--- svg_component_editor_v6_20_1_tests.js	2026-06-04 13:28:20.827625896 +0300
++++ svg_component_editor_v6_21_0_tests.js	2026-06-04 13:31:20.948018852 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.20.1)
++ * SVG Component Editor - Micro Unit Test Suite (v6.21.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -217,7 +217,7 @@
+             window.TEST_API.textarea.selectionEnd = pathTagIndex + 5;
+             
+             // Include 'rotate' dropdown arguments to ensure the cascade hits the specific dropdown signature
+-            const flipCommands = [['flipH'], ['rotate', 'flipH'], ['flip', 'H'], ['mirror', 'H'], ['mirrorH'], ['mirror', 'horizontal'], ['flip-h']];
++            const flipCommands = [['flip_h'], ['flipH'], ['rotate', 'flip_h'], ['flip', 'H'], ['mirror', 'H'], ['mirrorH'], ['mirror', 'horizontal'], ['flip-h']];
+             for (let args of flipCommands) {
+                 try {
+                     window.TEST_API.transformShape(...args);

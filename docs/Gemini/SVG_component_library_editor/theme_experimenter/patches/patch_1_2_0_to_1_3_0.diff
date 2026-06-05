@@ -1,0 +1,65 @@
+--- svg_theme_experimenter_v1_2_0.html	2026-06-02 19:34:04.598145906 +0300
++++ svg_theme_experimenter_v1_3_0.html	2026-06-02 19:38:16.730687516 +0300
+@@ -421,11 +421,14 @@
+             <div class="sidebar-header">
+                 <h2>🎨 Theme Editor</h2>
+                 <div class="preset-buttons">
+-                    <button class="preset-btn" id="btn-light">Light</button>
+-                    <button class="preset-btn" id="btn-dark">Dark</button>
+-                    <button class="preset-btn" id="btn-dracula">Dracula</button>
+-                    <button class="preset-btn" id="btn-solar">Solarized</button>
+-                    <button class="preset-btn" id="btn-retro">Retro</button>
++                    <select id="theme-selector" style="width: 100%; padding: 8px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; outline: none; cursor: pointer; font-size: 0.85rem;">
++                        <option value="light">Light</option>
++                        <option value="dark">Dark</option>
++                        <option value="dracula">Dracula</option>
++                        <option value="solar">Solarized Light</option>
++                        <option value="retro">Retro</option>
++                        <option value="hacker">Dark Hacker Terminal</option>
++                    </select>
+                 </div>
+             </div>
+ 
+@@ -436,7 +439,7 @@
+             <div class="output-section">
+                 <button class="copy-btn" id="btn-copy">📋 Copy CSS Variables</button>
+                 <textarea id="css-export" readonly></textarea>
+-                <div class="app-version">v1.2.0</div>
++                <div class="app-version">v1.3.0</div>
+             </div>
+         </div>
+ 
+@@ -594,6 +597,20 @@
+                     '--grid-line': '#4A3B31',
+                     '--danger': '#FF003C',
+                     '--success': '#00FF41'
++                },
++                hacker: {
++                    '--bg-color': '#050505',
++                    '--panel-bg': '#0a0a0a',
++                    '--text-color': '#00ff00',
++                    '--text-muted': '#005500',
++                    '--border': '#004400',
++                    '--toolbar-bg': '#000000',
++                    '--preview-bg': '#000000',
++                    '--primary': '#00cc00',
++                    '--primary-hover': '#00ff00',
++                    '--grid-line': '#002200',
++                    '--danger': '#ff0000',
++                    '--success': '#00ff00'
+                 }
+             };
+ 
+@@ -661,11 +678,7 @@
+             }
+ 
+             // Event Bindings
+-            document.getElementById('btn-light').addEventListener('click', () => loadPreset('light'));
+-            document.getElementById('btn-dark').addEventListener('click', () => loadPreset('dark'));
+-            document.getElementById('btn-dracula').addEventListener('click', () => loadPreset('dracula'));
+-            document.getElementById('btn-solar').addEventListener('click', () => loadPreset('solar'));
+-            document.getElementById('btn-retro').addEventListener('click', () => loadPreset('retro'));
++            document.getElementById('theme-selector').addEventListener('change', (e) => loadPreset(e.target.value));
+             
+             document.getElementById('btn-copy').addEventListener('click', () => {
+                 cssExport.select();

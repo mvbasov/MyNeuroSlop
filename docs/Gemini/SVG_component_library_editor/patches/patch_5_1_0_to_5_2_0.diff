@@ -1,0 +1,166 @@
+--- svg_component_editor_v5_1_0.html	2026-06-01 04:05:17.193021643 +0300
++++ svg_component_editor_v5_2_0.html	2026-06-01 20:09:03.129140254 +0300
+@@ -11,22 +11,30 @@
+           padding: 0;
+           height: 100dvh;
+           overflow: hidden;
++          transition: background-color 0.3s ease, color 0.3s ease;
++        }
++        body:not(.theme-dark) {
++          background-color: #f3f4f6;
++        }
++        body.theme-dark {
++          background-color: #1e1e2e;
+         }
+         
+         /* Embed-Safe Scoped CSS */
+         #svg-editor-app {
+-            /* CSS Variables scoped only to the app */
+-            --bg-color: #1e1e2e;
+-            --panel-bg: #282a36;
+-            --text-color: #f8f8f2;
+-            --primary: #3b82f6;       
+-            --primary-hover: #60a5fa; 
+-            --danger: #ff5555;
+-            --success: #50fa7b;
+-            --border: #44475a;
+-            --toolbar-bg: #21222c;
++            /* CSS Variables scoped only to the app - Default Light Theme */
++            --bg-color: #f3f4f6;
++            --panel-bg: #ffffff;
++            --text-color: #1f2937;
++            --text-muted: #6b7280;
++            --primary: #2563eb;       
++            --primary-hover: #1d4ed8; 
++            --danger: #dc2626;
++            --success: #16a34a;
++            --border: #d1d5db;
++            --toolbar-bg: #e5e7eb;
+             --preview-bg: #f8f9fa;
+-            --grid-line: #999;
++            --grid-line: #999999;
+             --font-mono: 'Courier New', Courier, monospace;
+ 
+             /* Base App Styling */
+@@ -41,6 +49,29 @@
+             container-type: inline-size;
+         }
+ 
++        #svg-editor-app.theme-dark {
++            /* CSS Variables scoped to the Dark Theme override */
++            --bg-color: #1e1e2e;
++            --panel-bg: #282a36;
++            --text-color: #f8f8f2;
++            --text-muted: #6272a4;
++            --primary: #3b82f6;       
++            --primary-hover: #60a5fa; 
++            --danger: #ff5555;
++            --success: #50fa7b;
++            --border: #44475a;
++            --toolbar-bg: #21222c;
++            --preview-bg: #14141e;
++            --grid-line: #555555;
++        }
++
++        /* Smooth CSS variables transition for premium morph feel */
++        #svg-editor-app *,
++        #svg-editor-app *::before,
++        #svg-editor-app *::after {
++            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, stroke 0.3s ease, fill 0.3s ease;
++        }
++
+         #svg-editor-app .svg-editor-layout {
+             /* CSS Grid Layout */
+             display: grid;
+@@ -209,7 +240,7 @@
+             justify-content: space-between;
+             align-items: center;
+             font-size: 0.75rem;
+-            color: #6272a4;
++            color: var(--text-muted);
+         }
+ 
+         #svg-editor-app .footer-left {
+@@ -238,7 +269,7 @@
+         #svg-editor-app #preview-container {
+             flex: 1;
+             background-color: var(--preview-bg);
+-            color: black;
++            color: var(--text-color);
+             position: relative;
+             overflow: hidden;
+             display: flex;
+@@ -440,7 +471,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v5.1.0</div>
++                <div class="footer-right">v5.2.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -448,6 +479,46 @@
+     <script>
+         // Completely encase application logic in IIFE to protect host environments
+         (function() {
++            // Theme Controller Implementation
++            const APP_THEME = 'auto'; // Supports 'auto', 'dark', 'light'
++
++            function applyTheme() {
++                const body = document.body;
++                const app = document.getElementById('svg-editor-app');
++                
++                let isDark = false;
++                if (APP_THEME === 'dark') {
++                    isDark = true;
++                } else if (APP_THEME === 'light') {
++                    isDark = false;
++                } else {
++                    // 'auto' - system media preference
++                    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
++                }
++                
++                if (isDark) {
++                    body.classList.add('theme-dark');
++                    if (app) app.classList.add('theme-dark');
++                } else {
++                    body.classList.remove('theme-dark');
++                    if (app) app.classList.remove('theme-dark');
++                }
++            }
++
++            // Execute theme evaluation immediately
++            applyTheme();
++
++            if (APP_THEME === 'auto') {
++                const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
++                if (mediaQuery.addEventListener) {
++                    mediaQuery.addEventListener('change', applyTheme);
++                } else {
++                    mediaQuery.addListener(applyTheme);
++                }
++            }
++
++            document.addEventListener('DOMContentLoaded', applyTheme);
++
+             const defaultCode = `<!-- NPN Transistor -->
+ <symbol id="npn" viewBox="0 0 100 100">
+   <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+@@ -1285,7 +1356,7 @@
+                                                 let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
+                                                 let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
+ 
+-                                                if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
++                                                if (localRelPos >= pStart - 1 && pStart >= 0 && localRelPos <= pEnd + 1) {
+                                                     foundSub = { start: valStart + pStart, end: valStart + pEnd, cx: absX, cy: absY };
+                                                     break;
+                                                 }
+@@ -1310,7 +1381,7 @@
+                                                 let absX = upper === 'H' ? (isRel ? currentStartX + val : val) : currentStartX;
+                                                 let absY = upper === 'V' ? (isRel ? currentStartY + val : val) : currentStartY;
+ 
+-                                                if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
++                                                if (localRelPos >= pStart - 1 && pStart >= 0 && localRelPos <= pEnd + 1) {
+                                                     foundSub = { start: valStart + pStart, end: valStart + pEnd, cx: absX, cy: absY };
+                                                     break;
+                                                 }

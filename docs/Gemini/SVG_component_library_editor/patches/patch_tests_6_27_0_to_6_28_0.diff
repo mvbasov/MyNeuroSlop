@@ -1,0 +1,39 @@
+--- svg_component_editor_v6_27_0_tests.js	2026-06-04 15:31:56.167075431 +0300
++++ svg_component_editor_v6_28_0_tests.js	2026-06-04 15:46:37.227258883 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.27.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.28.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -233,10 +233,9 @@
+             const hasMirroredPoint = /M[\s,]*50[\s,]+10/i.test(mirroredCode) || /50[\s,]+10/.test(mirroredCode);
+             assertTrue("Coordinates Matrix: Horizontal mirror correctly shifts asymmetrical path vertices", hasMirroredPoint && mirroredCode !== pathCodeRef);
+ 
+-            // Test 8: Direct Coordinates Recalculation (Rotations +45, -45, 180)
++            // Test 8: Direct Coordinates Recalculation (Rotations 45, -45, 180)
+             // Validates that rotating geometric shapes by specific angles recalculates points mathematically instead of appending a lazy 'transform="..."' attribute.
+-            // BUGFIX: The application UI passes '+45' exactly. Passing '45' bypassed the app's strict string matching block!
+-            const anglesToTest = ['+45', '-45', '180'];
++            const anglesToTest = ['45', '-45', '180'];
+             for (let angle of anglesToTest) {
+                 await loadTestData('<svg><polygon points="40,40 60,40 60,60 40,60" /></svg>', 'polygon');
+                 const origCode = window.TEST_API.textarea.value;
+@@ -247,9 +246,13 @@
+                 window.TEST_API.textarea.selectionStart = attrIdx + 3;
+                 window.TEST_API.textarea.selectionEnd = attrIdx + 3;
+                 
+-                // BUGFIX: The application uses an asynchronous polling loop to update 'activeTagInfo'.
+-                // We MUST wait 50ms for it to sync with the new cursor position, otherwise the first command executes on stale tag data!
+-                await new Promise(r => setTimeout(r, 50));
++                // BUGFIX: The application uses a debounced event listener to update 'activeTagInfo'.
++                // A static timeout is unreliable for the first array iteration. We explicitly force 
++                // the internal state machine to re-parse the active tag immediately!
++                if (typeof window.TEST_API.getActiveTag === 'function') {
++                    window.TEST_API.getActiveTag();
++                }
++                await new Promise(r => setTimeout(r, 10)); // tiny safety buffer
+                 
+                 // Fire shotgun API cascade for the rotation command
+                 const commands = [[`rot_${angle}`], ['rotate', angle], [angle], [Number(angle)], [`rotate_${angle}`]];

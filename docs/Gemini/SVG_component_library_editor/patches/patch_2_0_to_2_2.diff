@@ -1,0 +1,330 @@
+--- svg_component_editor_v2_0.html	2026-05-31 19:17:26.525529956 +0300
++++ svg_component_editor_v2_2.html	2026-05-31 19:17:26.525529956 +0300
+@@ -315,6 +315,7 @@
+                 <option value="path">〰️ Path</option>
+                 <option value="polygon">⬠ Polygon</option>
+                 <option value="polyline">📈 Polyline</option>
++                <option value="rect">🟦 Rectangle</option>
+             </select>
+             <div class="toolbar-divider"></div>
+             <button class="danger" onclick="deleteActiveShape()" title="Delete">🗑️</button>
+@@ -355,7 +356,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v2.0</footer>
++    <footer>v2.2</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -528,33 +529,49 @@
+                     activeSub = getActiveSubElement(tagStr, relPos, activeTagInfo.tagName.toLowerCase(), activeNode);
+                     
+                     // If a specific movable point is detected, draw an overlay dot
+-                    if (activeSub && activeSub.cx !== undefined && activeSub.cy !== undefined) {
++                    if (activeSub && (activeSub.cx !== undefined && activeSub.cy !== undefined || activeSub.qData)) {
+                         const vw = parseFloat(userSvgContainer.getAttribute('width') || 100);
+                         const r = vw * 0.02; // Dynamic radius based on viewport
+                         
+-                        let tx = activeSub.cx;
+-                        let ty = activeSub.cy;
+-                        
+                         // Handle mapping accurately using screen matrices to bypass nested scales/viewboxes
+-                        try {
+-                            const pt = mainSvg.createSVGPoint();
+-                            pt.x = activeSub.cx;
+-                            pt.y = activeSub.cy;
++                        const getMappedCoords = (x, y) => {
++                            let tx = x, ty = y;
++                            try {
++                                const pt = mainSvg.createSVGPoint();
++                                pt.x = x;
++                                pt.y = y;
++                                const ctm = activeNode.getScreenCTM();
++                                const inv = mainSvg.getScreenCTM().inverse();
++                                if (ctm && inv) {
++                                    const screenPt = pt.matrixTransform(ctm);
++                                    const overlayPt = screenPt.matrixTransform(inv);
++                                    tx = overlayPt.x;
++                                    ty = overlayPt.y;
++                                }
++                            } catch(e) {
++                                console.error("CTM Transformation Error:", e);
++                            }
++                            return {tx, ty};
++                        };
++
++                        if (activeSub.qData) {
++                            const pStart = getMappedCoords(activeSub.qData.startX, activeSub.qData.startY);
++                            const pC1 = getMappedCoords(activeSub.qData.c1x, activeSub.qData.c1y);
++                            const pEnd = getMappedCoords(activeSub.qData.endX, activeSub.qData.endY);
+                             
+-                            const ctm = activeNode.getScreenCTM();
+-                            const inv = mainSvg.getScreenCTM().inverse();
++                            let c1Color = activeSub.qData.activePoint === 'end' ? 'var(--primary)' : 'var(--danger)';
++                            let endColor = activeSub.qData.activePoint === 'control' ? 'var(--primary)' : 'var(--danger)';
+                             
+-                            if (ctm && inv) {
+-                                const screenPt = pt.matrixTransform(ctm);
+-                                const overlayPt = screenPt.matrixTransform(inv);
+-                                tx = overlayPt.x;
+-                                ty = overlayPt.y;
+-                            }
+-                        } catch(e) {
+-                            console.error("CTM Transformation Error:", e);
++                            overlayGroup.innerHTML = `
++                                <line x1="${pStart.tx}" y1="${pStart.ty}" x2="${pC1.tx}" y2="${pC1.ty}" stroke="var(--primary)" stroke-width="1.5" stroke-dasharray="2,2" />
++                                <line x1="${pC1.tx}" y1="${pC1.ty}" x2="${pEnd.tx}" y2="${pEnd.ty}" stroke="var(--primary)" stroke-width="1.5" stroke-dasharray="2,2" />
++                                <circle cx="${pC1.tx}" cy="${pC1.ty}" r="${r}" fill="${c1Color}" stroke="#fff" stroke-width="${r * 0.2}" />
++                                <circle cx="${pEnd.tx}" cy="${pEnd.ty}" r="${r}" fill="${endColor}" stroke="#fff" stroke-width="${r * 0.2}" />
++                            `;
++                        } else {
++                            const p = getMappedCoords(activeSub.cx, activeSub.cy);
++                            overlayGroup.innerHTML = `<circle cx="${p.tx}" cy="${p.ty}" r="${r}" fill="var(--danger)" stroke="#fff" stroke-width="${r * 0.2}" />`;
+                         }
+-                        
+-                        overlayGroup.innerHTML = `<circle cx="${tx}" cy="${ty}" r="${r}" fill="var(--danger)" stroke="#fff" stroke-width="${r * 0.2}" />`;
+                     }
+                 }
+             }
+@@ -656,6 +673,38 @@
+                 }
+             }
+ 
++            if (tagName === 'rect') {
++                const getAttrMatch = (attr) => {
++                    const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
++                    return m ? { start: m.index, end: m.index + m[0].length } : null;
++                };
++
++                let xVal = parseFloat(activeNode.getAttribute('x') || 0);
++                let yVal = parseFloat(activeNode.getAttribute('y') || 0);
++                let wVal = parseFloat(activeNode.getAttribute('width') || 0);
++                let hVal = parseFloat(activeNode.getAttribute('height') || 0);
++
++                let wMatch = getAttrMatch('width');
++                if (wMatch && relPos >= wMatch.start && relPos <= wMatch.end) {
++                    return {
++                        start: wMatch.start,
++                        end: wMatch.end,
++                        cx: xVal + wVal,
++                        cy: yVal + hVal / 2
++                    };
++                }
++
++                let hMatch = getAttrMatch('height');
++                if (hMatch && relPos >= hMatch.start && relPos <= hMatch.end) {
++                    return {
++                        start: hMatch.start,
++                        end: hMatch.end,
++                        cx: xVal + wVal / 2,
++                        cy: yVal // top center for height control
++                    };
++                }
++            }
++
+             if (tagName === 'circle') {
+                 const getAttrMatch = (attr) => {
+                     const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+@@ -719,6 +768,8 @@
+ 
+                             let endX = currX;
+                             let endY = currY;
++                            let qStartX = currX;
++                            let qStartY = currY;
+ 
+                             if (upper === 'Z') {
+                                 endX = startX;
+@@ -751,12 +802,91 @@
+                             }
+ 
+                             if (localRelPos >= cMatch.index - 1 && localRelPos <= cMatch.index + chunk.length + 1) {
+-                                return {
++                                if (upper === 'Q') {
++                                    let currentStartX = qStartX;
++                                    let currentStartY = qStartY;
++                                    let foundSub = null;
++                                    let pMatch;
++                                    const pairRegex = /(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g;
++                                    let pairIndex = 0;
++
++                                    while ((pMatch = pairRegex.exec(chunk)) !== null) {
++                                        const pStart = cMatch.index + pMatch.index;
++                                        const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
++
++                                        let isControl = (pairIndex % 2 === 0);
++                                        let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
++                                        let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
++
++                                        let numIdx = pairIndex * 2;
++                                        let segmentData = null;
++                                        
++                                        if (isControl && numIdx + 3 < nums.length) {
++                                            segmentData = {
++                                                startX: currentStartX,
++                                                startY: currentStartY,
++                                                c1x: absX,
++                                                c1y: absY,
++                                                endX: isRel ? currentStartX + nums[numIdx+2] : nums[numIdx+2],
++                                                endY: isRel ? currentStartY + nums[numIdx+3] : nums[numIdx+3],
++                                                activePoint: 'control'
++                                            };
++                                        } else if (!isControl && numIdx - 1 < nums.length && numIdx - 2 >= 0) {
++                                            segmentData = {
++                                                startX: currentStartX,
++                                                startY: currentStartY,
++                                                c1x: isRel ? currentStartX + nums[numIdx-2] : nums[numIdx-2],
++                                                c1y: isRel ? currentStartY + nums[numIdx-1] : nums[numIdx-1],
++                                                endX: absX,
++                                                endY: absY,
++                                                activePoint: 'end'
++                                            };
++                                        }
++
++                                        if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
++                                            foundSub = {
++                                                start: valStart + pStart,
++                                                end: valStart + pEnd,
++                                                cx: absX,
++                                                cy: absY,
++                                                qData: segmentData || {
++                                                    startX: currentStartX, startY: currentStartY,
++                                                    c1x: absX, c1y: absY, endX: absX, endY: absY,
++                                                    activePoint: isControl ? 'control' : 'end'
++                                                }
++                                            };
++                                            break;
++                                        }
++
++                                        if (!isControl) {
++                                            currentStartX = absX;
++                                            currentStartY = absY;
++                                        }
++                                        pairIndex++;
++                                    }
++                                    if (foundSub) return foundSub;
++                                }
++
++                                let ret = {
+                                     start: valStart + cMatch.index,
+                                     end: valStart + cMatch.index + chunk.length,
+                                     cx: endX,
+                                     cy: endY
+                                 };
++                                
++                                // Extra visual feedback for Bezier Q Curves
++                                if (upper === 'Q') {
++                                    ret.qData = {
++                                        startX: qStartX,
++                                        startY: qStartY,
++                                        c1x: isRel ? qStartX + nums[0] : nums[0],
++                                        c1y: isRel ? qStartY + nums[1] : nums[1],
++                                        endX: isRel ? qStartX + nums[2] : nums[2],
++                                        endY: isRel ? qStartY + nums[3] : nums[3],
++                                        activePoint: 'both'
++                                    };
++                                }
++                                return ret;
+                             }
+ 
+                             currX = endX;
+@@ -1053,10 +1183,40 @@
+                         
+                         while ((cMatch = cmdRegex.exec(dMatch[1])) !== null) {
+                             if (localRelPos >= cMatch.index - 1 && localRelPos <= cMatch.index + cMatch[0].length + 1) {
+-                                const shiftedCmd = shiftSinglePathCommand(cMatch[0], dx, dy);
+-                                newVal = newVal.substring(0, cMatch.index) + shiftedCmd + newVal.substring(cMatch.index + cMatch[0].length);
+-                                pointMoved = true;
+-                                break;
++                                const chunk = cMatch[0];
++                                const letter = chunk.trim()[0];
++                                const upper = letter.toUpperCase();
++
++                                if (upper === 'Q') {
++                                    const pairRegex = /(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g;
++                                    let pMatch;
++                                    let modifiedChunk = chunk;
++                                    let pairMoved = false;
++
++                                    while ((pMatch = pairRegex.exec(chunk)) !== null) {
++                                        if (localRelPos >= cMatch.index + pMatch.index - 1 && localRelPos <= cMatch.index + pMatch.index + pMatch[0].length + 1) {
++                                            const nx = parseFloat(pMatch[1]) + dx;
++                                            const ny = parseFloat(pMatch[2]) + dy;
++                                            const shiftedPair = `${nx},${ny}`;
++                                            modifiedChunk = modifiedChunk.substring(0, pMatch.index) + shiftedPair + modifiedChunk.substring(pMatch.index + pMatch[0].length);
++                                            pairMoved = true;
++                                            break;
++                                        }
++                                    }
++
++                                    if (pairMoved) {
++                                        newVal = newVal.substring(0, cMatch.index) + modifiedChunk + newVal.substring(cMatch.index + cMatch[0].length);
++                                        pointMoved = true;
++                                        break;
++                                    }
++                                }
++
++                                if (!pointMoved) {
++                                    const shiftedCmd = shiftSinglePathCommand(cMatch[0], dx, dy);
++                                    newVal = newVal.substring(0, cMatch.index) + shiftedCmd + newVal.substring(cMatch.index + cMatch[0].length);
++                                    pointMoved = true;
++                                    break;
++                                }
+                             }
+                         }
+                         if (pointMoved) {
+@@ -1117,6 +1277,37 @@
+                 }
+             }
+ 
++            // E. Check near width/height for rect
++            if (!pointMoved && tagName === 'rect') {
++                const isNearAttr = (attrList) => {
++                    for (let attr of attrList) {
++                        const match = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
++                        if (match && relPos >= match.index && relPos <= match.index + match[0].length) {
++                            return true;
++                        }
++                    }
++                    return false;
++                };
++
++                if (isNearAttr(['width'])) {
++                    const deltaW = dx - dy; 
++                    tagStr = adjustAttr(tagStr, 'width', deltaW);
++                    tagStr = tagStr.replace(/\bwidth=["']([^"']+)["']/i, (m, v) => {
++                        let n = parseFloat(v);
++                        return `width="${n < 0 ? 0 : n}"`;
++                    });
++                    pointMoved = true;
++                } else if (isNearAttr(['height'])) {
++                    const deltaH = dx - dy; 
++                    tagStr = adjustAttr(tagStr, 'height', deltaH);
++                    tagStr = tagStr.replace(/\bheight=["']([^"']+)["']/i, (m, v) => {
++                        let n = parseFloat(v);
++                        return `height="${n < 0 ? 0 : n}"`;
++                    });
++                    pointMoved = true;
++                }
++            }
++
+             // --- 2. Element Move Logic (Fallback if cursor is not on a specific point) ---
+             if (!pointMoved) {
+                 if (tagName === 'circle' || tagName === 'ellipse') {
+@@ -1380,7 +1571,8 @@
+                 'line': `<line x1="10" y1="10" x2="90" y2="90" />`,
+                 'path': `<path d="M 20 20 L 80 80" />`,
+                 'polygon': `<polygon points="20,80 50,20 80,80" />`,
+-                'polyline': `<polyline points="20,20 50,80 80,20" />`
++                'polyline': `<polyline points="20,20 50,80 80,20" />`,
++                'rect': `<rect x="10" y="10" width="80" height="80" />`
+             };
+             
+             let template = shapeMap[type] || '';
+@@ -1478,4 +1670,4 @@
+ 
+     </script>
+ </body>
+-</html>
++</html>
+\ No newline at end of file

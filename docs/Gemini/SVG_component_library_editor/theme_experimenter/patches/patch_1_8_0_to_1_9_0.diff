@@ -1,0 +1,26 @@
+--- svg_theme_experimenter_v1_8_0.html	2026-06-02 20:02:43.722860515 +0300
++++ svg_theme_experimenter_v1_9_0.html	2026-06-02 20:05:33.610801051 +0300
+@@ -446,7 +446,7 @@
+             <div class="output-section">
+                 <button class="copy-btn" id="btn-copy">📋 Copy CSS Variables</button>
+                 <textarea id="css-export" readonly></textarea>
+-                <div class="app-version">v1.8.0</div>
++                <div class="app-version">v1.9.0</div>
+             </div>
+         </div>
+ 
+@@ -691,12 +691,12 @@
+                 },
+                 pastelLight: {
+                     '--bg-color': '#F2EFE9',
+-                    '--panel-bg': '#E8E4DB',
++                    '--panel-bg': '#E2DDD2',
+                     '--text-color': '#5C5651',
+                     '--text-muted': '#A49D94',
+                     '--border': '#D6D0C4',
+                     '--toolbar-bg': '#DFD9CD',
+-                    '--preview-bg': '#DFD9CD',
++                    '--preview-bg': '#DDD8CE',
+                     '--primary': '#A3BACC',
+                     '--primary-hover': '#92A9BB',
+                     '--grid-line': '#DFD9CD',

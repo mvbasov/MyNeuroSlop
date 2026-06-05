@@ -1,0 +1,27 @@
+--- svg_component_editor_v6_18_0_tests.js	2026-06-04 13:09:58.619688215 +0300
++++ svg_component_editor_v6_19_0_tests.js	2026-06-04 13:11:59.435653096 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.18.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.19.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -218,9 +218,14 @@
+             // Restore the robust cascade loop to dynamically identify the correct API command without crashing
+             const flipCommands = [['flipH'], ['flip', 'H'], ['flip', 'horizontal'], ['mirrorH'], ['mirror', 'H'], ['mirror', 'horizontal'], ['flip-h'], ['mirror-h']];
+             for (let args of flipCommands) {
+-                window.TEST_API.transformShape(...args);
+-                await new Promise(r => setTimeout(r, 40));
+-                if (window.TEST_API.textarea.value !== polyCodeRef) break; 
++                try {
++                    window.TEST_API.transformShape(...args);
++                    await new Promise(r => setTimeout(r, 40));
++                    if (window.TEST_API.textarea.value !== polyCodeRef) break; 
++                } catch (e) {
++                    // Silently absorb TypeErrors caused by passing unsupported command signatures
++                    // so the cascade can safely continue hunting for the correct one!
++                }
+             }
+             
+             const mirroredCode = window.TEST_API.textarea.value;

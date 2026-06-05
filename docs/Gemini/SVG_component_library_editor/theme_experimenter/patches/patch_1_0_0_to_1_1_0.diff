@@ -1,0 +1,120 @@
+--- svg_theme_experimenter_v1_0_0.html	2026-06-02 19:24:48.554913635 +0300
++++ svg_theme_experimenter_v1_1_0.html	2026-06-02 19:28:21.700625938 +0300
+@@ -176,6 +176,22 @@
+             container-type: inline-size; /* Ensure mobile query works within workspace */
+         }
+ 
++        @keyframes pulseGlow {
++            0% { box-shadow: 0 0 0 0px rgba(59, 130, 246, 0.8); border-color: #3b82f6; background-color: #2a3a4a; }
++            50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); border-color: #3b82f6; background-color: #2a3a4a; }
++            100% { box-shadow: 0 0 0 0px rgba(59, 130, 246, 0); border-color: #333; background-color: #252526; }
++        }
++
++        #color-schema-app .color-control.highlight-pulse {
++            animation: pulseGlow 1.2s ease-out;
++            border-color: #3b82f6;
++        }
++
++        /* Interactive Element Inspector Cursor */
++        #mock-editor-app * {
++            cursor: crosshair !important;
++        }
++
+         /* ================================================================= */
+         /* EXACT CSS FROM SVG EDITOR (SCOPED TO #mock-editor-app)            */
+         /* ================================================================= */
+@@ -416,7 +432,7 @@
+             <div class="output-section">
+                 <button class="copy-btn" id="btn-copy">📋 Copy CSS Variables</button>
+                 <textarea id="css-export" readonly></textarea>
+-                <div class="app-version">v1.0.0</div>
++                <div class="app-version">v1.1.0</div>
+             </div>
+         </div>
+ 
+@@ -611,6 +627,85 @@
+                 setTimeout(() => btn.innerHTML = orig, 1500);
+             });
+ 
++            // --- Interactive Color Inspector ---
++            mockApp.addEventListener('click', (e) => {
++                e.preventDefault();
++                e.stopPropagation();
++
++                let target = e.target;
++                let varsToHighlight = new Set();
++
++                // Walk up the DOM tree from the clicked target
++                while (target && target !== mockApp.parentElement) {
++                    const fill = target.getAttribute('fill') || '';
++                    const stroke = target.getAttribute('stroke') || '';
++                    const className = (typeof target.className === 'string') ? target.className : (target.className && target.className.baseVal) || '';
++                    const tagName = target.tagName ? target.tagName.toLowerCase() : '';
++                    const id = target.id || '';
++
++                    // 1. Detect Explicit Inline SVG Variables
++                    if (fill.includes('var(')) {
++                        let m = fill.match(/var\((--[^)]+)\)/);
++                        if (m) varsToHighlight.add(m[1]);
++                    }
++                    if (stroke.includes('var(')) {
++                        let m = stroke.match(/var\((--[^)]+)\)/);
++                        if (m) varsToHighlight.add(m[1]);
++                    }
++                    if (fill.includes('url(#gridPattern)')) varsToHighlight.add('--grid-line');
++
++                    // 2. Detect Component/Class based mappings
++                    if (tagName === 'header' || tagName === 'footer') {
++                        varsToHighlight.add('--toolbar-bg');
++                        varsToHighlight.add('--border');
++                    }
++                    if (className.includes('toolbar-group')) {
++                        varsToHighlight.add('--panel-bg');
++                        varsToHighlight.add('--border');
++                    }
++                    if (className.includes('primary')) {
++                        varsToHighlight.add('--primary');
++                        varsToHighlight.add('--primary-hover');
++                    }
++                    if (className.includes('danger') || className.includes('badge')) {
++                        varsToHighlight.add('--danger');
++                    }
++                    if (className.includes('preview-panel')) varsToHighlight.add('--border');
++                    if (className.includes('editor-wrapper')) varsToHighlight.add('--panel-bg');
++                    
++                    if (className.includes('backdrop') || tagName === 'button' || tagName === 'select' || className.includes('toolbar-select') || tagName === 'path') {
++                        if (!varsToHighlight.has('--primary') && !varsToHighlight.has('--danger')) {
++                            varsToHighlight.add('--text-color');
++                        }
++                    }
++                    if (className.includes('footer-left') || className.includes('footer-center') || className.includes('footer-right')) {
++                        varsToHighlight.add('--text-muted');
++                    }
++                    if (id === 'preview-container') varsToHighlight.add('--preview-bg');
++                    if (id === 'mock-editor-app') varsToHighlight.add('--bg-color');
++
++                    // If we found variables matching this target layer, stop bubbling
++                    if (varsToHighlight.size > 0) break; 
++                    
++                    target = target.parentElement;
++                }
++
++                // Ultimate fallback
++                if (varsToHighlight.size === 0) varsToHighlight.add('--bg-color');
++
++                // Trigger Highlight and Scroll on Sidebar Controls
++                varsToHighlight.forEach(varName => {
++                    const input = inputsMap[varName];
++                    if (input) {
++                        const controlDiv = input.closest('.color-control');
++                        controlDiv.classList.remove('highlight-pulse');
++                        void controlDiv.offsetWidth; // Force CSS reflow
++                        controlDiv.classList.add('highlight-pulse');
++                        controlDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
++                    }
++                });
++            });
++
+             // Boot
+             initControls();
+             applyToMock();

@@ -1,0 +1,35 @@
+--- svg_theme_experimenter_v1_3_0.html	2026-06-02 19:38:16.730687516 +0300
++++ svg_theme_experimenter_v1_4_0.html	2026-06-02 19:41:33.986910603 +0300
+@@ -439,7 +439,7 @@
+             <div class="output-section">
+                 <button class="copy-btn" id="btn-copy">📋 Copy CSS Variables</button>
+                 <textarea id="css-export" readonly></textarea>
+-                <div class="app-version">v1.3.0</div>
++                <div class="app-version">v1.4.0</div>
+             </div>
+         </div>
+ 
+@@ -601,16 +601,16 @@
+                 hacker: {
+                     '--bg-color': '#050505',
+                     '--panel-bg': '#0a0a0a',
+-                    '--text-color': '#00ff00',
+-                    '--text-muted': '#005500',
+-                    '--border': '#004400',
++                    '--text-color': '#ff9900',
++                    '--text-muted': '#663300',
++                    '--border': '#442200',
+                     '--toolbar-bg': '#000000',
+                     '--preview-bg': '#000000',
+-                    '--primary': '#00cc00',
+-                    '--primary-hover': '#00ff00',
+-                    '--grid-line': '#002200',
++                    '--primary': '#cc7700',
++                    '--primary-hover': '#ff9900',
++                    '--grid-line': '#221100',
+                     '--danger': '#ff0000',
+-                    '--success': '#00ff00'
++                    '--success': '#ff9900'
+                 }
+             };
+ 

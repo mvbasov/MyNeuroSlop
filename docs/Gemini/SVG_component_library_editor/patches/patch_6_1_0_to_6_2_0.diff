@@ -1,0 +1,64 @@
+--- svg_component_editor_v6_1_0.html	2026-06-02 13:35:02.904898575 +0300
++++ svg_component_editor_v6_2_0.html	2026-06-02 13:45:03.300705608 +0300
+@@ -473,7 +473,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v6.1.0</div>
++                <div class="footer-right">v6.2.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -2472,25 +2472,36 @@
+                 let template = shapeMap[type] || '';
+                 const code = textarea.value;
+                 let insertPos = textarea.selectionStart;
++                let indent = "\n  ";
+                 
+-                if (activeTagInfo) {
+-                    const nonContainers = ['circle', 'line', 'path', 'polygon', 'polyline', 'rect', 'text', 'tspan', 'ellipse', 'image', 'use'];
+-                    if (nonContainers.includes(activeTagInfo.tagName.toLowerCase())) {
+-                        if (insertPos > activeTagInfo.start && insertPos < activeTagInfo.fullEnd) insertPos = activeTagInfo.fullEnd;
+-                    } else {
+-                        if (insertPos > activeTagInfo.start && insertPos < activeTagInfo.tagEnd) {
+-                            insertPos = activeTagInfo.tagEnd;
+-                        } else if (activeTagInfo.closeStart !== undefined && activeTagInfo.closeStart !== -1 && insertPos > activeTagInfo.closeStart && insertPos < activeTagInfo.fullEnd) {
+-                            insertPos = activeTagInfo.fullEnd;
++                if (type === 'comment_start' && activeTagInfo) {
++                    const lineStart = code.lastIndexOf('\n', activeTagInfo.start - 1);
++                    insertPos = lineStart === -1 ? 0 : lineStart + 1;
++                    template = insertPos === 0 ? "<!--\n\n" : "\n<!--\n";
++                    indent = "";
++                } else if (type === 'comment_end' && activeTagInfo) {
++                    insertPos = activeTagInfo.fullEnd;
++                    template = "\n-->\n";
++                    indent = "";
++                } else {
++                    if (activeTagInfo) {
++                        const nonContainers = ['circle', 'line', 'path', 'polygon', 'polyline', 'rect', 'text', 'tspan', 'ellipse', 'image', 'use'];
++                        if (nonContainers.includes(activeTagInfo.tagName.toLowerCase())) {
++                            if (insertPos > activeTagInfo.start && insertPos < activeTagInfo.fullEnd) insertPos = activeTagInfo.fullEnd;
++                        } else {
++                            if (insertPos > activeTagInfo.start && insertPos < activeTagInfo.tagEnd) {
++                                insertPos = activeTagInfo.tagEnd;
++                            } else if (activeTagInfo.closeStart !== undefined && activeTagInfo.closeStart !== -1 && insertPos > activeTagInfo.closeStart && insertPos < activeTagInfo.fullEnd) {
++                                insertPos = activeTagInfo.fullEnd;
++                            }
+                         }
+                     }
+-                }
+-                
+-                const lineStart = code.lastIndexOf('\n', insertPos - 1);
+-                let indent = "\n  ";
+-                if (lineStart !== -1) {
+-                    const spaces = code.substring(lineStart + 1).match(/^\s*/);
+-                    if (spaces) indent = "\n" + spaces[0];
++                    
++                    const lineStart = code.lastIndexOf('\n', insertPos - 1);
++                    if (lineStart !== -1) {
++                        const spaces = code.substring(lineStart + 1).match(/^\s*/);
++                        if (spaces) indent = "\n" + spaces[0];
++                    }
+                 }
+ 
+                 const newCode = code.substring(0, insertPos) + indent + template + code.substring(insertPos);

@@ -1,0 +1,47 @@
+--- svg_component_editor_v3_5.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_6.html	2026-05-31 19:17:26.529529970 +0300
+@@ -369,7 +369,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v3.5</footer>
++    <footer>v3.6</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -606,7 +606,21 @@
+                 const tagNameMatch = text.match(/<([a-z0-9:-]+)/i);
+                 const tagName = tagNameMatch ? tagNameMatch[1] : '';
+ 
+-                const el = { domIndex: domIndex++, start: start, tagEnd: end, fullEnd: end, closeStart: isSelfClosing ? end : -1, tagName: tagName };
++                // Capture any leading spaces/tabs on the current line so clicking indentation selects the tag
++                let effectiveStart = start;
++                while (effectiveStart > 0 && (html[effectiveStart - 1] === ' ' || html[effectiveStart - 1] === '\t')) {
++                    effectiveStart--;
++                }
++
++                const el = { 
++                    domIndex: domIndex++, 
++                    start: start, 
++                    effectiveStart: effectiveStart, 
++                    tagEnd: end, 
++                    fullEnd: end, 
++                    closeStart: isSelfClosing ? end : -1, 
++                    tagName: tagName 
++                };
+                 elements.push(el);
+ 
+                 if (!isSelfClosing && tagName.toLowerCase() !== 'br' && tagName.toLowerCase() !== 'hr') {
+@@ -622,9 +636,9 @@
+             let active = null;
+             let minSize = Infinity;
+             for (let el of elements) {
+-                // Determine if cursor is enclosed by the full tag scope
+-                if (cursor >= el.start && cursor <= el.fullEnd) {
+-                    let size = el.fullEnd - el.start;
++                // Determine if cursor is enclosed by the full tag scope, incorporating leading whitespace
++                if (cursor >= el.effectiveStart && cursor <= el.fullEnd) {
++                    let size = el.fullEnd - el.start; // Base nested size logic strictly on tag sizes
+                     if (size < minSize) {
+                         minSize = size;
+                         active = el;

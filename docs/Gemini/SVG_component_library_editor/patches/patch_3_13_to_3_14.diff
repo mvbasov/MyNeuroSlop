@@ -1,0 +1,20 @@
+--- svg_component_editor_v3_13.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_14.html	2026-05-31 19:17:26.529529970 +0300
+@@ -53,7 +53,7 @@
+             display: flex;
+             align-items: center;
+             flex-wrap: wrap;
+-            gap: 10px;
++            gap: 5px;
+         }
+ 
+         .badge {
+@@ -367,7 +367,7 @@
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+         </div>
+-        <div>v3.13</div>
++        <div>v3.14</div>
+     </footer>
+ 
+     <script>

@@ -1,0 +1,96 @@
+--- svg_component_editor_v1_3.html	2026-05-31 19:17:26.525529956 +0300
++++ svg_component_editor_v1_4.html	2026-05-31 19:17:26.525529956 +0300
+@@ -125,12 +125,15 @@
+             background: transparent;
+             color: var(--text-color);
+             border: 1px solid transparent;
+-            padding: 4px 8px;
++            padding: 4px 6px;
+             border-radius: 4px;
+             cursor: pointer;
+-            font-size: 0.85rem;
++            font-size: 0.9rem;
+             outline: none;
+             transition: all 0.2s;
++            appearance: none;
++            -webkit-appearance: none;
++            -moz-appearance: none;
+         }
+ 
+         .toolbar-select:hover {
+@@ -275,9 +278,6 @@
+             <label class="toggle">
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+-            <label class="toggle">
+-                <input type="checkbox" id="toggle-highlight" checked> Highlight
+-            </label>
+         </div>
+ 
+         <div class="toolbar-group">
+@@ -311,8 +311,8 @@
+         <div class="toolbar-group toolbar-right">
+             <button onclick="undo()" title="Undo (Ctrl+Z)">↶</button>
+             <button onclick="redo()" title="Redo (Ctrl+Y)">↷</button>
+-            <button class="primary" id="copy-btn" onclick="copyToClipboard()">📋 Copy</button>
+-            <button class="primary" onclick="downloadSVG()">💾 Save</button>
++            <button class="primary" id="copy-btn" onclick="copyToClipboard()" title="Copy Code">📋</button>
++            <button class="primary" onclick="downloadSVG()" title="Save SVG">💾</button>
+         </div>
+     </header>
+ 
+@@ -341,7 +341,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v1.3</footer>
++    <footer>v1.4</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -369,7 +369,6 @@
+         const errorBadge = document.getElementById('error-badge');
+         
+         const toggleGrid = document.getElementById('toggle-grid');
+-        const toggleHighlight = document.getElementById('toggle-highlight');
+ 
+         // State
+         let history = [];
+@@ -406,10 +405,6 @@
+             gridGroup.style.display = toggleGrid.checked ? 'block' : 'none';
+         });
+ 
+-        toggleHighlight.addEventListener('change', () => {
+-            updateSelection();
+-        });
+-
+         window.addEventListener('keydown', (e) => {
+             if (e.ctrlKey || e.metaKey) {
+                 if (e.key === 'z') { e.preventDefault(); undo(); }
+@@ -484,7 +479,7 @@
+             activeTagInfo = getActiveTag(code, cursor);
+             
+             // 1. Update text backdrop
+-            if (toggleHighlight.checked && activeTagInfo) {
++            if (activeTagInfo) {
+                 const before = escapeHTML(code.substring(0, activeTagInfo.start));
+                 const highlight = escapeHTML(code.substring(activeTagInfo.start, activeTagInfo.tagEnd));
+                 const after = escapeHTML(code.substring(activeTagInfo.tagEnd));
+@@ -514,7 +509,7 @@
+             const existingHl = document.getElementById('inner-highlight');
+             if (existingHl) existingHl.remove();
+ 
+-            if (toggleHighlight.checked && activeTagInfo && activeTagInfo.domIndex >= 0) {
++            if (activeTagInfo && activeTagInfo.domIndex >= 0) {
+                 // Find element in live DOM. First child is our injected wrapper, so search inside it.
+                 const liveElements = Array.from(userSvgContainer.querySelectorAll('*')).filter(node => node.nodeType === 1);
+                 
+@@ -1078,7 +1073,7 @@
+             
+             const btn = document.getElementById('copy-btn');
+             const orig = btn.innerHTML;
+-            btn.innerHTML = '✅ Copied!';
++            btn.innerHTML = '✅';
+             setTimeout(() => btn.innerHTML = orig, 1500);
+             
+             textarea.focus();

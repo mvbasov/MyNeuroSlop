@@ -1,0 +1,10 @@
+--- svg_component_editor_v4_8_1.html	2026-05-31 19:17:26.533529984 +0300
++++ svg_component_editor_v4_8_2.html	2026-05-31 19:17:26.533529984 +0300
+@@ -8,6 +8,7 @@
+     <style>
+         body {
+           margin: 0;
++          overflow: hidden;
+         }
+         /* Embed-Safe Scoped CSS */
+         

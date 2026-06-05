@@ -1,0 +1,22 @@
+--- svg_component_editor_v6_25_0_tests.js	2026-06-04 15:17:23.026997196 +0300
++++ svg_component_editor_v6_26_0_tests.js	2026-06-04 15:20:02.971036786 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.25.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.26.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -233,9 +233,10 @@
+             const hasMirroredPoint = /M[\s,]*50[\s,]+10/i.test(mirroredCode) || /50[\s,]+10/.test(mirroredCode);
+             assertTrue("Coordinates Matrix: Horizontal mirror correctly shifts asymmetrical path vertices", hasMirroredPoint && mirroredCode !== pathCodeRef);
+ 
+-            // Test 8: Direct Coordinates Recalculation (Rotations 45, -45, 180)
++            // Test 8: Direct Coordinates Recalculation (Rotations +45, -45, 180)
+             // Validates that rotating geometric shapes by specific angles recalculates points mathematically instead of appending a lazy 'transform="..."' attribute.
+-            const anglesToTest = ['45', '-45', '180'];
++            // BUGFIX: The application UI passes '+45' exactly. Passing '45' bypassed the app's strict string matching block!
++            const anglesToTest = ['+45', '-45', '180'];
+             for (let angle of anglesToTest) {
+                 await loadTestData('<svg><polygon points="40,40 60,40 60,60 40,60" /></svg>', 'polygon');
+                 const origCode = window.TEST_API.textarea.value;

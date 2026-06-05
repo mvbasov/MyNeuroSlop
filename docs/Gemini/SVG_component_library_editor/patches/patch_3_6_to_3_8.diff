@@ -1,0 +1,70 @@
+--- svg_component_editor_v3_6.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_8.html	2026-05-31 19:17:26.529529970 +0300
+@@ -369,7 +369,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v3.6</footer>
++    <footer>v3.8</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -806,6 +806,26 @@
+                 };
+             }
+ 
++            const fsMatch = getAttrMatch('font-size');
++            if (fsMatch && relPos >= fsMatch.start && relPos <= fsMatch.end) {
++                let ret = { start: fsMatch.start, end: fsMatch.end };
++                if (activeNode && activeNode.hasAttribute('x') && activeNode.hasAttribute('y')) {
++                    ret.cx = parseFloat(activeNode.getAttribute('x'));
++                    ret.cy = parseFloat(activeNode.getAttribute('y'));
++                }
++                return ret;
++            }
++
++            const taMatch = getAttrMatch('text-anchor');
++            if (taMatch && relPos >= taMatch.start && relPos <= taMatch.end) {
++                let ret = { start: taMatch.start, end: taMatch.end };
++                if (activeNode && activeNode.hasAttribute('x') && activeNode.hasAttribute('y')) {
++                    ret.cx = parseFloat(activeNode.getAttribute('x'));
++                    ret.cy = parseFloat(activeNode.getAttribute('y'));
++                }
++                return ret;
++            }
++
+             if (['polygon', 'polyline'].includes(tagName)) {
+                 const pointsMatch = tagStr.match(/\bpoints=["']([^"']+)["']/i);
+                 if (pointsMatch) {
+@@ -1606,6 +1626,31 @@
+                     });
+                 });
+             }
++
++            // H. Universal check for font-size
++            if (!pointMoved) {
++                pointMoved = checkAndAdjustNearAttr(['font-size'], dx - dy, 0, (str) => {
++                    return str.replace(/\bfont-size=["']([^"']+)["']/i, (m, v) => {
++                        let currentVal = parseFloat(v);
++                        if (isNaN(currentVal)) currentVal = 14;
++                        return `font-size="${Math.max(0, currentVal).toFixed(1).replace(/\.0$/, '')}"`;
++                    });
++                });
++            }
++
++            // I. Universal check for text-anchor
++            if (!pointMoved) {
++                pointMoved = checkAndAdjustNearAttr(['text-anchor'], dx - dy, 0, (str) => {
++                    const cycle = ['start', 'middle', 'end'];
++                    return str.replace(/\btext-anchor=["']([^"']+)["']/i, (m, v) => {
++                        let dir = dx - dy;
++                        let idx = cycle.indexOf(v.toLowerCase());
++                        if (idx === -1) idx = 0;
++                        let newIdx = (idx + dir + cycle.length) % cycle.length;
++                        return `text-anchor="${cycle[newIdx]}"`;
++                    });
++                });
++            }
+ 
+             // --- 2. Element Move Logic (Fallback if cursor is not on a specific point) ---
+             if (!pointMoved) {

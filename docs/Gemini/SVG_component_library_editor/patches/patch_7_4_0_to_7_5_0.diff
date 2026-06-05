@@ -1,0 +1,88 @@
+--- svg_component_editor_v7_4_0.html	2026-06-04 16:15:57.440813066 +0300
++++ svg_component_editor_v7_5_0.html	2026-06-04 16:36:56.537876677 +0300
+@@ -424,6 +424,7 @@
+                         <option value="flip_v">↕ Flip V</option>
+                     </select>
+                     <div class="toolbar-divider"></div>
++                    <button id="tool-uncomment" title="Uncomment" style="display: none;">🔓</button>
+                     <button class="danger" id="tool-delete" title="Delete">🗑️</button>
+                 </div>
+ 
+@@ -476,7 +477,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v7.4.0</div>
++                <div class="footer-right">v7.5.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -1900,6 +1901,8 @@
+                 });
+ 
+                 document.getElementById('tool-delete').addEventListener('click', deleteActiveShape);
++                const uncommentBtn = document.getElementById('tool-uncomment');
++                if (uncommentBtn) uncommentBtn.addEventListener('click', uncommentActiveShape);
+                 document.getElementById('tool-undo').addEventListener('click', undo);
+                 document.getElementById('tool-redo').addEventListener('click', redo);
+                 document.getElementById('tool-load').addEventListener('click', () => document.getElementById('file-input').click());
+@@ -2272,6 +2275,11 @@
+                         renderVisualOverlay(activeNode, activeSub);
+                     }, 50);
+                 }
++                
++                const uncommentBtn = document.getElementById('tool-uncomment');
++                if (uncommentBtn) {
++                    uncommentBtn.style.display = (activeTagInfo && activeTagInfo.tagName === '!--') ? 'flex' : 'none';
++                }
+             }
+ 
+             function updateBackdropText(code, activeSub) {
+@@ -2569,6 +2577,29 @@
+                 selectionRafId = requestAnimationFrame(updateSelection);
+             }
+ 
++            function uncommentActiveShape() {
++                if (!activeTagInfo || activeTagInfo.tagName !== '!--') return;
++                const code = textarea.value;
++                let start = activeTagInfo.start;
++                let end = activeTagInfo.fullEnd;
++                let commentStr = code.substring(start, end);
++                
++                let uncommented = commentStr.replace(/^<!--/, '').replace(/-->$/, '');
++                const newCode = code.substring(0, start) + uncommented + code.substring(end);
++                
++                const savedScrollTop = textarea.scrollTop;
++                const savedScrollLeft = textarea.scrollLeft;
++                
++                updateCode(newCode, true);
++                textarea.focus();
++                textarea.setSelectionRange(start, start + uncommented.length);
++                textarea.scrollTop = savedScrollTop;
++                textarea.scrollLeft = savedScrollLeft;
++                
++                if (selectionRafId) cancelAnimationFrame(selectionRafId);
++                selectionRafId = requestAnimationFrame(updateSelection);
++            }
++
+             function deleteActiveShape() {
+                 if (!activeTagInfo) return;
+                 const code = textarea.value;
+@@ -2667,14 +2698,15 @@
+                     moveShape,
+                     transformShape,
+                     deleteActiveShape,
++                    uncommentActiveShape,
+                     SVGUtils,
+                     getActiveTag,
+                     backdrop
+                 };
+                 
+                 const script = document.createElement('script');
+-                script.src = 'svg_component_editor_v7_4_0_tests.js';
+-                script.onerror = () => console.error("Test suite not found: svg_component_editor_v7_4_0_tests.js");
++                script.src = 'svg_component_editor_v7_5_0_tests.js';
++                script.onerror = () => console.error("Test suite not found: svg_component_editor_v7_5_0_tests.js");
+                 document.body.appendChild(script);
+             }
+         })();

@@ -1,0 +1,108 @@
+--- svg_component_editor_v4_2.html	2026-05-31 19:17:26.533529984 +0300
++++ svg_component_editor_v4_4.html	2026-05-31 19:17:26.533529984 +0300
+@@ -193,6 +193,22 @@
+             display: flex;
+             align-items: center;
+             gap: 10px;
++            flex: 1;
++        }
++
++        .footer-center {
++            display: flex;
++            align-items: center;
++            justify-content: center;
++            gap: 5px;
++            flex: 1;
++            white-space: nowrap;
++        }
++
++        .footer-right {
++            flex: 1;
++            text-align: right;
++            white-space: nowrap;
+         }
+ 
+         /* --- Preview Area --- */
+@@ -369,12 +385,16 @@
+ 
+     <footer>
+         <div class="footer-left">
+-            <span id="error-badge" class="badge" style="font-size: 0.65rem; padding: 2px 6px;">Syntax Error</span>
++            <span id="error-badge" class="badge">Syntax Error</span>
+             <label class="toggle" style="font-size: inherit;">
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+         </div>
+-        <div>v4.2</div>
++        <div class="footer-center">
++            <label for="move-step">Step:</label>
++            <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
++        </div>
++        <div class="footer-right">v4.4</div>
+     </footer>
+ 
+     <script>
+@@ -656,8 +676,8 @@
+ 
+             movePoint: (tagStr, relPos, dx, dy) => {
+                 let res;
+-                // Stroke-width (step 0.1)
+-                res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['stroke-width'], (dx - dy) * 0.1, 0, (str) => {
++                // Stroke-width (step 0.1 logic preserved correctly)
++                res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['stroke-width'], Math.sign(dx - dy) * 0.1, 0, (str) => {
+                     return str.replace(/\bstroke-width=["']([^"']+)["']/i, (m, v) => {
+                         let currentVal = parseFloat(v);
+                         if (isNaN(currentVal)) currentVal = 1;
+@@ -667,7 +687,7 @@
+                 if (res.modified) return res;
+ 
+                 // Font-size
+-                res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['font-size'], dx - dy, 0, (str) => {
++                res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['font-size'], Math.sign(dx - dy), 0, (str) => {
+                     return str.replace(/\bfont-size=["']([^"']+)["']/i, (m, v) => {
+                         let currentVal = parseFloat(v);
+                         if (isNaN(currentVal)) currentVal = 14;
+@@ -680,7 +700,7 @@
+                 res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['text-anchor'], dx - dy, 0, (str) => {
+                     const cycle = ['start', 'middle', 'end'];
+                     return str.replace(/\btext-anchor=["']([^"']+)["']/i, (m, v) => {
+-                        let dir = dx - dy;
++                        let dir = Math.sign(dx - dy);
+                         let idx = cycle.indexOf(v.toLowerCase());
+                         if (idx === -1) idx = 0;
+                         let newIdx = (idx + dir + cycle.length) % cycle.length;
+@@ -718,13 +738,13 @@
+                                     if (args.length >= 2) args[1] += dy;
+                                     else if (dy !== 0) args.push(dy); 
+                                 } else if (type === 'rotate') {
+-                                    let dir = dx - dy; 
++                                    let dir = Math.sign(dx - dy); 
+                                     if (args.length >= 1) {
+                                         if (dir > 0) args[0] = Math.ceil((args[0] + 1) / 45) * 45;
+                                         else if (dir < 0) args[0] = Math.floor((args[0] - 1) / 45) * 45;
+                                     }
+                                 } else if (type === 'scale' || type === 'skewx' || type === 'skewy') {
+-                                    let dir = (dx - dy) * 0.1;
++                                    let dir = Math.sign(dx - dy) * 0.1;
+                                     if (args.length >= 1) args[0] += dir;
+                                     if (args.length >= 2) args[1] += dir;
+                                 }
+@@ -1872,13 +1892,17 @@
+ 
+         // --- Tools (Move, Insert, Delete) ---
+         // Refactored moveShape using the Strategy Pattern
+-        function moveShape(dx, dy) {
++        function moveShape(dirX, dirY) {
+             if (!activeTagInfo) return;
+             const code = textarea.value;
+             let tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+             const tagName = activeTagInfo.tagName.toLowerCase();
+             const relPos = textarea.selectionStart - activeTagInfo.start;
+             
++            const step = parseFloat(document.getElementById('move-step').value) || 1;
++            const dx = dirX * step;
++            const dy = dirY * step;
++
+             const handler = ShapeRegistry[tagName] || ShapeRegistry.default;
+             let moveResult = null;
+ 

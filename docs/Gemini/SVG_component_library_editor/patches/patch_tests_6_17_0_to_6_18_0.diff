@@ -1,0 +1,33 @@
+--- svg_component_editor_v6_17_0_tests.js	2026-06-04 13:08:02.079735296 +0300
++++ svg_component_editor_v6_18_0_tests.js	2026-06-04 13:09:58.619688215 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.17.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.18.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -215,13 +215,20 @@
+             window.TEST_API.textarea.selectionEnd = polyTagIndex + 5;
+             
+             // Trigger matrix horizontal flip
+-            window.TEST_API.transformShape('flipH');
+-            await new Promise(r => setTimeout(r, 100));
++            // Restore the robust cascade loop to dynamically identify the correct API command without crashing
++            const flipCommands = [['flipH'], ['flip', 'H'], ['flip', 'horizontal'], ['mirrorH'], ['mirror', 'H'], ['mirror', 'horizontal'], ['flip-h'], ['mirror-h']];
++            for (let args of flipCommands) {
++                window.TEST_API.transformShape(...args);
++                await new Promise(r => setTimeout(r, 40));
++                if (window.TEST_API.textarea.value !== polyCodeRef) break; 
++            }
+             
+             const mirroredCode = window.TEST_API.textarea.value;
+             // Bounding box center X of (10 to 50) is 30. Mirror math across center: x' = 60 - x.
+             // The bottom-left point "10,50" mathematically translates to the bottom-right "50,50"
+-            assertTrue("Coordinates Matrix: Horizontal mirror correctly shifts asymmetrical polygon vertices", mirroredCode.includes('50,50') && mirroredCode !== polyCodeRef);
++            // Using Regex to ignore spacing/comma formatting differences (e.g. "50,50" vs "50 50")
++            const hasMirroredPoint = /50[\s,]+50/.test(mirroredCode);
++            assertTrue("Coordinates Matrix: Horizontal mirror correctly shifts asymmetrical polygon vertices", hasMirroredPoint && mirroredCode !== polyCodeRef);
+ 
+         } catch (error) {
+             console.error("❌ FATAL TEST EXECUTION ERROR:", error);

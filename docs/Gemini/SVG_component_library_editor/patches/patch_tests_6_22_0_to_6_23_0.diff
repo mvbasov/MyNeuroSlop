@@ -1,0 +1,26 @@
+--- svg_component_editor_v6_22_0_tests.js	2026-06-04 13:37:01.180577833 +0300
++++ svg_component_editor_v6_23_0_tests.js	2026-06-04 13:39:38.652761251 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.22.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.23.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -239,11 +239,11 @@
+         }
+ 
+         // Execution Summary
+-        console.table({
+-            'Passed': { 'Count': passed, 'Status': passed > 0 ? '✅' : '⚠️' },
+-            'Failed': { 'Count': failed, 'Status': failed > 0 ? '❌' : '✅' },
+-            'Total':  { 'Count': passed + failed, 'Status': failed === 0 ? '✅' : '❌' }
+-        });
++        const summary = {};
++        summary[`Passed ${passed > 0 ? '✅' : '⚠️'}`] = passed;
++        summary[`Failed ${failed > 0 ? '❌' : '✅'}`] = failed;
++        summary[`Total ${failed === 0 ? '✅' : '❌'}`] = passed + failed;
++        console.table(summary);
+         
+         // Safely wipe tests, restore user file, and flash the secure enforcer toast
+         resetAppToInitialState();

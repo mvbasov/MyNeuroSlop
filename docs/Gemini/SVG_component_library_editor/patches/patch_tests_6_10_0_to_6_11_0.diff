@@ -1,0 +1,19 @@
+--- svg_component_editor_v6_10_0_tests.js	2026-06-04 12:31:02.270924765 +0300
++++ svg_component_editor_v6_11_0_tests.js	2026-06-04 12:33:53.703374629 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.10.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.11.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -207,6 +207,9 @@
+ 
+             // Test 7: Deep Coordinates Recalculation (Mirroring / Flip)
+             // Execute horizontal mirror which heavily relies on matrix math translation
++            // Re-acquire contextual focus inside the tag as the previous transformation reset the cursor
++            window.TEST_API.textarea.selectionStart = 5;
++            window.TEST_API.textarea.selectionEnd = 5;
+             window.TEST_API.transformShape('mirror', 'horizontal');
+             await new Promise(r => setTimeout(r, 100));
+             assertTrue("Coordinates Matrix: Horizontal mirror operation processed successfully", window.TEST_API.textarea.value !== centerRotatedCode);

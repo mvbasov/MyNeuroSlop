@@ -1,0 +1,11 @@
+--- svg_theme_experimenter_v1_12_0.html	2026-06-02 20:24:21.374209962 +0300
++++ svg_theme_experimenter_v2_0_0.html	2026-06-02 21:04:46.034767832 +0300
+@@ -447,7 +447,7 @@
+             <div class="output-section">
+                 <button class="copy-btn" id="btn-copy">📋 Copy CSS Variables</button>
+                 <textarea id="css-export" readonly></textarea>
+-                <div class="app-version">v1.12.0</div>
++                <div class="app-version">v2.0.0</div>
+             </div>
+         </div>
+ 

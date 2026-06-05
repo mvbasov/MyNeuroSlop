@@ -1,0 +1,93 @@
+--- svg_component_editor_v1_0.html	2026-05-31 19:17:26.521529942 +0300
++++ svg_component_editor_v1_0_1.html	2026-05-31 19:17:26.521529942 +0300
+@@ -9,8 +9,8 @@
+             --bg-color: #1e1e2e;
+             --panel-bg: #282a36;
+             --text-color: #f8f8f2;
+-            --primary: #bd93f9;
+-            --primary-hover: #caa9fa;
++            --primary: #8be9fd;
++            --primary-hover: #a4ffff;
+             --danger: #ff5555;
+             --success: #50fa7b;
+             --border: #44475a;
+@@ -122,6 +122,27 @@
+             background: rgba(255, 85, 85, 0.1);
+         }
+ 
++        .toolbar-select {
++            background: transparent;
++            color: var(--text-color);
++            border: 1px solid transparent;
++            padding: 4px 8px;
++            border-radius: 4px;
++            cursor: pointer;
++            font-size: 0.85rem;
++            outline: none;
++            transition: all 0.2s;
++        }
++
++        .toolbar-select:hover {
++            background: var(--border);
++        }
++
++        .toolbar-select option {
++            background: var(--panel-bg);
++            color: var(--text-color);
++        }
++
+         label.toggle {
+             font-size: 0.85rem;
+             display: flex;
+@@ -212,10 +233,10 @@
+         }
+ 
+         mark {
+-            background-color: rgba(189, 147, 249, 0.3);
++            background-color: rgba(139, 233, 253, 0.3);
+             color: inherit;
+             border-radius: 2px;
+-            outline: 1px solid rgba(189, 147, 249, 0.6);
++            outline: 1px solid rgba(139, 233, 253, 0.6);
+         }
+ 
+         /* Responsive */
+@@ -255,16 +276,22 @@
+         </div>
+ 
+         <div class="toolbar-group">
+-            <button onclick="rotateShape(90)" title="Rotate 90°">↻ 90°</button>
+-            <button onclick="rotateShape(-90)" title="Rotate -90°">↺ -90°</button>
+-            <button onclick="rotateShape(180)" title="Rotate 180°">↻ 180°</button>
++            <select class="toolbar-select" onchange="if(this.value){ rotateShape(Number(this.value)); this.value=''; }">
++                <option value="" disabled selected>↻ Rotate...</option>
++                <option value="90">↻ 90°</option>
++                <option value="-90">↺ -90°</option>
++                <option value="180">↻ 180°</option>
++            </select>
+         </div>
+ 
+         <div class="toolbar-group">
+-            <button onclick="insertShape('circle')">➕ Circle</button>
+-            <button onclick="insertShape('line')">➕ Line</button>
+-            <button onclick="insertShape('path')">➕ Path</button>
+-            <button onclick="insertShape('polygon')">➕ Polygon</button>
++            <select class="toolbar-select" onchange="if(this.value){ insertShape(this.value); this.value=''; }">
++                <option value="" disabled selected>➕ Insert...</option>
++                <option value="circle">⭕ Circle</option>
++                <option value="line">📏 Line</option>
++                <option value="path">〰️ Path</option>
++                <option value="polygon">⬠ Polygon</option>
++            </select>
+             <div class="toolbar-divider"></div>
+             <button class="danger" onclick="deleteActiveShape()">🗑️ Delete</button>
+         </div>
+@@ -490,7 +517,7 @@
+                     previouslyHighlightedNode.originalStroke = activeNode.getAttribute('stroke');
+                     
+                     // Apply highlight color (using the primary theme color)
+-                    activeNode.setAttribute('stroke', '#bd93f9');
++                    activeNode.setAttribute('stroke', '#8be9fd');
+                 }
+             }
+         }

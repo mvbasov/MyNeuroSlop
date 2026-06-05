@@ -1,0 +1,78 @@
+--- svg_component_editor_v4_0.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v4_1.html	2026-05-31 19:17:26.529529970 +0300
+@@ -374,7 +374,7 @@
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+         </div>
+-        <div>v4.0</div>
++        <div>v4.1</div>
+     </footer>
+ 
+     <script>
+@@ -415,7 +415,7 @@
+         let scrollRafId = null;
+         
+         // Track previously highlighted node to restore its state
+-        let previouslyHighlightedNode = { node: null, originalStroke: null };
++        let previouslyHighlightedNode = { node: null, originalStroke: null, originalColor: null };
+         
+         // Reusable Parser Singleton (optimization)
+         const domParser = new DOMParser();
+@@ -1280,15 +1280,14 @@
+                     return tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => `d="${SVGUtils.shiftPathD(val, dx, dy)}"`);
+                 }
+             },
+-
+-            image: { moveElement: (tagStr, dx, dy) => SVGUtils.adjustAttr(SVGUtils.adjustAttr(tagStr, 'x', dx), 'y', dy) },
+-            use: { moveElement: (tagStr, dx, dy) => SVGUtils.adjustAttr(SVGUtils.adjustAttr(tagStr, 'x', dx), 'y', dy) },
+             default: { moveElement: (tagStr, dx, dy) => tagStr }
+         };
+         
+         // Link identical strategies
+         ShapeRegistry.polyline = ShapeRegistry.polygon;
+         ShapeRegistry.ellipse = ShapeRegistry.circle;
++        ShapeRegistry.use = ShapeRegistry.text;
++        ShapeRegistry.image = ShapeRegistry.text;
+ 
+         // Initialization
+         window.onload = () => {
+@@ -1545,14 +1544,23 @@
+             let activeNode = null;
+             
+             if (previouslyHighlightedNode.node) {
+-                const { node, originalStroke } = previouslyHighlightedNode;
++                const { node, originalStroke, originalColor } = previouslyHighlightedNode;
++                
+                 if (originalStroke === null) {
+                     node.removeAttribute('stroke');
+                 } else {
+                     node.setAttribute('stroke', originalStroke);
+                 }
++                
++                if (originalColor === null) {
++                    node.removeAttribute('color');
++                } else {
++                    node.setAttribute('color', originalColor);
++                }
++                
+                 previouslyHighlightedNode.node = null;
+                 previouslyHighlightedNode.originalStroke = null;
++                previouslyHighlightedNode.originalColor = null;
+             }
+ 
+             if (activeTagInfo && activeTagInfo.domIndex >= 0) {
+@@ -1562,8 +1570,14 @@
+                 if (activeNode) {
+                     previouslyHighlightedNode.node = activeNode;
+                     previouslyHighlightedNode.originalStroke = activeNode.getAttribute('stroke');
++                    previouslyHighlightedNode.originalColor = activeNode.getAttribute('color');
++                    
+                     activeNode.setAttribute('stroke', '#3b82f6');
+                     
++                    // Most <use> tags inside components inherit "currentColor", 
++                    // setting the color attribute solves cases where 'stroke' is hardcoded as 'currentColor' inside the referenced symbol.
++                    activeNode.setAttribute('color', '#3b82f6'); 
++                    
+                     const tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+                     const relPos = cursor - activeTagInfo.start;
+                     activeSub = getActiveSubElement(tagStr, relPos, activeTagInfo.tagName.toLowerCase(), activeNode);

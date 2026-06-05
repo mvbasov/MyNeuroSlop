@@ -1,0 +1,19 @@
+--- svg_component_editor_v3_12.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_13.html	2026-05-31 19:17:26.529529970 +0300
+@@ -147,6 +147,7 @@
+         .toolbar-select option {
+             background: var(--panel-bg);
+             color: var(--text-color);
++            text-align: left;
+         }
+ 
+         label.toggle {
+@@ -366,7 +367,7 @@
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+         </div>
+-        <div>v3.12</div>
++        <div>v3.13</div>
+     </footer>
+ 
+     <script>

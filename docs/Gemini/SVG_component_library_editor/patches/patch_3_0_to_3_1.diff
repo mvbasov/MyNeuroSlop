@@ -1,0 +1,64 @@
+--- svg_component_editor_v3_0.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_1.html	2026-05-31 19:17:26.529529970 +0300
+@@ -369,7 +369,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v3.0</footer>
++    <footer>v3.1</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -768,6 +768,26 @@
+                         cy: yVal // top center for height control
+                     };
+                 }
++
++                let rxMatch = getAttrMatch('rx');
++                if (rxMatch && relPos >= rxMatch.start && relPos <= rxMatch.end) {
++                    return {
++                        start: rxMatch.start,
++                        end: rxMatch.end,
++                        cx: xVal + parseFloat(activeNode.getAttribute('rx') || 0),
++                        cy: yVal // top edge, moving horizontally
++                    };
++                }
++
++                let ryMatch = getAttrMatch('ry');
++                if (ryMatch && relPos >= ryMatch.start && relPos <= ryMatch.end) {
++                    return {
++                        start: ryMatch.start,
++                        end: ryMatch.end,
++                        cx: xVal, // left edge, moving vertically
++                        cy: yVal + parseFloat(activeNode.getAttribute('ry') || 0)
++                    };
++                }
+             }
+ 
+             if (tagName === 'circle') {
+@@ -1415,7 +1435,7 @@
+                 }
+             }
+ 
+-            // E. Check near width/height/x/y for rect
++            // E. Check near width/height/x/y/rx/ry for rect
+             if (!pointMoved && tagName === 'rect') {
+                 pointMoved = checkAndAdjustNearAttr(['x', 'y'], dx, dy);
+                 if (!pointMoved) {
+@@ -1428,6 +1448,16 @@
+                         return str.replace(/\bheight=["']([^"']+)["']/i, (m, v) => `height="${Math.max(0, parseFloat(v))}"`);
+                     });
+                 }
++                if (!pointMoved) {
++                    pointMoved = checkAndAdjustNearAttr(['rx'], dx - dy, 0, (str) => {
++                        return str.replace(/\brx=["']([^"']+)["']/i, (m, v) => `rx="${Math.max(0, parseFloat(v))}"`);
++                    });
++                }
++                if (!pointMoved) {
++                    pointMoved = checkAndAdjustNearAttr(['ry'], dx - dy, 0, (str) => {
++                        return str.replace(/\bry=["']([^"']+)["']/i, (m, v) => `ry="${Math.max(0, parseFloat(v))}"`);
++                    });
++                }
+             }
+ 
+             // F. Check near x/y for text

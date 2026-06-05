@@ -1,0 +1,116 @@
+--- svg_component_editor_v3_16.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_17.html	2026-05-31 19:17:26.529529970 +0300
+@@ -374,7 +374,7 @@
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+         </div>
+-        <div>v3.16</div>
++        <div>v3.17</div>
+     </footer>
+ 
+     <script>
+@@ -819,6 +819,46 @@
+                 return m ? { start: m.index, end: m.index + m[0].length } : null;
+             };
+ 
++            // Universal check for transform attribute (translate, rotate, scale, etc.)
++            const transformMatch = getAttrMatch('transform');
++            if (transformMatch && relPos >= transformMatch.start && relPos <= transformMatch.end) {
++                const matchVal = tagStr.match(/\btransform=["']([^"']+)["']/i);
++                if (matchVal) {
++                    const vStart = matchVal.index + matchVal[0].indexOf(matchVal[1]);
++                    const localRelPos = relPos - vStart;
++                    const cmdRegex = /(translate|rotate|scale|skewX|skewY)\s*\(([^)]+)\)/ig;
++                    let m;
++                    while ((m = cmdRegex.exec(matchVal[1])) !== null) {
++                        if (localRelPos >= m.index - 1 && localRelPos <= m.index + m[0].length + 1) {
++                            let cxVal = 0, cyVal = 0;
++                            if (activeNode) {
++                                try {
++                                    const bbox = activeNode.getBBox();
++                                    // Use local BBox if it has dimensions (getScreenCTM maps it accurately)
++                                    if (bbox.width || bbox.height) {
++                                        cxVal = bbox.x + bbox.width / 2;
++                                        cyVal = bbox.y + bbox.height / 2;
++                                    } else {
++                                        // Fallback for <use> which might initially return empty BBox
++                                        cxVal = parseFloat(activeNode.getAttribute('x') || 0);
++                                        cyVal = parseFloat(activeNode.getAttribute('y') || 0);
++                                    }
++                                } catch(e) {
++                                    cxVal = parseFloat(activeNode.getAttribute('x') || 0);
++                                    cyVal = parseFloat(activeNode.getAttribute('y') || 0);
++                                }
++                            }
++                            return {
++                                start: vStart + m.index,
++                                end: vStart + m.index + m[0].length,
++                                cx: cxVal,
++                                cy: cyVal
++                            };
++                        }
++                    }
++                }
++            }
++
+             // Universal attribute checks
+             const swMatch = getAttrMatch('stroke-width');
+             if (swMatch && relPos >= swMatch.start && relPos <= swMatch.end) {
+@@ -1674,6 +1714,57 @@
+                 });
+             }
+ 
++            // J. Universal check for transform commands
++            if (!pointMoved) {
++                const transformMatch = tagStr.match(/\btransform=["']([^"']+)["']/i);
++                if (transformMatch) {
++                    const valStart = transformMatch.index + transformMatch[0].indexOf(transformMatch[1]);
++                    const valEnd = valStart + transformMatch[1].length;
++                    
++                    if (relPos >= valStart && relPos <= valEnd) {
++                        const localRelPos = relPos - valStart;
++                        const cmdRegex = /(translate|rotate|scale|skewX|skewY)\s*\(([^)]+)\)/ig;
++                        let m;
++                        let newVal = transformMatch[1];
++                        
++                        while ((m = cmdRegex.exec(transformMatch[1])) !== null) {
++                            if (localRelPos >= m.index - 1 && localRelPos <= m.index + m[0].length + 1) {
++                                const type = m[1].toLowerCase();
++                                const argsStr = m[2];
++                                
++                                const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++                                let args = [];
++                                let nMatch;
++                                while((nMatch = numRegex.exec(argsStr)) !== null) {
++                                    args.push(parseFloat(nMatch[1]));
++                                }
++                                
++                                if (type === 'translate') {
++                                    if (args.length >= 1) args[0] += dx;
++                                    if (args.length >= 2) args[1] += dy;
++                                    else if (dy !== 0) args.push(dy); 
++                                } else if (type === 'rotate') {
++                                    let dir = dx - dy; // Standardizing rotation to dx-dy (up/right increase, down/left decrease)
++                                    if (args.length >= 1) args[0] += dir;
++                                } else if (type === 'scale' || type === 'skewx' || type === 'skewy') {
++                                    let dir = (dx - dy) * 0.1;
++                                    if (args.length >= 1) args[0] += dir;
++                                    if (args.length >= 2) args[1] += dir;
++                                }
++                                
++                                const newCmd = `${m[1]}(${args.map(n => Number(n.toFixed(3))).join(', ')})`;
++                                newVal = newVal.substring(0, m.index) + newCmd + newVal.substring(m.index + m[0].length);
++                                pointMoved = true;
++                                break;
++                            }
++                        }
++                        if (pointMoved) {
++                            tagStr = tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd);
++                        }
++                    }
++                }
++            }
++
+             // --- 2. Element Move Logic (Fallback if cursor is not on a specific point) ---
+             if (!pointMoved) {
+                 if (tagName === 'circle' || tagName === 'ellipse') {

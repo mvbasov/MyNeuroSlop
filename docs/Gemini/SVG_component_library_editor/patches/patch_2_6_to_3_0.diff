@@ -1,0 +1,233 @@
+--- svg_component_editor_v2_6.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_0.html	2026-05-31 19:17:26.529529970 +0300
+@@ -305,6 +305,7 @@
+                 <option value="polygon">⬠ Polygon</option>
+                 <option value="polyline">📈 Polyline</option>
+                 <option value="rect">🟦 Rectangle</option>
++                <option value="text">🔤 Text</option>
+             </select>
+         </div>
+ 
+@@ -368,7 +369,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v2.6</footer>
++    <footer>v3.0</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -377,8 +378,8 @@
+     <circle cx="50" cy="50" r="42" stroke-width="2" />
+     <line x1="0" y1="50" x2="35" y2="50" />
+     <line x1="35" y1="28" x2="35" y2="72" stroke-width="4.5" />
+-    <path d="M 35 40 L 60 20 L 60 0" />
+-    <path d="M 35 60 L 60 80 L 60 100" />
++    <path d="M 35,40 L 60,20 L 60,0" />
++    <path d="M 35,60 L 60,80 L 60,100" />
+     <polygon points="58,78 46,76 54,67" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"/>
+   </g>
+ </symbol>`;
+@@ -721,11 +722,33 @@
+             }
+ 
+             if (tagName === 'rect') {
++                const checkPair = (a1, a2) => {
++                    const m1 = getAttrMatch(a1);
++                    const m2 = getAttrMatch(a2);
++                    if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
++                        (m2 && relPos >= m2.start && relPos <= m2.end)) {
++                        return { m1, m2 };
++                    }
++                    return null;
++                };
++
+                 let xVal = parseFloat(activeNode.getAttribute('x') || 0);
+                 let yVal = parseFloat(activeNode.getAttribute('y') || 0);
+                 let wVal = parseFloat(activeNode.getAttribute('width') || 0);
+                 let hVal = parseFloat(activeNode.getAttribute('height') || 0);
+ 
++                let basePair = checkPair('x', 'y');
++                if (basePair) {
++                    let ranges = [];
++                    if (basePair.m1) ranges.push(basePair.m1);
++                    if (basePair.m2) ranges.push(basePair.m2);
++                    return {
++                        ranges: ranges,
++                        cx: xVal,
++                        cy: yVal
++                    };
++                }
++
+                 let wMatch = getAttrMatch('width');
+                 if (wMatch && relPos >= wMatch.start && relPos <= wMatch.end) {
+                     return {
+@@ -785,6 +808,31 @@
+                 }
+             }
+ 
++            if (tagName === 'text') {
++                const getAttrMatch = (attr) => {
++                    const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
++                    return m ? { start: m.index, end: m.index + m[0].length } : null;
++                };
++
++                let xVal = parseFloat(activeNode.getAttribute('x') || 0);
++                let yVal = parseFloat(activeNode.getAttribute('y') || 0);
++
++                let xMatch = getAttrMatch('x');
++                let yMatch = getAttrMatch('y');
++
++                if ((xMatch && relPos >= xMatch.start && relPos <= xMatch.end) || 
++                    (yMatch && relPos >= yMatch.start && relPos <= yMatch.end)) {
++                    let ranges = [];
++                    if (xMatch) ranges.push(xMatch);
++                    if (yMatch) ranges.push(yMatch);
++                    return {
++                        ranges: ranges,
++                        cx: xVal,
++                        cy: yVal
++                    };
++                }
++            }
++
+             if (tagName === 'path') {
+                 const dMatch = tagStr.match(/\bd=["']([^"']+)["']/i);
+                 if (dMatch) {
+@@ -1197,14 +1245,14 @@
+                         for(let n of nums) outNums.push(n + deltaY);
+                     } else if (upper === 'A') {
+                         for (let i = 0; i < nums.length; i += 7) {
+-                            outNums.push(nums[i], nums[i+1], nums[i+2], nums[i+3], nums[i+4]);
+-                            if (i+5 < nums.length) outNums.push(nums[i+5] + deltaX);
+-                            if (i+6 < nums.length) outNums.push(nums[i+6] + deltaY);
++                            let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
++                            if (i+5 < nums.length) part += ` ${nums[i+5] + deltaX},${nums[i+6] + deltaY}`;
++                            outNums.push(part);
+                         }
+                     } else {
+                         for (let i = 0; i < nums.length; i += 2) {
+-                            outNums.push(nums[i] + deltaX);
+-                            if (i+1 < nums.length) outNums.push(nums[i+1] + deltaY);
++                            if (i+1 < nums.length) outNums.push(`${nums[i] + deltaX},${nums[i+1] + deltaY}`);
++                            else outNums.push(nums[i] + deltaX);
+                         }
+                     }
+                     return letter + ' ' + outNums.join(' ');
+@@ -1233,14 +1281,14 @@
+                     for(let n of nums) outNums.push(n + deltaY);
+                 } else if (upper === 'A') {
+                     for (let i = 0; i < nums.length; i += 7) {
+-                        outNums.push(nums[i], nums[i+1], nums[i+2], nums[i+3], nums[i+4]);
+-                        if (i+5 < nums.length) outNums.push(nums[i+5] + deltaX);
+-                        if (i+6 < nums.length) outNums.push(nums[i+6] + deltaY);
++                        let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
++                        if (i+5 < nums.length) part += ` ${nums[i+5] + deltaX},${nums[i+6] + deltaY}`;
++                        outNums.push(part);
+                     }
+                 } else {
+                     for (let i = 0; i < nums.length; i += 2) {
+-                        outNums.push(nums[i] + deltaX);
+-                        if (i+1 < nums.length) outNums.push(nums[i+1] + deltaY);
++                        if (i+1 < nums.length) outNums.push(`${nums[i] + deltaX},${nums[i+1] + deltaY}`);
++                        else outNums.push(nums[i] + deltaX);
+                     }
+                 }
+                 
+@@ -1367,11 +1415,14 @@
+                 }
+             }
+ 
+-            // E. Check near width/height for rect
++            // E. Check near width/height/x/y for rect
+             if (!pointMoved && tagName === 'rect') {
+-                pointMoved = checkAndAdjustNearAttr(['width'], dx - dy, 0, (str) => {
+-                    return str.replace(/\bwidth=["']([^"']+)["']/i, (m, v) => `width="${Math.max(0, parseFloat(v))}"`);
+-                });
++                pointMoved = checkAndAdjustNearAttr(['x', 'y'], dx, dy);
++                if (!pointMoved) {
++                    pointMoved = checkAndAdjustNearAttr(['width'], dx - dy, 0, (str) => {
++                        return str.replace(/\bwidth=["']([^"']+)["']/i, (m, v) => `width="${Math.max(0, parseFloat(v))}"`);
++                    });
++                }
+                 if (!pointMoved) {
+                     pointMoved = checkAndAdjustNearAttr(['height'], dx - dy, 0, (str) => {
+                         return str.replace(/\bheight=["']([^"']+)["']/i, (m, v) => `height="${Math.max(0, parseFloat(v))}"`);
+@@ -1379,6 +1430,11 @@
+                 }
+             }
+ 
++            // F. Check near x/y for text
++            if (!pointMoved && tagName === 'text') {
++                pointMoved = checkAndAdjustNearAttr(['x', 'y'], dx, dy);
++            }
++
+             // --- 2. Element Move Logic (Fallback if cursor is not on a specific point) ---
+             if (!pointMoved) {
+                 if (tagName === 'circle' || tagName === 'ellipse') {
+@@ -1538,13 +1594,13 @@
+                             for (let n of nums) {
+                                 currX = isRel ? currX + n : n;
+                                 let [rx, ry] = rotPoint(currX, currY);
+-                                out.push(`L ${f(rx)} ${f(ry)}`);
++                                out.push(`L ${f(rx)},${f(ry)}`);
+                             }
+                         } else if (upper === 'V') {
+                             for (let n of nums) {
+                                 currY = isRel ? currY + n : n;
+                                 let [rx, ry] = rotPoint(currX, currY);
+-                                out.push(`L ${f(rx)} ${f(ry)}`);
++                                out.push(`L ${f(rx)},${f(ry)}`);
+                             }
+                         } else if (upper === 'M' || upper === 'L' || upper === 'T') {
+                             for (let i = 0; i < nums.length; i += 2) {
+@@ -1555,7 +1611,7 @@
+                                     startY = currY;
+                                 }
+                                 let [rx, ry] = rotPoint(currX, currY);
+-                                out.push(`${(upper === 'M' && i === 0) ? 'M' : (upper === 'M' ? 'L' : upper)} ${f(rx)} ${f(ry)}`);
++                                out.push(`${(upper === 'M' && i === 0) ? 'M' : (upper === 'M' ? 'L' : upper)} ${f(rx)},${f(ry)}`);
+                             }
+                         } else if (upper === 'Q' || upper === 'S') {
+                             for (let i = 0; i < nums.length; i += 4) {
+@@ -1567,7 +1623,7 @@
+                                 let [rc1x, rc1y] = rotPoint(c1x, c1y);
+                                 let [rendX, rendY] = rotPoint(endX, endY);
+                                 
+-                                out.push(`${upper} ${f(rc1x)} ${f(rc1y)} ${f(rendX)} ${f(rendY)}`);
++                                out.push(`${upper} ${f(rc1x)},${f(rc1y)} ${f(rendX)},${f(rendY)}`);
+                                 currX = endX;
+                                 currY = endY;
+                             }
+@@ -1584,7 +1640,7 @@
+                                 let [rc2x, rc2y] = rotPoint(c2x, c2y);
+                                 let [rendX, rendY] = rotPoint(endX, endY);
+                                 
+-                                out.push(`C ${f(rc1x)} ${f(rc1y)} ${f(rc2x)} ${f(rc2y)} ${f(rendX)} ${f(rendY)}`);
++                                out.push(`C ${f(rc1x)},${f(rc1y)} ${f(rc2x)},${f(rc2y)} ${f(rendX)},${f(rendY)}`);
+                                 currX = endX;
+                                 currY = endY;
+                             }
+@@ -1607,7 +1663,7 @@
+ 
+                                 let [rendX, rendY] = rotPoint(endX, endY);
+                                 
+-                                out.push(`A ${f(rx_val)} ${f(ry_val)} ${f(xRot)} ${largeArc} ${sweep} ${f(rendX)} ${f(rendY)}`);
++                                out.push(`A ${f(rx_val)},${f(ry_val)} ${f(xRot)} ${largeArc} ${sweep} ${f(rendX)},${f(rendY)}`);
+                                 currX = endX;
+                                 currY = endY;
+                             }
+@@ -1642,10 +1698,11 @@
+             let shapeMap = {
+                 'circle': `<circle cx="50" cy="50" r="10" />`,
+                 'line': `<line x1="10" y1="10" x2="90" y2="90" />`,
+-                'path': `<path d="M 20 20 L 80 80" />`,
++                'path': `<path d="M 20,20 L 80,80" />`,
+                 'polygon': `<polygon points="20,80 50,20 80,80" />`,
+                 'polyline': `<polyline points="20,20 50,80 80,20" />`,
+-                'rect': `<rect x="10" y="10" width="80" height="80" />`
++                'rect': `<rect x="10" y="10" width="80" height="80" />`,
++                'text': `<text x="50" y="50" font-family="sans-serif" font-size="14" text-anchor="middle">Text</text>`
+             };
+             
+             let template = shapeMap[type] || '';

@@ -1,0 +1,87 @@
+--- svg_component_editor_v3_11_1.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_12.html	2026-05-31 19:17:26.529529970 +0300
+@@ -144,18 +144,6 @@
+             background: var(--border);
+         }
+ 
+-        .toolbar-select.wide {
+-            width: auto;
+-            text-align: left;
+-            text-align-last: left;
+-            padding-left: 8px;
+-            padding-right: 24px;
+-            background-image: url("data:image/svg+xml,%3Csvg fill='%23f8f8f2' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+-            background-repeat: no-repeat;
+-            background-position: right 2px center;
+-            background-size: 18px;
+-        }
+-
+         .toolbar-select option {
+             background: var(--panel-bg);
+             color: var(--text-color);
+@@ -193,11 +181,19 @@
+             background-color: var(--toolbar-bg);
+             border-top: 1px solid var(--border);
+             padding: 4px 15px;
+-            text-align: right;
++            display: flex;
++            justify-content: space-between;
++            align-items: center;
+             font-size: 0.75rem;
+             color: #6272a4;
+         }
+ 
++        .footer-left {
++            display: flex;
++            align-items: center;
++            gap: 10px;
++        }
++
+         /* --- Preview Area --- */
+         #preview-container {
+             flex: 1;
+@@ -298,7 +294,7 @@
+ 
+     <header>
+         <div class="toolbar-group">
+-            <select class="toolbar-select wide" onchange="if(this.value){ insertShape(this.value); this.value=''; }" title="Add Element">
++            <select class="toolbar-select" onchange="if(this.value){ insertShape(this.value); this.value=''; }" title="Add Element">
+                 <option value="" disabled selected>➕</option>
+                 <option value="circle">⭕ Circle</option>
+                 <option value="line">📏 Line</option>
+@@ -310,7 +306,6 @@
+             </select>
+         </div>
+ 
+-
+         <div class="toolbar-group">
+             <button onclick="moveShape(0, -1)" title="Move Up (↑)">▲</button>
+             <button onclick="moveShape(0, 1)" title="Move Down (↓)">▼</button>
+@@ -365,15 +360,14 @@
+     </div>
+ 
+     <footer>
+-
+-        <div class="toolbar-group">
+-            <span id="error-badge" class="badge">Syntax Error</span>
+-            <label class="toggle">
++        <div class="footer-left">
++            <span id="error-badge" class="badge" style="font-size: 0.65rem; padding: 2px 6px;">Syntax Error</span>
++            <label class="toggle" style="font-size: inherit;">
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+         </div>
+-v3.11
+-</footer>
++        <div>v3.12</div>
++    </footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -2082,4 +2076,4 @@
+ 
+     </script>
+ </body>
+-</html>
++</html>
+\ No newline at end of file

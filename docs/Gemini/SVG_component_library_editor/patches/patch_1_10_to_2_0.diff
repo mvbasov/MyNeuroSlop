@@ -1,0 +1,111 @@
+--- svg_component_editor_v1_10.html	2026-05-31 19:17:26.525529956 +0300
++++ svg_component_editor_v2_0.html	2026-05-31 19:17:26.525529956 +0300
+@@ -3,6 +3,7 @@
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
++    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='%233b82f6' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='50' cy='50' r='40' /%3E%3Cline x1='10' y1='50' x2='35' y2='50' /%3E%3Cline x1='35' y1='30' x2='35' y2='70' stroke-width='7' /%3E%3Cpath d='M 35 40 L 60 20 L 60 10' /%3E%3Cpath d='M 35 60 L 60 80 L 60 90' /%3E%3Cpolygon points='58,78 46,76 54,67' fill='%233b82f6' /%3E%3C/g%3E%3C/svg%3E">
+     <title>SVG Component Editor</title>
+     <style>
+         :root {
+@@ -354,7 +355,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v1.10</footer>
++    <footer>v2.0</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -655,6 +656,49 @@
+                 }
+             }
+ 
++            if (tagName === 'circle') {
++                const getAttrMatch = (attr) => {
++                    const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
++                    return m ? { start: m.index, end: m.index + m[0].length } : null;
++                };
++
++                const checkPair = (a1, a2) => {
++                    const m1 = getAttrMatch(a1);
++                    const m2 = getAttrMatch(a2);
++                    if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
++                        (m2 && relPos >= m2.start && relPos <= m2.end)) {
++                        return { m1, m2 };
++                    }
++                    return null;
++                };
++
++                let cxVal = parseFloat(activeNode.getAttribute('cx') || 0);
++                let cyVal = parseFloat(activeNode.getAttribute('cy') || 0);
++                let rVal = parseFloat(activeNode.getAttribute('r') || 0);
++
++                let centerPair = checkPair('cx', 'cy');
++                if (centerPair) {
++                    let ranges = [];
++                    if (centerPair.m1) ranges.push(centerPair.m1);
++                    if (centerPair.m2) ranges.push(centerPair.m2);
++                    return {
++                        ranges: ranges,
++                        cx: cxVal,
++                        cy: cyVal
++                    };
++                }
++
++                let rMatch = getAttrMatch('r');
++                if (rMatch && relPos >= rMatch.start && relPos <= rMatch.end) {
++                    return {
++                        start: rMatch.start,
++                        end: rMatch.end,
++                        cx: cxVal,
++                        cy: cyVal - rVal
++                    };
++                }
++            }
++
+             if (tagName === 'path') {
+                 const dMatch = tagStr.match(/\bd=["']([^"']+)["']/i);
+                 if (dMatch) {
+@@ -1045,6 +1089,34 @@
+                 }
+             }
+ 
++            // D. Check near cx/cy or r for circles
++            if (!pointMoved && tagName === 'circle') {
++                const isNearAttr = (attrList) => {
++                    for (let attr of attrList) {
++                        const match = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
++                        if (match && relPos >= match.index && relPos <= match.index + match[0].length) {
++                            return true;
++                        }
++                    }
++                    return false;
++                };
++
++                if (isNearAttr(['cx', 'cy'])) {
++                    tagStr = adjustAttr(tagStr, 'cx', dx);
++                    tagStr = adjustAttr(tagStr, 'cy', dy);
++                    pointMoved = true;
++                } else if (isNearAttr(['r'])) {
++                    const deltaR = dx - dy; // right(dx=+1) or up(dy=-1) => +1. left(dx=-1) or down(dy=+1) => -1
++                    tagStr = adjustAttr(tagStr, 'r', deltaR);
++                    // Prevent radius from becoming negative
++                    tagStr = tagStr.replace(/\br=["']([^"']+)["']/i, (m, v) => {
++                        let n = parseFloat(v);
++                        return `r="${n < 0 ? 0 : n}"`;
++                    });
++                    pointMoved = true;
++                }
++            }
++
+             // --- 2. Element Move Logic (Fallback if cursor is not on a specific point) ---
+             if (!pointMoved) {
+                 if (tagName === 'circle' || tagName === 'ellipse') {
+@@ -1406,4 +1478,4 @@
+ 
+     </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>

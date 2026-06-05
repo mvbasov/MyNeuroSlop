@@ -1,0 +1,33 @@
+--- svg_component_editor_v6_20_1.html	2026-06-04 13:28:20.827625896 +0300
++++ svg_component_editor_v6_21_0.html	2026-06-04 13:31:20.948018852 +0300
+@@ -476,7 +476,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v6.20.1</div>
++                <div class="footer-right">v6.21.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -1731,8 +1731,8 @@
+                                 let isH = String(action).toLowerCase().includes('h');
+                                 let pX = 0, pY = 0;
+                                 try {
+-                                    // Dynamically extract the bounding box center of the rendered element
+-                                    let svgNode = document.querySelector('svg');
++                                    // Dynamically extract the bounding box center of the true rendered shape, bypassing UI icons
++                                    let svgNode = typeof userSvgContainer !== 'undefined' && userSvgContainer ? userSvgContainer.querySelector('svg') : document.querySelectorAll('svg')[document.querySelectorAll('svg').length - 1];
+                                     let activeEl = svgNode ? svgNode.lastElementChild : null;
+                                     if (activeEl && activeEl.getBBox) {
+                                         let bbox = activeEl.getBBox();
+@@ -2673,8 +2673,8 @@
+                 };
+                 
+                 const script = document.createElement('script');
+-                script.src = 'svg_component_editor_v6_20_1_tests.js';
+-                script.onerror = () => console.error("Test suite not found: svg_component_editor_v6_20_1_tests.js");
++                script.src = 'svg_component_editor_v6_21_0_tests.js';
++                script.onerror = () => console.error("Test suite not found: svg_component_editor_v6_21_0_tests.js");
+                 document.body.appendChild(script);
+             }
+         })();

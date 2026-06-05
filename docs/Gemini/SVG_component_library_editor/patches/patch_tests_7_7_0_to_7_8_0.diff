@@ -1,0 +1,17 @@
+--- svg_component_editor_v7_7_0_tests.js	2026-06-04 16:45:00.514142315 +0300
++++ svg_component_editor_v7_8_0_tests.js	2026-06-04 16:49:51.570286968 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v7.7.0)
++ * SVG Component Editor - Micro Unit Test Suite (v7.8.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -403,7 +403,6 @@
+             assertTrue("Parser Safe-Mode: Multiline HTML comments perfectly preserved during geometric manipulation", window.TEST_API.textarea.value.includes('My Safe'));
+ 
+             // --- Test 16: Uncomment Functionality (Inline & Multiline Ghost Lines) ---
+-            console.log("Running Test 16: Uncomment functionality...");
+             const commentCode = `<svg viewBox="0 0 100 100">\n  <!--<rect width="10" height="10"/>-->\n  <!--\n    <circle cx="50" cy="50" r="40" />\n  -->\n</svg>`;
+             await loadTestData(commentCode, 'svg');
+             

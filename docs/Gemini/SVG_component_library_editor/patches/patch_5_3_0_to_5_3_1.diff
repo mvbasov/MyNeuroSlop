@@ -1,0 +1,38 @@
+--- svg_component_editor_v5_3_0.html	2026-06-01 20:18:37.135795063 +0300
++++ svg_component_editor_v5_3_1.html	2026-06-01 20:59:17.789795823 +0300
+@@ -23,19 +23,25 @@
+         /* Embed-Safe Scoped CSS */
+         #svg-editor-app {
+             /* CSS Variables scoped only to the app - Default Light Theme */
+-            --bg-color: #f3f4f6;
++
++            /* 1. Background & Panels */
++            --bg-color: #f9fafb;
+             --panel-bg: #ffffff;
+-            /*--text-color: #1f2937;*/
+-            --text-color: #e2e8f0;
+-            --text-muted: #6b7280;
+-            --primary: #2563eb;       
+-            --primary-hover: #1d4ed8; 
++            --preview-bg: #ffffff;
++    
++            /* 2. Text & UI */
++            --text-color: #374151;
++            --text-muted: #9ca3af;
++            --border: #e5e7eb;
++            --toolbar-bg: #f3f4f6;
++    
++            /* 3. Drawing & Accent Colors */
++            --primary: #4f46e5;
++            --primary-hover: #4338ca;
++            --grid-line: #e5e7eb;
++
+             --danger: #dc2626;
+             --success: #16a34a;
+-            --border: #d1d5db;
+-            --toolbar-bg: #e5e7eb;
+-            --preview-bg: #f8f9fa;
+-            --grid-line: #999999;
+             --font-mono: 'Courier New', Courier, monospace;
+ 
+             /* Base App Styling */

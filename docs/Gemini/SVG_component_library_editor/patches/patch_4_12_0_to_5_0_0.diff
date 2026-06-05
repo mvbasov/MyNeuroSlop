@@ -1,0 +1,58 @@
+--- svg_component_editor_v4_12_0.html	2026-06-01 02:43:31.193276912 +0300
++++ svg_component_editor_v5_0_0.html	2026-06-01 02:46:59.021061247 +0300
+@@ -166,6 +166,13 @@
+             text-align: left;
+         }
+ 
++        #svg-editor-app button:focus-visible, 
++        #svg-editor-app .toolbar-select:focus-visible {
++            outline: 2px solid var(--primary);
++            outline-offset: -1px;
++            border-radius: 4px;
++        }
++
+         #svg-editor-app label.toggle {
+             font-size: 0.85rem;
+             display: flex;
+@@ -433,7 +440,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v4.12.0</div>
++                <div class="footer-right">v5.0.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -1610,12 +1617,18 @@
+         ShapeRegistry.image = ShapeRegistry.text;
+ 
+         // Initialization
+-        window.onload = () => {
++        const initApp = () => {
+             textarea.value = defaultCode;
+             saveHistory(defaultCode);
+             processInput(true);
+         };
+ 
++        if (document.readyState === 'loading') {
++            document.addEventListener('DOMContentLoaded', initApp);
++        } else {
++            initApp();
++        }
++
+         // --- Event Listeners ---
+         textarea.addEventListener('input', (e) => {
+             processInput(false);
+@@ -1654,6 +1667,12 @@
+         });
+ 
+         window.addEventListener('keydown', (e) => {
++            // Scope keyboard shortcuts to only trigger if the app has focus
++            const app = document.getElementById('svg-editor-app');
++            if (!app.contains(document.activeElement) && document.activeElement !== document.body) {
++                return; 
++            }
++
+             if (e.ctrlKey || e.metaKey) {
+                 if (e.key === 'z') { e.preventDefault(); undo(); }
+                 if (e.key === 'y' || (e.shiftKey && e.key === 'Z')) { e.preventDefault(); redo(); }

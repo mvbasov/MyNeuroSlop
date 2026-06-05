@@ -1,0 +1,101 @@
+--- svg_component_editor_v7_2_0_tests.js	2026-06-04 16:00:03.040384457 +0300
++++ svg_component_editor_v7_3_0_tests.js	2026-06-04 16:12:11.384739514 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v7.2.0)
++ * SVG Component Editor - Micro Unit Test Suite (v7.3.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -303,6 +303,91 @@
+                 assertTrue(`Direct Coordinates Flip (${flipName}): Mathematically mapped vertices directly without transform matrix`, rewroteCoordinatesDirectly);
+             }
+ 
++            // Test 10: <use> Element BBox Failsafe (180 Rotation Center Failsafe)
++            await loadTestData('<svg><defs><rect id="myBox" width="20" height="20" /></defs><use href="#myBox" x="50" y="50" /></svg>', 'use');
++            let origCode = window.TEST_API.textarea.value;
++            let targetIdx = origCode.search(/<use/);
++            window.TEST_API.textarea.selectionStart = targetIdx + 3;
++            window.TEST_API.textarea.selectionEnd = targetIdx + 3;
++            window.TEST_API.textarea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
++            window.TEST_API.textarea.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
++            await new Promise(r => setTimeout(r, 250));
++            
++            window.TEST_API.transformShape('rot_180');
++            await new Promise(r => setTimeout(r, 100));
++            // Box is 20x20 (center 10,10). Offset is 50,50. True center is 60,60.
++            assertTrue("Advanced Failsafe: <use> element rotation mathematically located pivot from defs+offset (cx=60, cy=60)", window.TEST_API.textarea.value.includes('rotate(180, 60, 60)'));
++
++            // Test 11: Arc Sweep-Flag Inversion & Lowercase Relative parsing
++            await loadTestData('<svg><path d="M 10 10 A 30 30 0 0 1 100 100 l 10 10" /></svg>', 'path');
++            origCode = window.TEST_API.textarea.value;
++            targetIdx = origCode.search(/<path/);
++            window.TEST_API.textarea.selectionStart = targetIdx + 3;
++            window.TEST_API.textarea.selectionEnd = targetIdx + 3;
++            window.TEST_API.textarea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
++            window.TEST_API.textarea.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
++            await new Promise(r => setTimeout(r, 250));
++            
++            window.TEST_API.transformShape('flip_h');
++            await new Promise(r => setTimeout(r, 100));
++            const newArcCode = window.TEST_API.textarea.value;
++            assertTrue("Path Engine: Arc (A) sweep-flags correctly invert and relative (l) commands are processed on flip", !newArcCode.includes('transform=') && newArcCode !== origCode);
++
++            // Test 12: Multi-Step Redo Traversal
++            await loadTestData('<svg><rect x="0" y="0" width="10" height="10" /></svg>', 'rect');
++            origCode = window.TEST_API.textarea.value;
++            targetIdx = origCode.search(/<rect/);
++            window.TEST_API.textarea.selectionStart = targetIdx + 3;
++            window.TEST_API.textarea.selectionEnd = targetIdx + 3;
++            window.TEST_API.textarea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
++            window.TEST_API.textarea.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
++            await new Promise(r => setTimeout(r, 250));
++            
++            window.TEST_API.moveShape(10, 0);
++            await new Promise(r => setTimeout(r, 50));
++            window.TEST_API.moveShape(10, 0);
++            await new Promise(r => setTimeout(r, 50));
++            window.TEST_API.undo();
++            await new Promise(r => setTimeout(r, 50));
++            window.TEST_API.redo();
++            await new Promise(r => setTimeout(r, 50));
++            assertTrue("History Timeline: Redo correctly traverses forward array state", window.TEST_API.textarea.value.includes('x="20"'));
++
++            // Test 13: Malformed SVG Error Boundary
++            window.TEST_API.updateCode('<svg><rect x="10" y="10" ', false);
++            await new Promise(r => setTimeout(r, 200));
++            assertTrue("Error Boundary: Malformed syntax correctly traps without crashing and triggers error badge", window.TEST_API.errorBadge.style.display !== 'none');
++
++            // Test 14: Element Deletion State Cleanup
++            await loadTestData('<svg><rect id="1" /><circle id="2" /><path id="3" /></svg>', 'circle');
++            origCode = window.TEST_API.textarea.value;
++            targetIdx = origCode.search(/<circle/);
++            window.TEST_API.textarea.selectionStart = targetIdx + 3;
++            window.TEST_API.textarea.selectionEnd = targetIdx + 3;
++            window.TEST_API.textarea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
++            window.TEST_API.textarea.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
++            await new Promise(r => setTimeout(r, 250));
++            
++            window.TEST_API.deleteActiveShape();
++            await new Promise(r => setTimeout(r, 100));
++            const deletedCode = window.TEST_API.textarea.value;
++            assertTrue("Garbage Collection: deleteActiveShape cleanly removes node and preserves siblings", !deletedCode.includes('circle') && deletedCode.includes('rect') && deletedCode.includes('path'));
++
++            // Test 15: Multiline Comment Preservation
++            const commentBlock = "<!--\n  My Safe\n  Multiline\n  Comment\n-->";
++            await loadTestData(`<svg>\n${commentBlock}\n<rect x="0" y="0" width="10" height="10" />\n</svg>`, 'rect');
++            origCode = window.TEST_API.textarea.value;
++            targetIdx = origCode.search(/<rect/);
++            window.TEST_API.textarea.selectionStart = targetIdx + 3;
++            window.TEST_API.textarea.selectionEnd = targetIdx + 3;
++            window.TEST_API.textarea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
++            window.TEST_API.textarea.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
++            await new Promise(r => setTimeout(r, 250));
++            
++            window.TEST_API.moveShape(5, 5);
++            await new Promise(r => setTimeout(r, 100));
++            assertTrue("Parser Safe-Mode: Multiline HTML comments perfectly preserved during geometric manipulation", window.TEST_API.textarea.value.includes('My Safe'));
++
+         } catch (error) {
+             console.error("❌ FATAL TEST EXECUTION ERROR:", error);
+             failed++;

@@ -1,0 +1,2027 @@
+--- svg_component_editor_v3_18.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v4_0.html	2026-05-31 19:17:26.529529970 +0300
+@@ -374,7 +374,7 @@
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+         </div>
+-        <div>v3.18</div>
++        <div>v4.0</div>
+     </footer>
+ 
+     <script>
+@@ -420,6 +420,876 @@
+         // Reusable Parser Singleton (optimization)
+         const domParser = new DOMParser();
+ 
++        // --- Core Application Utilities ---
++        const SVGUtils = {
++            getAttrMatch: (tagStr, attr) => {
++                const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
++                return m ? { start: m.index, end: m.index + m[0].length, val: m[0] } : null;
++            },
++            
++            adjustAttr: (str, attr, delta) => {
++                const regex = new RegExp(`\\b${attr}=["']([^"']+)["']`, 'i');
++                return str.replace(regex, (match, val) => {
++                    let num = parseFloat(val);
++                    return isNaN(num) ? match : `${attr}="${num + delta}"`;
++                });
++            },
++            
++            checkAndAdjustNearAttr: (tagStr, relPos, attrList, xDelta, yDelta, postFixFn = null) => {
++                for (let attr of attrList) {
++                    const match = SVGUtils.getAttrMatch(tagStr, attr);
++                    if (match && relPos >= match.start && relPos <= match.end) {
++                        let newStr = tagStr;
++                        if (xDelta !== 0) newStr = SVGUtils.adjustAttr(newStr, attrList[0], xDelta);
++                        if (yDelta !== 0 && attrList.length > 1) newStr = SVGUtils.adjustAttr(newStr, attrList[1], yDelta);
++                        if (postFixFn) newStr = postFixFn(newStr);
++                        return { modified: true, tagStr: newStr };
++                    }
++                }
++                return { modified: false, tagStr: tagStr };
++            },
++
++            adjustPoints: (str, deltaX, deltaY) => {
++                const regex = /\bpoints=["']([^"']+)["']/i;
++                return str.replace(regex, (match, val) => {
++                    const newVals = (val.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
++                    let out = [];
++                    for (let i = 0; i < newVals.length; i += 2) {
++                        if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
++                            out.push(`${newVals[i] + deltaX},${newVals[i+1] + deltaY}`);
++                        }
++                    }
++                    return `points="${out.join(' ')}"`;
++                });
++            },
++
++            formatPointsData: (pointsStr) => {
++                const newVals = (pointsStr.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
++                let out = [];
++                for (let i = 0; i < newVals.length; i += 2) {
++                    if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
++                        out.push(`${newVals[i]},${newVals[i+1]}`);
++                    }
++                }
++                return out.join(' ');
++            },
++
++            formatPathData: (dStr) => {
++                const commands = dStr.match(/[a-df-zA-DF-Z][^a-df-zA-DF-Z]*/g);
++                if (!commands) return dStr;
++                return commands.map(cmdChunk => {
++                    const letter = cmdChunk.trim()[0];
++                    const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
++                    const upper = letter.toUpperCase();
++                    if (upper === 'Z') return letter;
++                    let outNums = [];
++                    if (upper === 'H' || upper === 'V') {
++                        for(let n of nums) outNums.push(n);
++                    } else if (upper === 'A') {
++                        for (let i = 0; i < nums.length; i += 7) {
++                            let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
++                            if (i+5 < nums.length) part += ` ${nums[i+5]},${nums[i+6]}`;
++                            outNums.push(part);
++                        }
++                    } else {
++                        for (let i = 0; i < nums.length; i += 2) {
++                            if (i+1 < nums.length) outNums.push(`${nums[i]},${nums[i+1]}`);
++                            else outNums.push(nums[i]);
++                        }
++                    }
++                    return letter + outNums.join(' ');
++                }).join(' ');
++            },
++
++            shiftPathD: (dStr, deltaX, deltaY) => {
++                const commands = dStr.match(/[a-df-zA-DF-Z][^a-df-zA-DF-Z]*/g);
++                if (!commands) return dStr;
++                let firstCmd = true;
++                const res = commands.map(cmdChunk => {
++                    const letter = cmdChunk.trim()[0];
++                    const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
++                    const upper = letter.toUpperCase();
++                    const isRel = letter === letter.toLowerCase();
++
++                    if (upper === 'Z') return letter;
++
++                    let applyX = deltaX;
++                    let applyY = deltaY;
++                    if (isRel && !(firstCmd && letter === 'm')) {
++                        applyX = 0;
++                        applyY = 0;
++                    }
++                    firstCmd = false;
++
++                    let outNums = [];
++                    if (upper === 'H') {
++                        for(let n of nums) outNums.push(n + applyX);
++                    } else if (upper === 'V') {
++                        for(let n of nums) outNums.push(n + applyY);
++                    } else if (upper === 'A') {
++                        for (let i = 0; i < nums.length; i += 7) {
++                            let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
++                            if (i+5 < nums.length) part += ` ${nums[i+5] + applyX},${nums[i+6] + applyY}`;
++                            outNums.push(part);
++                        }
++                    } else {
++                        for (let i = 0; i < nums.length; i += 2) {
++                            if (i+1 < nums.length) outNums.push(`${nums[i] + applyX},${nums[i+1] + applyY}`);
++                            else outNums.push(nums[i] + applyX);
++                        }
++                    }
++                    return letter + outNums.join(' ');
++                });
++                return res.join(' ');
++            },
++
++            shiftSinglePathCommand: (cmdChunk, deltaX, deltaY) => {
++                const letter = cmdChunk.trim()[0];
++                const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
++                const upper = letter.toUpperCase();
++
++                if (upper === 'Z') return letter;
++
++                let outNums = [];
++                if (upper === 'H') {
++                    for(let n of nums) outNums.push(n + deltaX);
++                } else if (upper === 'V') {
++                    for(let n of nums) outNums.push(n + deltaY);
++                } else if (upper === 'A') {
++                    for (let i = 0; i < nums.length; i += 7) {
++                        let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
++                        if (i+5 < nums.length) part += ` ${nums[i+5] + deltaX},${nums[i+6] + deltaY}`;
++                        outNums.push(part);
++                    }
++                } else {
++                    for (let i = 0; i < nums.length; i += 2) {
++                        if (i+1 < nums.length) outNums.push(`${nums[i] + deltaX},${nums[i+1] + deltaY}`);
++                        else outNums.push(nums[i] + deltaX);
++                    }
++                }
++                
++                return letter + outNums.join(' ');
++            }
++        };
++
++        // --- Refactored Strategy Pattern Handlers ---
++
++        const UniversalAttributes = {
++            getSubElement: (tagStr, relPos, activeNode) => {
++                // Check Transform
++                const transformMatch = SVGUtils.getAttrMatch(tagStr, 'transform');
++                if (transformMatch && relPos >= transformMatch.start && relPos <= transformMatch.end) {
++                    const matchVal = tagStr.match(/\btransform=["']([^"']+)["']/i);
++                    if (matchVal) {
++                        const vStart = matchVal.index + matchVal[0].indexOf(matchVal[1]);
++                        const localRelPos = relPos - vStart;
++                        const cmdRegex = /(translate|rotate|scale|skewX|skewY)\s*\(([^)]+)\)/ig;
++                        let m;
++                        while ((m = cmdRegex.exec(matchVal[1])) !== null) {
++                            if (localRelPos >= m.index - 1 && localRelPos <= m.index + m[0].length + 1) {
++                                let cxVal = 0, cyVal = 0;
++                                if (activeNode) {
++                                    try {
++                                        const bbox = activeNode.getBBox();
++                                        if (bbox.width || bbox.height) {
++                                            cxVal = bbox.x + bbox.width / 2;
++                                            cyVal = bbox.y + bbox.height / 2;
++                                        } else {
++                                            cxVal = parseFloat(activeNode.getAttribute('x') || 0);
++                                            cyVal = parseFloat(activeNode.getAttribute('y') || 0);
++                                        }
++                                    } catch(e) {
++                                        cxVal = parseFloat(activeNode.getAttribute('x') || 0);
++                                        cyVal = parseFloat(activeNode.getAttribute('y') || 0);
++                                    }
++                                }
++                                return {
++                                    start: vStart + m.index,
++                                    end: vStart + m.index + m[0].length,
++                                    cx: cxVal,
++                                    cy: cyVal
++                                };
++                            }
++                        }
++                    }
++                }
++
++                // Check Stroke Width
++                const swMatch = SVGUtils.getAttrMatch(tagStr, 'stroke-width');
++                if (swMatch && relPos >= swMatch.start && relPos <= swMatch.end) {
++                    return { start: swMatch.start, end: swMatch.end };
++                }
++
++                // Check Font Size
++                const fsMatch = SVGUtils.getAttrMatch(tagStr, 'font-size');
++                if (fsMatch && relPos >= fsMatch.start && relPos <= fsMatch.end) {
++                    let ret = { start: fsMatch.start, end: fsMatch.end };
++                    if (activeNode && activeNode.hasAttribute('x') && activeNode.hasAttribute('y')) {
++                        ret.cx = parseFloat(activeNode.getAttribute('x'));
++                        ret.cy = parseFloat(activeNode.getAttribute('y'));
++                    }
++                    return ret;
++                }
++
++                // Check Text Anchor
++                const taMatch = SVGUtils.getAttrMatch(tagStr, 'text-anchor');
++                if (taMatch && relPos >= taMatch.start && relPos <= taMatch.end) {
++                    let ret = { start: taMatch.start, end: taMatch.end };
++                    if (activeNode && activeNode.hasAttribute('x') && activeNode.hasAttribute('y')) {
++                        ret.cx = parseFloat(activeNode.getAttribute('x'));
++                        ret.cy = parseFloat(activeNode.getAttribute('y'));
++                    }
++                    return ret;
++                }
++
++                return null;
++            },
++
++            movePoint: (tagStr, relPos, dx, dy) => {
++                let res;
++                // Stroke-width (step 0.1)
++                res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['stroke-width'], (dx - dy) * 0.1, 0, (str) => {
++                    return str.replace(/\bstroke-width=["']([^"']+)["']/i, (m, v) => {
++                        let currentVal = parseFloat(v);
++                        if (isNaN(currentVal)) currentVal = 1;
++                        return `stroke-width="${Math.max(0, currentVal).toFixed(1).replace(/\.0$/, '')}"`;
++                    });
++                });
++                if (res.modified) return res;
++
++                // Font-size
++                res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['font-size'], dx - dy, 0, (str) => {
++                    return str.replace(/\bfont-size=["']([^"']+)["']/i, (m, v) => {
++                        let currentVal = parseFloat(v);
++                        if (isNaN(currentVal)) currentVal = 14;
++                        return `font-size="${Math.max(0, currentVal).toFixed(1).replace(/\.0$/, '')}"`;
++                    });
++                });
++                if (res.modified) return res;
++
++                // Text-anchor
++                res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['text-anchor'], dx - dy, 0, (str) => {
++                    const cycle = ['start', 'middle', 'end'];
++                    return str.replace(/\btext-anchor=["']([^"']+)["']/i, (m, v) => {
++                        let dir = dx - dy;
++                        let idx = cycle.indexOf(v.toLowerCase());
++                        if (idx === -1) idx = 0;
++                        let newIdx = (idx + dir + cycle.length) % cycle.length;
++                        return `text-anchor="${cycle[newIdx]}"`;
++                    });
++                });
++                if (res.modified) return res;
++
++                // Transform commands
++                const transformMatch = tagStr.match(/\btransform=["']([^"']+)["']/i);
++                if (transformMatch) {
++                    const valStart = transformMatch.index + transformMatch[0].indexOf(transformMatch[1]);
++                    const valEnd = valStart + transformMatch[1].length;
++                    
++                    if (relPos >= valStart && relPos <= valEnd) {
++                        const localRelPos = relPos - valStart;
++                        const cmdRegex = /(translate|rotate|scale|skewX|skewY)\s*\(([^)]+)\)/ig;
++                        let m;
++                        let newVal = transformMatch[1];
++                        
++                        while ((m = cmdRegex.exec(transformMatch[1])) !== null) {
++                            if (localRelPos >= m.index - 1 && localRelPos <= m.index + m[0].length + 1) {
++                                const type = m[1].toLowerCase();
++                                const argsStr = m[2];
++                                
++                                const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++                                let args = [];
++                                let nMatch;
++                                while((nMatch = numRegex.exec(argsStr)) !== null) {
++                                    args.push(parseFloat(nMatch[1]));
++                                }
++                                
++                                if (type === 'translate') {
++                                    if (args.length >= 1) args[0] += dx;
++                                    if (args.length >= 2) args[1] += dy;
++                                    else if (dy !== 0) args.push(dy); 
++                                } else if (type === 'rotate') {
++                                    let dir = dx - dy; 
++                                    if (args.length >= 1) {
++                                        if (dir > 0) args[0] = Math.ceil((args[0] + 1) / 45) * 45;
++                                        else if (dir < 0) args[0] = Math.floor((args[0] - 1) / 45) * 45;
++                                    }
++                                } else if (type === 'scale' || type === 'skewx' || type === 'skewy') {
++                                    let dir = (dx - dy) * 0.1;
++                                    if (args.length >= 1) args[0] += dir;
++                                    if (args.length >= 2) args[1] += dir;
++                                }
++                                
++                                const newCmd = `${m[1]}(${args.map(n => Number(n.toFixed(3))).join(', ')})`;
++                                newVal = newVal.substring(0, m.index) + newCmd + newVal.substring(m.index + m[0].length);
++                                return { modified: true, tagStr: tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd) };
++                            }
++                        }
++                    }
++                }
++
++                return { modified: false };
++            }
++        };
++
++        const ShapeRegistry = {
++            polygon: {
++                getSubElement: (tagStr, relPos) => {
++                    const pointsMatch = tagStr.match(/\bpoints=["']([^"']+)["']/i);
++                    if (pointsMatch) {
++                        const valStart = pointsMatch.index + pointsMatch[0].indexOf(pointsMatch[1]);
++                        const valEnd = valStart + pointsMatch[1].length;
++                        if (relPos >= valStart && relPos <= valEnd) {
++                            const localRelPos = relPos - valStart;
++                            const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++                            let pMatch;
++                            while ((pMatch = pairRegex.exec(pointsMatch[1])) !== null) {
++                                if (localRelPos >= pMatch.index - 1 && localRelPos <= pMatch.index + pMatch[0].length + 1) {
++                                    return {
++                                        start: valStart + pMatch.index,
++                                        end: valStart + pMatch.index + pMatch[0].length,
++                                        cx: parseFloat(pMatch[1]),
++                                        cy: parseFloat(pMatch[2])
++                                    };
++                                }
++                            }
++                        }
++                    }
++                    return null;
++                },
++                movePoint: (tagStr, relPos, dx, dy) => {
++                    const pointsMatch = tagStr.match(/\bpoints=["']([^"']+)["']/i);
++                    if (pointsMatch) {
++                        const valStart = pointsMatch.index + pointsMatch[0].indexOf(pointsMatch[1]);
++                        const valEnd = valStart + pointsMatch[1].length;
++                        
++                        if (relPos >= valStart && relPos <= valEnd) {
++                            const localRelPos = relPos - valStart;
++                            const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++                            let pMatch;
++                            let newVal = pointsMatch[1];
++                            
++                            while ((pMatch = pairRegex.exec(pointsMatch[1])) !== null) {
++                                if (localRelPos >= pMatch.index - 1 && localRelPos <= pMatch.index + pMatch[0].length + 1) {
++                                    const nx = parseFloat(pMatch[1]) + dx;
++                                    const ny = parseFloat(pMatch[2]) + dy;
++                                    const shiftedPair = `${nx},${ny}`;
++                                    newVal = newVal.substring(0, pMatch.index) + shiftedPair + newVal.substring(pMatch.index + pMatch[0].length);
++                                    newVal = SVGUtils.formatPointsData(newVal);
++                                    return { modified: true, tagStr: tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd) };
++                                }
++                            }
++                        }
++                    }
++                    return { modified: false };
++                },
++                moveElement: (tagStr, dx, dy) => SVGUtils.adjustPoints(tagStr, dx, dy)
++            },
++
++            line: {
++                getSubElement: (tagStr, relPos, activeNode) => {
++                    const checkPair = (a1, a2) => {
++                        const m1 = SVGUtils.getAttrMatch(tagStr, a1);
++                        const m2 = SVGUtils.getAttrMatch(tagStr, a2);
++                        if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
++                            (m2 && relPos >= m2.start && relPos <= m2.end)) {
++                            return { m1, m2 };
++                        }
++                        return null;
++                    };
++
++                    let pair1 = checkPair('x1', 'y1');
++                    if (pair1) {
++                        let ranges = [];
++                        if (pair1.m1) ranges.push(pair1.m1);
++                        if (pair1.m2) ranges.push(pair1.m2);
++                        return {
++                            ranges: ranges,
++                            cx: parseFloat(activeNode.getAttribute('x1') || 0),
++                            cy: parseFloat(activeNode.getAttribute('y1') || 0)
++                        };
++                    }
++                    
++                    let pair2 = checkPair('x2', 'y2');
++                    if (pair2) {
++                        let ranges = [];
++                        if (pair2.m1) ranges.push(pair2.m1);
++                        if (pair2.m2) ranges.push(pair2.m2);
++                        return {
++                            ranges: ranges,
++                            cx: parseFloat(activeNode.getAttribute('x2') || 0),
++                            cy: parseFloat(activeNode.getAttribute('y2') || 0)
++                        };
++                    }
++                    return null;
++                },
++                movePoint: (tagStr, relPos, dx, dy) => {
++                    let res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['x1', 'y1'], dx, dy);
++                    if (res.modified) return res;
++                    res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['x2', 'y2'], dx, dy);
++                    return res;
++                },
++                moveElement: (tagStr, dx, dy) => {
++                    let t = SVGUtils.adjustAttr(tagStr, 'x1', dx);
++                    t = SVGUtils.adjustAttr(t, 'x2', dx);
++                    t = SVGUtils.adjustAttr(t, 'y1', dy);
++                    return SVGUtils.adjustAttr(t, 'y2', dy);
++                }
++            },
++
++            rect: {
++                getSubElement: (tagStr, relPos, activeNode) => {
++                    const checkPair = (a1, a2) => {
++                        const m1 = SVGUtils.getAttrMatch(tagStr, a1);
++                        const m2 = SVGUtils.getAttrMatch(tagStr, a2);
++                        if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
++                            (m2 && relPos >= m2.start && relPos <= m2.end)) return { m1, m2 };
++                        return null;
++                    };
++
++                    let xVal = parseFloat(activeNode.getAttribute('x') || 0);
++                    let yVal = parseFloat(activeNode.getAttribute('y') || 0);
++                    let wVal = parseFloat(activeNode.getAttribute('width') || 0);
++                    let hVal = parseFloat(activeNode.getAttribute('height') || 0);
++
++                    let basePair = checkPair('x', 'y');
++                    if (basePair) {
++                        let ranges = [];
++                        if (basePair.m1) ranges.push(basePair.m1);
++                        if (basePair.m2) ranges.push(basePair.m2);
++                        return { ranges: ranges, cx: xVal, cy: yVal };
++                    }
++
++                    let wMatch = SVGUtils.getAttrMatch(tagStr, 'width');
++                    if (wMatch && relPos >= wMatch.start && relPos <= wMatch.end) {
++                        return { start: wMatch.start, end: wMatch.end, cx: xVal + wVal, cy: yVal + hVal / 2 };
++                    }
++
++                    let hMatch = SVGUtils.getAttrMatch(tagStr, 'height');
++                    if (hMatch && relPos >= hMatch.start && relPos <= hMatch.end) {
++                        return { start: hMatch.start, end: hMatch.end, cx: xVal + wVal / 2, cy: yVal };
++                    }
++
++                    let rxMatch = SVGUtils.getAttrMatch(tagStr, 'rx');
++                    if (rxMatch && relPos >= rxMatch.start && relPos <= rxMatch.end) {
++                        return { start: rxMatch.start, end: rxMatch.end, cx: xVal + parseFloat(activeNode.getAttribute('rx') || 0), cy: yVal };
++                    }
++
++                    let ryMatch = SVGUtils.getAttrMatch(tagStr, 'ry');
++                    if (ryMatch && relPos >= ryMatch.start && relPos <= ryMatch.end) {
++                        return { start: ryMatch.start, end: ryMatch.end, cx: xVal, cy: yVal + parseFloat(activeNode.getAttribute('ry') || 0) };
++                    }
++                    return null;
++                },
++                movePoint: (tagStr, relPos, dx, dy) => {
++                    let res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['x', 'y'], dx, dy);
++                    if (res.modified) return res;
++
++                    res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['width'], dx - dy, 0, (str) => {
++                        return str.replace(/\bwidth=["']([^"']+)["']/i, (m, v) => `width="${Math.max(0, parseFloat(v))}"`);
++                    });
++                    if (res.modified) return res;
++
++                    res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['height'], dx - dy, 0, (str) => {
++                        return str.replace(/\bheight=["']([^"']+)["']/i, (m, v) => `height="${Math.max(0, parseFloat(v))}"`);
++                    });
++                    if (res.modified) return res;
++
++                    res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['rx'], dx - dy, 0, (str) => {
++                        return str.replace(/\brx=["']([^"']+)["']/i, (m, v) => `rx="${Math.max(0, parseFloat(v))}"`);
++                    });
++                    if (res.modified) return res;
++
++                    res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['ry'], dx - dy, 0, (str) => {
++                        return str.replace(/\bry=["']([^"']+)["']/i, (m, v) => `ry="${Math.max(0, parseFloat(v))}"`);
++                    });
++                    return res;
++                },
++                moveElement: (tagStr, dx, dy) => {
++                    let t = SVGUtils.adjustAttr(tagStr, 'x', dx);
++                    return SVGUtils.adjustAttr(t, 'y', dy);
++                }
++            },
++
++            circle: {
++                getSubElement: (tagStr, relPos, activeNode) => {
++                    const checkPair = (a1, a2) => {
++                        const m1 = SVGUtils.getAttrMatch(tagStr, a1);
++                        const m2 = SVGUtils.getAttrMatch(tagStr, a2);
++                        if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
++                            (m2 && relPos >= m2.start && relPos <= m2.end)) return { m1, m2 };
++                        return null;
++                    };
++
++                    let cxVal = parseFloat(activeNode.getAttribute('cx') || 0);
++                    let cyVal = parseFloat(activeNode.getAttribute('cy') || 0);
++                    let rVal = parseFloat(activeNode.getAttribute('r') || 0);
++
++                    let centerPair = checkPair('cx', 'cy');
++                    if (centerPair) {
++                        let ranges = [];
++                        if (centerPair.m1) ranges.push(centerPair.m1);
++                        if (centerPair.m2) ranges.push(centerPair.m2);
++                        return { ranges: ranges, cx: cxVal, cy: cyVal };
++                    }
++
++                    let rMatch = SVGUtils.getAttrMatch(tagStr, 'r');
++                    if (rMatch && relPos >= rMatch.start && relPos <= rMatch.end) {
++                        return { start: rMatch.start, end: rMatch.end, cx: cxVal, cy: cyVal - rVal };
++                    }
++                    return null;
++                },
++                movePoint: (tagStr, relPos, dx, dy) => {
++                    let res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['cx', 'cy'], dx, dy);
++                    if (res.modified) return res;
++
++                    res = SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['r'], dx - dy, 0, (str) => {
++                        return str.replace(/\br=["']([^"']+)["']/i, (m, v) => `r="${Math.max(0, parseFloat(v))}"`);
++                    });
++                    return res;
++                },
++                moveElement: (tagStr, dx, dy) => {
++                    let t = SVGUtils.adjustAttr(tagStr, 'cx', dx);
++                    return SVGUtils.adjustAttr(t, 'cy', dy);
++                }
++            },
++
++            text: {
++                getSubElement: (tagStr, relPos, activeNode) => {
++                    let xMatch = SVGUtils.getAttrMatch(tagStr, 'x');
++                    let yMatch = SVGUtils.getAttrMatch(tagStr, 'y');
++
++                    if ((xMatch && relPos >= xMatch.start && relPos <= xMatch.end) || 
++                        (yMatch && relPos >= yMatch.start && relPos <= yMatch.end)) {
++                        let ranges = [];
++                        if (xMatch) ranges.push(xMatch);
++                        if (yMatch) ranges.push(yMatch);
++                        return {
++                            ranges: ranges,
++                            cx: parseFloat(activeNode.getAttribute('x') || 0),
++                            cy: parseFloat(activeNode.getAttribute('y') || 0)
++                        };
++                    }
++                    return null;
++                },
++                movePoint: (tagStr, relPos, dx, dy) => {
++                    return SVGUtils.checkAndAdjustNearAttr(tagStr, relPos, ['x', 'y'], dx, dy);
++                },
++                moveElement: (tagStr, dx, dy) => {
++                    let t = SVGUtils.adjustAttr(tagStr, 'x', dx);
++                    return SVGUtils.adjustAttr(t, 'y', dy);
++                }
++            },
++
++            path: {
++                getSubElement: (tagStr, relPos) => {
++                    const dMatch = tagStr.match(/\bd=["']([^"']+)["']/i);
++                    if (dMatch) {
++                        const valStart = dMatch.index + dMatch[0].indexOf(dMatch[1]);
++                        const valEnd = valStart + dMatch[1].length;
++                        if (relPos >= valStart && relPos <= valEnd) {
++                            const localRelPos = relPos - valStart;
++                            const cmdRegex = /([a-df-zA-DF-Z][^a-df-zA-DF-Z]*)/g;
++                            let cMatch;
++                            let currX = 0, currY = 0, startX = 0, startY = 0;
++                            
++                            while ((cMatch = cmdRegex.exec(dMatch[1])) !== null) {
++                                const chunk = cMatch[0];
++                                const letter = chunk.trim()[0];
++                                const nums = (chunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
++                                const upper = letter.toUpperCase();
++                                const isRel = letter === letter.toLowerCase();
++
++                                let endX = currX;
++                                let endY = currY;
++                                let qStartX = currX;
++                                let qStartY = currY;
++
++                                if (upper === 'Z') {
++                                    endX = startX;
++                                    endY = startY;
++                                } else if (upper === 'H') {
++                                    for (let n of nums) endX = isRel ? endX + n : n;
++                                } else if (upper === 'V') {
++                                    for (let n of nums) endY = isRel ? endY + n : n;
++                                } else if (upper === 'M' || upper === 'L' || upper === 'T') {
++                                    for (let i = 0; i < nums.length; i += 2) {
++                                        endX = isRel ? endX + nums[i] : nums[i];
++                                        endY = isRel ? endY + nums[i+1] : nums[i+1];
++                                        if (upper === 'M' && i === 0) { startX = endX; startY = endY; }
++                                    }
++                                } else if (upper === 'C') {
++                                    for (let i = 0; i < nums.length; i += 6) {
++                                        endX = isRel ? endX + nums[i+4] : nums[i+4];
++                                        endY = isRel ? endY + nums[i+5] : nums[i+5];
++                                    }
++                                } else if (upper === 'Q' || upper === 'S') {
++                                    for (let i = 0; i < nums.length; i += 4) {
++                                        endX = isRel ? endX + nums[i+2] : nums[i+2];
++                                        endY = isRel ? endY + nums[i+3] : nums[i+3];
++                                    }
++                                } else if (upper === 'A') {
++                                    for (let i = 0; i < nums.length; i += 7) {
++                                        endX = isRel ? endX + nums[i+5] : nums[i+5];
++                                        endY = isRel ? endY + nums[i+6] : nums[i+6];
++                                    }
++                                }
++
++                                if (localRelPos >= cMatch.index - 1 && localRelPos <= cMatch.index + chunk.length + 1) {
++                                    if (upper === 'Q') {
++                                        let currentStartX = qStartX;
++                                        let currentStartY = qStartY;
++                                        let foundSub = null;
++                                        let pMatch;
++                                        const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++                                        let pairIndex = 0;
++
++                                        while ((pMatch = pairRegex.exec(chunk)) !== null) {
++                                            const pStart = cMatch.index + pMatch.index;
++                                            const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
++
++                                            let isControl = (pairIndex % 2 === 0);
++                                            let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
++                                            let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
++
++                                            let numIdx = pairIndex * 2;
++                                            let segmentData = null;
++                                            
++                                            if (isControl && numIdx + 3 < nums.length) {
++                                                segmentData = {
++                                                    startX: currentStartX, startY: currentStartY,
++                                                    c1x: absX, c1y: absY,
++                                                    endX: isRel ? currentStartX + nums[numIdx+2] : nums[numIdx+2],
++                                                    endY: isRel ? currentStartY + nums[numIdx+3] : nums[numIdx+3],
++                                                    activePoint: 'control'
++                                                };
++                                            } else if (!isControl && numIdx - 1 < nums.length && numIdx - 2 >= 0) {
++                                                segmentData = {
++                                                    startX: currentStartX, startY: currentStartY,
++                                                    c1x: isRel ? currentStartX + nums[numIdx-2] : nums[numIdx-2],
++                                                    c1y: isRel ? currentStartY + nums[numIdx-1] : nums[numIdx-1],
++                                                    endX: absX, endY: absY,
++                                                    activePoint: 'end'
++                                                };
++                                            }
++
++                                            if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
++                                                foundSub = {
++                                                    start: valStart + pStart, end: valStart + pEnd, cx: absX, cy: absY,
++                                                    qData: segmentData || { startX: currentStartX, startY: currentStartY, c1x: absX, c1y: absY, endX: absX, endY: absY, activePoint: isControl ? 'control' : 'end' }
++                                                };
++                                                break;
++                                            }
++
++                                            if (!isControl) {
++                                                currentStartX = absX;
++                                                currentStartY = absY;
++                                            }
++                                            pairIndex++;
++                                        }
++                                        if (foundSub) return foundSub;
++                                    }
++
++                                    if (upper === 'C') {
++                                        let currentStartX = qStartX;
++                                        let currentStartY = qStartY;
++                                        let foundSub = null;
++                                        let pMatch;
++                                        const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++                                        let pairIndex = 0;
++
++                                        while ((pMatch = pairRegex.exec(chunk)) !== null) {
++                                            const pStart = cMatch.index + pMatch.index;
++                                            const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
++
++                                            let pointType = pairIndex % 3; // 0: c1, 1: c2, 2: end
++                                            let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
++                                            let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
++
++                                            let segmentData = null;
++                                            let baseIdx = Math.floor(pairIndex / 3) * 6;
++                                            if (baseIdx + 5 < nums.length) {
++                                                segmentData = {
++                                                    startX: currentStartX, startY: currentStartY,
++                                                    c1x: isRel ? currentStartX + nums[baseIdx] : nums[baseIdx],
++                                                    c1y: isRel ? currentStartY + nums[baseIdx+1] : nums[baseIdx+1],
++                                                    c2x: isRel ? currentStartX + nums[baseIdx+2] : nums[baseIdx+2],
++                                                    c2y: isRel ? currentStartY + nums[baseIdx+3] : nums[baseIdx+3],
++                                                    endX: isRel ? currentStartX + nums[baseIdx+4] : nums[baseIdx+4],
++                                                    endY: isRel ? currentStartY + nums[baseIdx+5] : nums[baseIdx+5],
++                                                    activePoint: pointType === 0 ? 'c1' : (pointType === 1 ? 'c2' : 'end')
++                                                };
++                                            }
++
++                                            if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
++                                                foundSub = {
++                                                    start: valStart + pStart, end: valStart + pEnd, cx: absX, cy: absY,
++                                                    cData: segmentData || { startX: currentStartX, startY: currentStartY, c1x: absX, c1y: absY, c2x: absX, c2y: absY, endX: absX, endY: absY, activePoint: pointType === 0 ? 'c1' : (pointType === 1 ? 'c2' : 'end') }
++                                                };
++                                                break;
++                                            }
++
++                                            if (pointType === 2) {
++                                                currentStartX = absX;
++                                                currentStartY = absY;
++                                            }
++                                            pairIndex++;
++                                        }
++                                        if (foundSub) return foundSub;
++                                    }
++
++                                    if (['M', 'L', 'T', 'S'].includes(upper)) {
++                                        let currentStartX = qStartX;
++                                        let currentStartY = qStartY;
++                                        let foundSub = null;
++                                        let pMatch;
++                                        const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++
++                                        while ((pMatch = pairRegex.exec(chunk)) !== null) {
++                                            const pStart = cMatch.index + pMatch.index;
++                                            const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
++
++                                            let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
++                                            let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
++
++                                            if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
++                                                foundSub = { start: valStart + pStart, end: valStart + pEnd, cx: absX, cy: absY };
++                                                break;
++                                            }
++                                            currentStartX = absX;
++                                            currentStartY = absY;
++                                        }
++                                        if (foundSub) return foundSub;
++                                    }
++
++                                    if (upper === 'H' || upper === 'V') {
++                                        let currentStartX = qStartX;
++                                        let currentStartY = qStartY;
++                                        let foundSub = null;
++                                        let nMatch;
++                                        const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++
++                                        while ((nMatch = numRegex.exec(chunk)) !== null) {
++                                            const pStart = cMatch.index + nMatch.index;
++                                            const pEnd = cMatch.index + nMatch.index + nMatch[0].length;
++
++                                            let val = parseFloat(nMatch[1]);
++                                            let absX = upper === 'H' ? (isRel ? currentStartX + val : val) : currentStartX;
++                                            let absY = upper === 'V' ? (isRel ? currentStartY + val : val) : currentStartY;
++
++                                            if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
++                                                foundSub = { start: valStart + pStart, end: valStart + pEnd, cx: absX, cy: absY };
++                                                break;
++                                            }
++                                            if (upper === 'H') currentStartX = absX;
++                                            if (upper === 'V') currentStartY = absY;
++                                        }
++                                        if (foundSub) return foundSub;
++                                    }
++
++                                    let ret = {
++                                        start: valStart + cMatch.index, end: valStart + cMatch.index + chunk.length,
++                                        cx: endX, cy: endY
++                                    };
++                                    
++                                    if (upper === 'Q') {
++                                        ret.qData = { startX: qStartX, startY: qStartY, c1x: isRel ? qStartX + nums[0] : nums[0], c1y: isRel ? qStartY + nums[1] : nums[1], endX: isRel ? qStartX + nums[2] : nums[2], endY: isRel ? qStartY + nums[3] : nums[3], activePoint: 'both' };
++                                    } else if (upper === 'C' && nums.length >= 6) {
++                                        ret.cData = { startX: qStartX, startY: qStartY, c1x: isRel ? qStartX + nums[0] : nums[0], c1y: isRel ? qStartY + nums[1] : nums[1], c2x: isRel ? qStartX + nums[2] : nums[2], c2y: isRel ? qStartY + nums[3] : nums[3], endX: isRel ? qStartX + nums[4] : nums[4], endY: isRel ? qStartY + nums[5] : nums[5], activePoint: 'both' };
++                                    }
++                                    return ret;
++                                }
++                                currX = endX;
++                                currY = endY;
++                            }
++                        }
++                    }
++                    return null;
++                },
++                movePoint: (tagStr, relPos, dx, dy) => {
++                    const dMatch = tagStr.match(/\bd=["']([^"']+)["']/i);
++                    if (dMatch) {
++                        const valStart = dMatch.index + dMatch[0].indexOf(dMatch[1]);
++                        const valEnd = valStart + dMatch[1].length;
++                        
++                        if (relPos >= valStart && relPos <= valEnd) {
++                            const localRelPos = relPos - valStart;
++                            const cmdRegex = /([a-df-zA-DF-Z][^a-df-zA-DF-Z]*)/g;
++                            let cMatch;
++                            let newVal = dMatch[1];
++                            
++                            while ((cMatch = cmdRegex.exec(dMatch[1])) !== null) {
++                                if (localRelPos >= cMatch.index - 1 && localRelPos <= cMatch.index + cMatch[0].length + 1) {
++                                    const chunk = cMatch[0];
++                                    const letter = chunk.trim()[0];
++                                    const upper = letter.toUpperCase();
++
++                                    if (['Q', 'C', 'M', 'L', 'T', 'S'].includes(upper)) {
++                                        const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++                                        let pMatch;
++                                        let modifiedChunk = chunk;
++                                        let pairMoved = false;
++
++                                        while ((pMatch = pairRegex.exec(chunk)) !== null) {
++                                            if (localRelPos >= cMatch.index + pMatch.index - 1 && localRelPos <= cMatch.index + pMatch.index + pMatch[0].length + 1) {
++                                                const nx = parseFloat(pMatch[1]) + dx;
++                                                const ny = parseFloat(pMatch[2]) + dy;
++                                                modifiedChunk = modifiedChunk.substring(0, pMatch.index) + `${nx},${ny}` + modifiedChunk.substring(pMatch.index + pMatch[0].length);
++                                                pairMoved = true;
++                                                break;
++                                            }
++                                        }
++                                        if (pairMoved) {
++                                            newVal = newVal.substring(0, cMatch.index) + modifiedChunk + newVal.substring(cMatch.index + cMatch[0].length);
++                                            newVal = SVGUtils.formatPathData(newVal);
++                                            return { modified: true, tagStr: tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd) };
++                                        }
++                                    } else if (upper === 'H' || upper === 'V') {
++                                        const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++                                        let nMatch;
++                                        let modifiedChunk = chunk;
++                                        let numMoved = false;
++
++                                        while ((nMatch = numRegex.exec(chunk)) !== null) {
++                                            if (localRelPos >= cMatch.index + nMatch.index - 1 && localRelPos <= cMatch.index + nMatch.index + nMatch[0].length + 1) {
++                                                const delta = upper === 'H' ? dx : dy;
++                                                const nn = parseFloat(nMatch[1]) + delta;
++                                                modifiedChunk = modifiedChunk.substring(0, nMatch.index) + nn + modifiedChunk.substring(nMatch.index + nMatch[0].length);
++                                                numMoved = true;
++                                                break;
++                                            }
++                                        }
++                                        if (numMoved) {
++                                            newVal = newVal.substring(0, cMatch.index) + modifiedChunk + newVal.substring(cMatch.index + cMatch[0].length);
++                                            newVal = SVGUtils.formatPathData(newVal);
++                                            return { modified: true, tagStr: tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd) };
++                                        }
++                                    }
++
++                                    const shiftedCmd = SVGUtils.shiftSinglePathCommand(cMatch[0], dx, dy);
++                                    newVal = newVal.substring(0, cMatch.index) + shiftedCmd + newVal.substring(cMatch.index + cMatch[0].length);
++                                    newVal = SVGUtils.formatPathData(newVal);
++                                    return { modified: true, tagStr: tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd) };
++                                }
++                            }
++                        }
++                    }
++                    return { modified: false };
++                },
++                moveElement: (tagStr, dx, dy) => {
++                    return tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => `d="${SVGUtils.shiftPathD(val, dx, dy)}"`);
++                }
++            },
++
++            image: { moveElement: (tagStr, dx, dy) => SVGUtils.adjustAttr(SVGUtils.adjustAttr(tagStr, 'x', dx), 'y', dy) },
++            use: { moveElement: (tagStr, dx, dy) => SVGUtils.adjustAttr(SVGUtils.adjustAttr(tagStr, 'x', dx), 'y', dy) },
++            default: { moveElement: (tagStr, dx, dy) => tagStr }
++        };
++        
++        // Link identical strategies
++        ShapeRegistry.polyline = ShapeRegistry.polygon;
++        ShapeRegistry.ellipse = ShapeRegistry.circle;
++
+         // Initialization
+         window.onload = () => {
+             textarea.value = defaultCode;
+@@ -592,7 +1462,6 @@
+             gridLabels.innerHTML = labelsArr.join('');
+         }
+ 
+-        // Custom HTML/XML parser to map cursor positions to DOM hierarchy
+         function getActiveTag(html, cursor) {
+             const regex = /(<!--[\s\S]*?-->|<\/?([a-z0-9:-]+)[^>]*>)/gi;
+             let match;
+@@ -620,7 +1489,6 @@
+                 const tagNameMatch = text.match(/<([a-z0-9:-]+)/i);
+                 const tagName = tagNameMatch ? tagNameMatch[1] : '';
+ 
+-                // Capture any leading spaces/tabs on the current line so clicking indentation selects the tag
+                 let effectiveStart = start;
+                 while (effectiveStart > 0 && (html[effectiveStart - 1] === ' ' || html[effectiveStart - 1] === '\t')) {
+                     effectiveStart--;
+@@ -650,9 +1518,8 @@
+             let active = null;
+             let minSize = Infinity;
+             for (let el of elements) {
+-                // Determine if cursor is enclosed by the full tag scope, incorporating leading whitespace
+                 if (cursor >= el.effectiveStart && cursor <= el.fullEnd) {
+-                    let size = el.fullEnd - el.start; // Base nested size logic strictly on tag sizes
++                    let size = el.fullEnd - el.start;
+                     if (size < minSize) {
+                         minSize = size;
+                         active = el;
+@@ -677,9 +1544,6 @@
+             let activeSub = null;
+             let activeNode = null;
+             
+-            // 2. Update visual preview highlight
+-            
+-            // First, restore the previously highlighted node if it exists
+             if (previouslyHighlightedNode.node) {
+                 const { node, originalStroke } = previouslyHighlightedNode;
+                 if (originalStroke === null) {
+@@ -692,27 +1556,22 @@
+             }
+ 
+             if (activeTagInfo && activeTagInfo.domIndex >= 0) {
+-                // Find element in live DOM. First child is our injected wrapper, so search inside it.
+                 const liveElements = Array.from(userSvgContainer.querySelectorAll('*')).filter(node => node.nodeType === 1);
+                 activeNode = liveElements[activeTagInfo.domIndex];
+                 
+                 if (activeNode) {
+-                    // Save current state and apply highlight stroke
+                     previouslyHighlightedNode.node = activeNode;
+                     previouslyHighlightedNode.originalStroke = activeNode.getAttribute('stroke');
+                     activeNode.setAttribute('stroke', '#3b82f6');
+                     
+-                    // Check if we are hovering over a specific point / command
+                     const tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+                     const relPos = cursor - activeTagInfo.start;
+                     activeSub = getActiveSubElement(tagStr, relPos, activeTagInfo.tagName.toLowerCase(), activeNode);
+                     
+-                    // If a specific movable point is detected, draw an overlay dot
+                     if (activeSub && (activeSub.cx !== undefined && activeSub.cy !== undefined || activeSub.qData || activeSub.cData)) {
+                         const vw = parseFloat(userSvgContainer.getAttribute('width') || 100);
+-                        const r = vw * 0.02; // Dynamic radius based on viewport
++                        const r = vw * 0.02;
+                         
+-                        // Handle mapping accurately using screen matrices to bypass nested scales/viewboxes
+                         const getMappedCoords = (x, y) => {
+                             let tx = x, ty = y;
+                             try {
+@@ -772,7 +1631,6 @@
+                 }
+             }
+             
+-            // 1. Update text backdrop
+             let finalHTML = '';
+             if (activeTagInfo) {
+                 const before = escapeHTML(code.substring(0, activeTagInfo.start));
+@@ -780,7 +1638,6 @@
+                 
+                 if (activeSub) {
+                     const tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+-                    // Use multi-range if provided, fallback to standard start/end
+                     const ranges = activeSub.ranges || [{start: activeSub.start, end: activeSub.end}];
+                     ranges.sort((a, b) => a.start - b.start);
+                     
+@@ -803,7 +1660,6 @@
+                 finalHTML = escapeHTML(code);
+             }
+             
+-            // Fix vertical alignment desync by ensuring trailing empty lines are preserved in the backdrop div
+             if (code.endsWith('\n')) {
+                 finalHTML += ' ';
+             }
+@@ -811,988 +1667,55 @@
+             backdrop.innerHTML = finalHTML;
+         }
+ 
+-        // Identify specific point or path command near cursor for secondary highlight
++        // Delegated to Strategy Registry
+         function getActiveSubElement(tagStr, relPos, tagName, activeNode) {
+-            // Helper function to find attribute boundaries
+-            const getAttrMatch = (attr) => {
+-                const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+-                return m ? { start: m.index, end: m.index + m[0].length } : null;
+-            };
+-
+-            // Universal check for transform attribute (translate, rotate, scale, etc.)
+-            const transformMatch = getAttrMatch('transform');
+-            if (transformMatch && relPos >= transformMatch.start && relPos <= transformMatch.end) {
+-                const matchVal = tagStr.match(/\btransform=["']([^"']+)["']/i);
+-                if (matchVal) {
+-                    const vStart = matchVal.index + matchVal[0].indexOf(matchVal[1]);
+-                    const localRelPos = relPos - vStart;
+-                    const cmdRegex = /(translate|rotate|scale|skewX|skewY)\s*\(([^)]+)\)/ig;
+-                    let m;
+-                    while ((m = cmdRegex.exec(matchVal[1])) !== null) {
+-                        if (localRelPos >= m.index - 1 && localRelPos <= m.index + m[0].length + 1) {
+-                            let cxVal = 0, cyVal = 0;
+-                            if (activeNode) {
+-                                try {
+-                                    const bbox = activeNode.getBBox();
+-                                    // Use local BBox if it has dimensions (getScreenCTM maps it accurately)
+-                                    if (bbox.width || bbox.height) {
+-                                        cxVal = bbox.x + bbox.width / 2;
+-                                        cyVal = bbox.y + bbox.height / 2;
+-                                    } else {
+-                                        // Fallback for <use> which might initially return empty BBox
+-                                        cxVal = parseFloat(activeNode.getAttribute('x') || 0);
+-                                        cyVal = parseFloat(activeNode.getAttribute('y') || 0);
+-                                    }
+-                                } catch(e) {
+-                                    cxVal = parseFloat(activeNode.getAttribute('x') || 0);
+-                                    cyVal = parseFloat(activeNode.getAttribute('y') || 0);
+-                                }
+-                            }
+-                            return {
+-                                start: vStart + m.index,
+-                                end: vStart + m.index + m[0].length,
+-                                cx: cxVal,
+-                                cy: cyVal
+-                            };
+-                        }
+-                    }
+-                }
+-            }
+-
+-            // Universal attribute checks
+-            const swMatch = getAttrMatch('stroke-width');
+-            if (swMatch && relPos >= swMatch.start && relPos <= swMatch.end) {
+-                return {
+-                    start: swMatch.start,
+-                    end: swMatch.end
+-                };
+-            }
+-
+-            const fsMatch = getAttrMatch('font-size');
+-            if (fsMatch && relPos >= fsMatch.start && relPos <= fsMatch.end) {
+-                let ret = { start: fsMatch.start, end: fsMatch.end };
+-                if (activeNode && activeNode.hasAttribute('x') && activeNode.hasAttribute('y')) {
+-                    ret.cx = parseFloat(activeNode.getAttribute('x'));
+-                    ret.cy = parseFloat(activeNode.getAttribute('y'));
+-                }
+-                return ret;
+-            }
+-
+-            const taMatch = getAttrMatch('text-anchor');
+-            if (taMatch && relPos >= taMatch.start && relPos <= taMatch.end) {
+-                let ret = { start: taMatch.start, end: taMatch.end };
+-                if (activeNode && activeNode.hasAttribute('x') && activeNode.hasAttribute('y')) {
+-                    ret.cx = parseFloat(activeNode.getAttribute('x'));
+-                    ret.cy = parseFloat(activeNode.getAttribute('y'));
+-                }
+-                return ret;
+-            }
+-
+-            if (['polygon', 'polyline'].includes(tagName)) {
+-                const pointsMatch = tagStr.match(/\bpoints=["']([^"']+)["']/i);
+-                if (pointsMatch) {
+-                    const valStart = pointsMatch.index + pointsMatch[0].indexOf(pointsMatch[1]);
+-                    const valEnd = valStart + pointsMatch[1].length;
+-                    if (relPos >= valStart && relPos <= valEnd) {
+-                        const localRelPos = relPos - valStart;
+-                        const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+-                        let pMatch;
+-                        while ((pMatch = pairRegex.exec(pointsMatch[1])) !== null) {
+-                            if (localRelPos >= pMatch.index - 1 && localRelPos <= pMatch.index + pMatch[0].length + 1) {
+-                                return {
+-                                    start: valStart + pMatch.index,
+-                                    end: valStart + pMatch.index + pMatch[0].length,
+-                                    cx: parseFloat(pMatch[1]),
+-                                    cy: parseFloat(pMatch[2])
+-                                };
+-                            }
+-                        }
+-                    }
+-                }
+-            }
++            let sub = UniversalAttributes.getSubElement(tagStr, relPos, activeNode);
++            if (sub) return sub;
+ 
+-            if (tagName === 'line') {
+-                const checkPair = (a1, a2) => {
+-                    const m1 = getAttrMatch(a1);
+-                    const m2 = getAttrMatch(a2);
+-                    if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
+-                        (m2 && relPos >= m2.start && relPos <= m2.end)) {
+-                        return { m1, m2 };
+-                    }
+-                    return null;
+-                };
+-
+-                let pair1 = checkPair('x1', 'y1');
+-                if (pair1) {
+-                    let ranges = [];
+-                    if (pair1.m1) ranges.push(pair1.m1);
+-                    if (pair1.m2) ranges.push(pair1.m2);
+-                    return {
+-                        ranges: ranges,
+-                        cx: parseFloat(activeNode.getAttribute('x1') || 0),
+-                        cy: parseFloat(activeNode.getAttribute('y1') || 0)
+-                    };
+-                }
+-                
+-                let pair2 = checkPair('x2', 'y2');
+-                if (pair2) {
+-                    let ranges = [];
+-                    if (pair2.m1) ranges.push(pair2.m1);
+-                    if (pair2.m2) ranges.push(pair2.m2);
+-                    return {
+-                        ranges: ranges,
+-                        cx: parseFloat(activeNode.getAttribute('x2') || 0),
+-                        cy: parseFloat(activeNode.getAttribute('y2') || 0)
+-                    };
+-                }
+-            }
+-
+-            if (tagName === 'rect') {
+-                const checkPair = (a1, a2) => {
+-                    const m1 = getAttrMatch(a1);
+-                    const m2 = getAttrMatch(a2);
+-                    if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
+-                        (m2 && relPos >= m2.start && relPos <= m2.end)) {
+-                        return { m1, m2 };
+-                    }
+-                    return null;
+-                };
+-
+-                let xVal = parseFloat(activeNode.getAttribute('x') || 0);
+-                let yVal = parseFloat(activeNode.getAttribute('y') || 0);
+-                let wVal = parseFloat(activeNode.getAttribute('width') || 0);
+-                let hVal = parseFloat(activeNode.getAttribute('height') || 0);
+-
+-                let basePair = checkPair('x', 'y');
+-                if (basePair) {
+-                    let ranges = [];
+-                    if (basePair.m1) ranges.push(basePair.m1);
+-                    if (basePair.m2) ranges.push(basePair.m2);
+-                    return {
+-                        ranges: ranges,
+-                        cx: xVal,
+-                        cy: yVal
+-                    };
+-                }
+-
+-                let wMatch = getAttrMatch('width');
+-                if (wMatch && relPos >= wMatch.start && relPos <= wMatch.end) {
+-                    return {
+-                        start: wMatch.start,
+-                        end: wMatch.end,
+-                        cx: xVal + wVal,
+-                        cy: yVal + hVal / 2
+-                    };
+-                }
+-
+-                let hMatch = getAttrMatch('height');
+-                if (hMatch && relPos >= hMatch.start && relPos <= hMatch.end) {
+-                    return {
+-                        start: hMatch.start,
+-                        end: hMatch.end,
+-                        cx: xVal + wVal / 2,
+-                        cy: yVal // top center for height control
+-                    };
+-                }
+-
+-                let rxMatch = getAttrMatch('rx');
+-                if (rxMatch && relPos >= rxMatch.start && relPos <= rxMatch.end) {
+-                    return {
+-                        start: rxMatch.start,
+-                        end: rxMatch.end,
+-                        cx: xVal + parseFloat(activeNode.getAttribute('rx') || 0),
+-                        cy: yVal // top edge, moving horizontally
+-                    };
+-                }
+-
+-                let ryMatch = getAttrMatch('ry');
+-                if (ryMatch && relPos >= ryMatch.start && relPos <= ryMatch.end) {
+-                    return {
+-                        start: ryMatch.start,
+-                        end: ryMatch.end,
+-                        cx: xVal, // left edge, moving vertically
+-                        cy: yVal + parseFloat(activeNode.getAttribute('ry') || 0)
+-                    };
+-                }
+-            }
+-
+-            if (tagName === 'circle') {
+-                const checkPair = (a1, a2) => {
+-                    const m1 = getAttrMatch(a1);
+-                    const m2 = getAttrMatch(a2);
+-                    if ((m1 && relPos >= m1.start && relPos <= m1.end) || 
+-                        (m2 && relPos >= m2.start && relPos <= m2.end)) {
+-                        return { m1, m2 };
+-                    }
+-                    return null;
+-                };
+-
+-                let cxVal = parseFloat(activeNode.getAttribute('cx') || 0);
+-                let cyVal = parseFloat(activeNode.getAttribute('cy') || 0);
+-                let rVal = parseFloat(activeNode.getAttribute('r') || 0);
+-
+-                let centerPair = checkPair('cx', 'cy');
+-                if (centerPair) {
+-                    let ranges = [];
+-                    if (centerPair.m1) ranges.push(centerPair.m1);
+-                    if (centerPair.m2) ranges.push(centerPair.m2);
+-                    return {
+-                        ranges: ranges,
+-                        cx: cxVal,
+-                        cy: cyVal
+-                    };
+-                }
+-
+-                let rMatch = getAttrMatch('r');
+-                if (rMatch && relPos >= rMatch.start && relPos <= rMatch.end) {
+-                    return {
+-                        start: rMatch.start,
+-                        end: rMatch.end,
+-                        cx: cxVal,
+-                        cy: cyVal - rVal
+-                    };
+-                }
+-            }
+-
+-            if (tagName === 'text') {
+-                const getAttrMatch = (attr) => {
+-                    const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+-                    return m ? { start: m.index, end: m.index + m[0].length } : null;
+-                };
+-
+-                let xVal = parseFloat(activeNode.getAttribute('x') || 0);
+-                let yVal = parseFloat(activeNode.getAttribute('y') || 0);
+-
+-                let xMatch = getAttrMatch('x');
+-                let yMatch = getAttrMatch('y');
+-
+-                if ((xMatch && relPos >= xMatch.start && relPos <= xMatch.end) || 
+-                    (yMatch && relPos >= yMatch.start && relPos <= yMatch.end)) {
+-                    let ranges = [];
+-                    if (xMatch) ranges.push(xMatch);
+-                    if (yMatch) ranges.push(yMatch);
+-                    return {
+-                        ranges: ranges,
+-                        cx: xVal,
+-                        cy: yVal
+-                    };
+-                }
+-            }
+-
+-            if (tagName === 'path') {
+-                const dMatch = tagStr.match(/\bd=["']([^"']+)["']/i);
+-                if (dMatch) {
+-                    const valStart = dMatch.index + dMatch[0].indexOf(dMatch[1]);
+-                    const valEnd = valStart + dMatch[1].length;
+-                    if (relPos >= valStart && relPos <= valEnd) {
+-                        const localRelPos = relPos - valStart;
+-                        const cmdRegex = /([a-df-zA-DF-Z][^a-df-zA-DF-Z]*)/g;
+-                        let cMatch;
+-                        let currX = 0, currY = 0, startX = 0, startY = 0;
+-                        
+-                        while ((cMatch = cmdRegex.exec(dMatch[1])) !== null) {
+-                            const chunk = cMatch[0];
+-                            const letter = chunk.trim()[0];
+-                            const nums = (chunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+-                            const upper = letter.toUpperCase();
+-                            const isRel = letter === letter.toLowerCase();
+-
+-                            let endX = currX;
+-                            let endY = currY;
+-                            let qStartX = currX;
+-                            let qStartY = currY;
+-
+-                            if (upper === 'Z') {
+-                                endX = startX;
+-                                endY = startY;
+-                            } else if (upper === 'H') {
+-                                for (let n of nums) endX = isRel ? endX + n : n;
+-                            } else if (upper === 'V') {
+-                                for (let n of nums) endY = isRel ? endY + n : n;
+-                            } else if (upper === 'M' || upper === 'L' || upper === 'T') {
+-                                for (let i = 0; i < nums.length; i += 2) {
+-                                    endX = isRel ? endX + nums[i] : nums[i];
+-                                    endY = isRel ? endY + nums[i+1] : nums[i+1];
+-                                    if (upper === 'M' && i === 0) { startX = endX; startY = endY; }
+-                                }
+-                            } else if (upper === 'C') {
+-                                for (let i = 0; i < nums.length; i += 6) {
+-                                    endX = isRel ? endX + nums[i+4] : nums[i+4];
+-                                    endY = isRel ? endY + nums[i+5] : nums[i+5];
+-                                }
+-                            } else if (upper === 'Q' || upper === 'S') {
+-                                for (let i = 0; i < nums.length; i += 4) {
+-                                    endX = isRel ? endX + nums[i+2] : nums[i+2];
+-                                    endY = isRel ? endY + nums[i+3] : nums[i+3];
+-                                }
+-                            } else if (upper === 'A') {
+-                                for (let i = 0; i < nums.length; i += 7) {
+-                                    endX = isRel ? endX + nums[i+5] : nums[i+5];
+-                                    endY = isRel ? endY + nums[i+6] : nums[i+6];
+-                                }
+-                            }
+-
+-                            if (localRelPos >= cMatch.index - 1 && localRelPos <= cMatch.index + chunk.length + 1) {
+-                                if (upper === 'Q') {
+-                                    let currentStartX = qStartX;
+-                                    let currentStartY = qStartY;
+-                                    let foundSub = null;
+-                                    let pMatch;
+-                                    const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+-                                    let pairIndex = 0;
+-
+-                                    while ((pMatch = pairRegex.exec(chunk)) !== null) {
+-                                        const pStart = cMatch.index + pMatch.index;
+-                                        const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
+-
+-                                        let isControl = (pairIndex % 2 === 0);
+-                                        let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
+-                                        let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
+-
+-                                        let numIdx = pairIndex * 2;
+-                                        let segmentData = null;
+-                                        
+-                                        if (isControl && numIdx + 3 < nums.length) {
+-                                            segmentData = {
+-                                                startX: currentStartX,
+-                                                startY: currentStartY,
+-                                                c1x: absX,
+-                                                c1y: absY,
+-                                                endX: isRel ? currentStartX + nums[numIdx+2] : nums[numIdx+2],
+-                                                endY: isRel ? currentStartY + nums[numIdx+3] : nums[numIdx+3],
+-                                                activePoint: 'control'
+-                                            };
+-                                        } else if (!isControl && numIdx - 1 < nums.length && numIdx - 2 >= 0) {
+-                                            segmentData = {
+-                                                startX: currentStartX,
+-                                                startY: currentStartY,
+-                                                c1x: isRel ? currentStartX + nums[numIdx-2] : nums[numIdx-2],
+-                                                c1y: isRel ? currentStartY + nums[numIdx-1] : nums[numIdx-1],
+-                                                endX: absX,
+-                                                endY: absY,
+-                                                activePoint: 'end'
+-                                            };
+-                                        }
+-
+-                                        if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
+-                                            foundSub = {
+-                                                start: valStart + pStart,
+-                                                end: valStart + pEnd,
+-                                                cx: absX,
+-                                                cy: absY,
+-                                                qData: segmentData || {
+-                                                    startX: currentStartX, startY: currentStartY,
+-                                                    c1x: absX, c1y: absY, endX: absX, endY: absY,
+-                                                    activePoint: isControl ? 'control' : 'end'
+-                                                }
+-                                            };
+-                                            break;
+-                                        }
+-
+-                                        if (!isControl) {
+-                                            currentStartX = absX;
+-                                            currentStartY = absY;
+-                                        }
+-                                        pairIndex++;
+-                                    }
+-                                    if (foundSub) return foundSub;
+-                                }
+-
+-                                if (upper === 'C') {
+-                                    let currentStartX = qStartX;
+-                                    let currentStartY = qStartY;
+-                                    let foundSub = null;
+-                                    let pMatch;
+-                                    const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+-                                    let pairIndex = 0;
+-
+-                                    while ((pMatch = pairRegex.exec(chunk)) !== null) {
+-                                        const pStart = cMatch.index + pMatch.index;
+-                                        const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
+-
+-                                        let pointType = pairIndex % 3; // 0: c1, 1: c2, 2: end
+-                                        let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
+-                                        let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
+-
+-                                        let numIdx = pairIndex * 2;
+-                                        let segmentData = null;
+-                                        
+-                                        let baseIdx = Math.floor(pairIndex / 3) * 6;
+-                                        if (baseIdx + 5 < nums.length) {
+-                                            segmentData = {
+-                                                startX: currentStartX,
+-                                                startY: currentStartY,
+-                                                c1x: isRel ? currentStartX + nums[baseIdx] : nums[baseIdx],
+-                                                c1y: isRel ? currentStartY + nums[baseIdx+1] : nums[baseIdx+1],
+-                                                c2x: isRel ? currentStartX + nums[baseIdx+2] : nums[baseIdx+2],
+-                                                c2y: isRel ? currentStartY + nums[baseIdx+3] : nums[baseIdx+3],
+-                                                endX: isRel ? currentStartX + nums[baseIdx+4] : nums[baseIdx+4],
+-                                                endY: isRel ? currentStartY + nums[baseIdx+5] : nums[baseIdx+5],
+-                                                activePoint: pointType === 0 ? 'c1' : (pointType === 1 ? 'c2' : 'end')
+-                                            };
+-                                        }
+-
+-                                        if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
+-                                            foundSub = {
+-                                                start: valStart + pStart,
+-                                                end: valStart + pEnd,
+-                                                cx: absX,
+-                                                cy: absY,
+-                                                cData: segmentData || {
+-                                                    startX: currentStartX, startY: currentStartY,
+-                                                    c1x: absX, c1y: absY, c2x: absX, c2y: absY, endX: absX, endY: absY,
+-                                                    activePoint: pointType === 0 ? 'c1' : (pointType === 1 ? 'c2' : 'end')
+-                                                }
+-                                            };
+-                                            break;
+-                                        }
+-
+-                                        if (pointType === 2) {
+-                                            currentStartX = absX;
+-                                            currentStartY = absY;
+-                                        }
+-                                        pairIndex++;
+-                                    }
+-                                    if (foundSub) return foundSub;
+-                                }
+-
+-                                if (['M', 'L', 'T', 'S'].includes(upper)) {
+-                                    let currentStartX = qStartX;
+-                                    let currentStartY = qStartY;
+-                                    let foundSub = null;
+-                                    let pMatch;
+-                                    const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+-
+-                                    while ((pMatch = pairRegex.exec(chunk)) !== null) {
+-                                        const pStart = cMatch.index + pMatch.index;
+-                                        const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
+-
+-                                        let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
+-                                        let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
+-
+-                                        if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
+-                                            foundSub = {
+-                                                start: valStart + pStart,
+-                                                end: valStart + pEnd,
+-                                                cx: absX,
+-                                                cy: absY
+-                                            };
+-                                            break;
+-                                        }
+-                                        currentStartX = absX;
+-                                        currentStartY = absY;
+-                                    }
+-                                    if (foundSub) return foundSub;
+-                                }
+-
+-                                if (upper === 'H' || upper === 'V') {
+-                                    let currentStartX = qStartX;
+-                                    let currentStartY = qStartY;
+-                                    let foundSub = null;
+-                                    let nMatch;
+-                                    const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+-
+-                                    while ((nMatch = numRegex.exec(chunk)) !== null) {
+-                                        const pStart = cMatch.index + nMatch.index;
+-                                        const pEnd = cMatch.index + nMatch.index + nMatch[0].length;
+-
+-                                        let val = parseFloat(nMatch[1]);
+-                                        let absX = upper === 'H' ? (isRel ? currentStartX + val : val) : currentStartX;
+-                                        let absY = upper === 'V' ? (isRel ? currentStartY + val : val) : currentStartY;
+-
+-                                        if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
+-                                            foundSub = {
+-                                                start: valStart + pStart,
+-                                                end: valStart + pEnd,
+-                                                cx: absX,
+-                                                cy: absY
+-                                            };
+-                                            break;
+-                                        }
+-                                        if (upper === 'H') currentStartX = absX;
+-                                        if (upper === 'V') currentStartY = absY;
+-                                    }
+-                                    if (foundSub) return foundSub;
+-                                }
+-
+-                                let ret = {
+-                                    start: valStart + cMatch.index,
+-                                    end: valStart + cMatch.index + chunk.length,
+-                                    cx: endX,
+-                                    cy: endY
+-                                };
+-                                
+-                                // Extra visual feedback for Bezier Curves
+-                                if (upper === 'Q') {
+-                                    ret.qData = {
+-                                        startX: qStartX,
+-                                        startY: qStartY,
+-                                        c1x: isRel ? qStartX + nums[0] : nums[0],
+-                                        c1y: isRel ? qStartY + nums[1] : nums[1],
+-                                        endX: isRel ? qStartX + nums[2] : nums[2],
+-                                        endY: isRel ? qStartY + nums[3] : nums[3],
+-                                        activePoint: 'both'
+-                                    };
+-                                } else if (upper === 'C' && nums.length >= 6) {
+-                                    ret.cData = {
+-                                        startX: qStartX,
+-                                        startY: qStartY,
+-                                        c1x: isRel ? qStartX + nums[0] : nums[0],
+-                                        c1y: isRel ? qStartY + nums[1] : nums[1],
+-                                        c2x: isRel ? qStartX + nums[2] : nums[2],
+-                                        c2y: isRel ? qStartY + nums[3] : nums[3],
+-                                        endX: isRel ? qStartX + nums[4] : nums[4],
+-                                        endY: isRel ? qStartY + nums[5] : nums[5],
+-                                        activePoint: 'both'
+-                                    };
+-                                }
+-                                return ret;
+-                            }
+-
+-                            currX = endX;
+-                            currY = endY;
+-                        }
+-                    }
+-                }
++            const handler = ShapeRegistry[tagName];
++            if (handler && handler.getSubElement) {
++                return handler.getSubElement(tagStr, relPos, activeNode);
+             }
+             return null;
+         }
+ 
+         // --- Tools (Move, Insert, Delete) ---
++        // Refactored moveShape using the Strategy Pattern
+         function moveShape(dx, dy) {
+             if (!activeTagInfo) return;
+             const code = textarea.value;
+             let tagStr = code.substring(activeTagInfo.start, activeTagInfo.tagEnd);
+             const tagName = activeTagInfo.tagName.toLowerCase();
+             const relPos = textarea.selectionStart - activeTagInfo.start;
+-            let pointMoved = false;
+-
+-            // Util: Adjust standard attributes safely
+-            function adjustAttr(str, attr, delta) {
+-                const regex = new RegExp(`\\b${attr}=["']([^"']+)["']`, 'i');
+-                return str.replace(regex, (match, val) => {
+-                    let num = parseFloat(val);
+-                    return isNaN(num) ? match : `${attr}="${num + delta}"`;
+-                });
+-            }
+-
+-            // Util: Adjust all points in a polygon/polyline
+-            function adjustPoints(str, deltaX, deltaY) {
+-                const regex = /\bpoints=["']([^"']+)["']/i;
+-                return str.replace(regex, (match, val) => {
+-                    const newVals = (val.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+-                    let out = [];
+-                    for (let i = 0; i < newVals.length; i += 2) {
+-                        if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+-                            out.push(`${newVals[i] + deltaX},${newVals[i+1] + deltaY}`);
+-                        }
+-                    }
+-                    return `points="${out.join(' ')}"`;
+-                });
+-            }
+-
+-            // Util: Format polygon points consistently
+-            function formatPointsData(pointsStr) {
+-                const newVals = (pointsStr.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+-                let out = [];
+-                for (let i = 0; i < newVals.length; i += 2) {
+-                    if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+-                        out.push(`${newVals[i]},${newVals[i+1]}`);
+-                    }
+-                }
+-                return out.join(' ');
+-            }
+-
+-            // Util: Format path d string consistently
+-            function formatPathData(dStr) {
+-                const commands = dStr.match(/[a-df-zA-DF-Z][^a-df-zA-DF-Z]*/g);
+-                if (!commands) return dStr;
+-                return commands.map(cmdChunk => {
+-                    const letter = cmdChunk.trim()[0];
+-                    const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+-                    const upper = letter.toUpperCase();
+-                    if (upper === 'Z') return letter;
+-                    let outNums = [];
+-                    if (upper === 'H' || upper === 'V') {
+-                        for(let n of nums) outNums.push(n);
+-                    } else if (upper === 'A') {
+-                        for (let i = 0; i < nums.length; i += 7) {
+-                            let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
+-                            if (i+5 < nums.length) part += ` ${nums[i+5]},${nums[i+6]}`;
+-                            outNums.push(part);
+-                        }
+-                    } else {
+-                        for (let i = 0; i < nums.length; i += 2) {
+-                            if (i+1 < nums.length) outNums.push(`${nums[i]},${nums[i+1]}`);
+-                            else outNums.push(nums[i]);
+-                        }
+-                    }
+-                    return letter + outNums.join(' ');
+-                }).join(' ');
+-            }
+-
+-            // Util: Shift all coordinates in a full path d string
+-            function shiftPathD(dStr, deltaX, deltaY) {
+-                const commands = dStr.match(/[a-df-zA-DF-Z][^a-df-zA-DF-Z]*/g);
+-                if (!commands) return dStr;
+-                let firstCmd = true;
+-                const res = commands.map(cmdChunk => {
+-                    const letter = cmdChunk.trim()[0];
+-                    const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+-                    const upper = letter.toUpperCase();
+-                    const isRel = letter === letter.toLowerCase();
+-
+-                    if (upper === 'Z') return letter;
+-
+-                    let applyX = deltaX;
+-                    let applyY = deltaY;
+-                    if (isRel && !(firstCmd && letter === 'm')) {
+-                        applyX = 0;
+-                        applyY = 0;
+-                    }
+-                    firstCmd = false;
+-
+-                    let outNums = [];
+-                    if (upper === 'H') {
+-                        for(let n of nums) outNums.push(n + applyX);
+-                    } else if (upper === 'V') {
+-                        for(let n of nums) outNums.push(n + applyY);
+-                    } else if (upper === 'A') {
+-                        for (let i = 0; i < nums.length; i += 7) {
+-                            let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
+-                            if (i+5 < nums.length) part += ` ${nums[i+5] + applyX},${nums[i+6] + applyY}`;
+-                            outNums.push(part);
+-                        }
+-                    } else {
+-                        for (let i = 0; i < nums.length; i += 2) {
+-                            if (i+1 < nums.length) outNums.push(`${nums[i] + applyX},${nums[i+1] + applyY}`);
+-                            else outNums.push(nums[i] + applyX);
+-                        }
+-                    }
+-                    return letter + outNums.join(' ');
+-                });
+-                return res.join(' ');
+-            }
+-
+-            // Util: Shift a specific command block directly mapped by point move
+-            function shiftSinglePathCommand(cmdChunk, deltaX, deltaY) {
+-                const letter = cmdChunk.trim()[0];
+-                const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+-                const upper = letter.toUpperCase();
+-
+-                if (upper === 'Z') return letter;
+-
+-                let outNums = [];
+-                // Apply the delta to all relevant coordinates. For relative coordinates, 
+-                // pushing the instruction by dx/dy will also literally push the resulting point by dx/dy!
+-                if (upper === 'H') {
+-                    for(let n of nums) outNums.push(n + deltaX);
+-                } else if (upper === 'V') {
+-                    for(let n of nums) outNums.push(n + deltaY);
+-                } else if (upper === 'A') {
+-                    for (let i = 0; i < nums.length; i += 7) {
+-                        let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
+-                        if (i+5 < nums.length) part += ` ${nums[i+5] + deltaX},${nums[i+6] + deltaY}`;
+-                        outNums.push(part);
+-                    }
+-                } else {
+-                    for (let i = 0; i < nums.length; i += 2) {
+-                        if (i+1 < nums.length) outNums.push(`${nums[i] + deltaX},${nums[i+1] + deltaY}`);
+-                        else outNums.push(nums[i] + deltaX);
+-                    }
+-                }
+-                
+-                return letter + outNums.join(' ');
+-            }
+-
+-            // --- 1. Point Move Logic (Context-Aware based on cursor) ---
+             
+-            // A. Check inside points="..." for polygon and polyline
+-            if (['polygon', 'polyline'].includes(tagName)) {
+-                const pointsMatch = tagStr.match(/\bpoints=["']([^"']+)["']/i);
+-                if (pointsMatch) {
+-                    const valStart = pointsMatch.index + pointsMatch[0].indexOf(pointsMatch[1]);
+-                    const valEnd = valStart + pointsMatch[1].length;
+-                    
+-                    if (relPos >= valStart && relPos <= valEnd) {
+-                        const localRelPos = relPos - valStart;
+-                        const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+-                        let pMatch;
+-                        let newVal = pointsMatch[1];
+-                        
+-                        while ((pMatch = pairRegex.exec(pointsMatch[1])) !== null) {
+-                            if (localRelPos >= pMatch.index - 1 && localRelPos <= pMatch.index + pMatch[0].length + 1) {
+-                                const nx = parseFloat(pMatch[1]) + dx;
+-                                const ny = parseFloat(pMatch[2]) + dy;
+-                                const shiftedPair = `${nx},${ny}`;
+-                                newVal = newVal.substring(0, pMatch.index) + shiftedPair + newVal.substring(pMatch.index + pMatch[0].length);
+-                                pointMoved = true;
+-                                break;
+-                            }
+-                        }
+-                        if (pointMoved) {
+-                            newVal = formatPointsData(newVal);
+-                            tagStr = tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd);
+-                        }
+-                    }
+-                }
+-            }
++            const handler = ShapeRegistry[tagName] || ShapeRegistry.default;
++            let moveResult = null;
+ 
+-            // B. Check inside d="..." for path commands
+-            if (!pointMoved && tagName === 'path') {
+-                const dMatch = tagStr.match(/\bd=["']([^"']+)["']/i);
+-                if (dMatch) {
+-                    const valStart = dMatch.index + dMatch[0].indexOf(dMatch[1]);
+-                    const valEnd = valStart + dMatch[1].length;
+-                    
+-                    if (relPos >= valStart && relPos <= valEnd) {
+-                        const localRelPos = relPos - valStart;
+-                        const cmdRegex = /([a-df-zA-DF-Z][^a-df-zA-DF-Z]*)/g;
+-                        let cMatch;
+-                        let newVal = dMatch[1];
+-                        
+-                        while ((cMatch = cmdRegex.exec(dMatch[1])) !== null) {
+-                            if (localRelPos >= cMatch.index - 1 && localRelPos <= cMatch.index + cMatch[0].length + 1) {
+-                                const chunk = cMatch[0];
+-                                const letter = chunk.trim()[0];
+-                                const upper = letter.toUpperCase();
+-
+-                                if (['Q', 'C', 'M', 'L', 'T', 'S'].includes(upper)) {
+-                                    const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+-                                    let pMatch;
+-                                    let modifiedChunk = chunk;
+-                                    let pairMoved = false;
+-
+-                                    while ((pMatch = pairRegex.exec(chunk)) !== null) {
+-                                        if (localRelPos >= cMatch.index + pMatch.index - 1 && localRelPos <= cMatch.index + pMatch.index + pMatch[0].length + 1) {
+-                                            const nx = parseFloat(pMatch[1]) + dx;
+-                                            const ny = parseFloat(pMatch[2]) + dy;
+-                                            const shiftedPair = `${nx},${ny}`;
+-                                            modifiedChunk = modifiedChunk.substring(0, pMatch.index) + shiftedPair + modifiedChunk.substring(pMatch.index + pMatch[0].length);
+-                                            pairMoved = true;
+-                                            break;
+-                                        }
+-                                    }
+-
+-                                    if (pairMoved) {
+-                                        newVal = newVal.substring(0, cMatch.index) + modifiedChunk + newVal.substring(cMatch.index + cMatch[0].length);
+-                                        pointMoved = true;
+-                                        break;
+-                                    }
+-                                } else if (upper === 'H' || upper === 'V') {
+-                                    const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+-                                    let nMatch;
+-                                    let modifiedChunk = chunk;
+-                                    let numMoved = false;
+-
+-                                    while ((nMatch = numRegex.exec(chunk)) !== null) {
+-                                        if (localRelPos >= cMatch.index + nMatch.index - 1 && localRelPos <= cMatch.index + nMatch.index + nMatch[0].length + 1) {
+-                                            const delta = upper === 'H' ? dx : dy;
+-                                            const nn = parseFloat(nMatch[1]) + delta;
+-                                            modifiedChunk = modifiedChunk.substring(0, nMatch.index) + nn + modifiedChunk.substring(nMatch.index + nMatch[0].length);
+-                                            numMoved = true;
+-                                            break;
+-                                        }
+-                                    }
+-
+-                                    if (numMoved) {
+-                                        newVal = newVal.substring(0, cMatch.index) + modifiedChunk + newVal.substring(cMatch.index + cMatch[0].length);
+-                                        pointMoved = true;
+-                                        break;
+-                                    }
+-                                }
+-
+-                                if (!pointMoved) {
+-                                    const shiftedCmd = shiftSinglePathCommand(cMatch[0], dx, dy);
+-                                    newVal = newVal.substring(0, cMatch.index) + shiftedCmd + newVal.substring(cMatch.index + cMatch[0].length);
+-                                    pointMoved = true;
+-                                    break;
+-                                }
+-                            }
+-                        }
+-                        if (pointMoved) {
+-                            newVal = formatPathData(newVal);
+-                            tagStr = tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd);
+-                        }
+-                    }
+-                }
++            // 1. Point Move Logic (Context-Aware based on cursor)
++            if (handler.movePoint) {
++                moveResult = handler.movePoint(tagStr, relPos, dx, dy);
+             }
+ 
+-            const checkAndAdjustNearAttr = (attrList, xDelta, yDelta, postFixFn = null) => {
+-                for (let attr of attrList) {
+-                    const match = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+-                    if (match && relPos >= match.index && relPos <= match.index + match[0].length) {
+-                        if (xDelta !== 0) tagStr = adjustAttr(tagStr, attrList[0], xDelta);
+-                        if (yDelta !== 0 && attrList.length > 1) tagStr = adjustAttr(tagStr, attrList[1], yDelta);
+-                        if (postFixFn) tagStr = postFixFn(tagStr);
+-                        return true;
+-                    }
+-                }
+-                return false;
+-            };
+-
+-            // C. Check near x1/y1 vs x2/y2 for lines
+-            if (!pointMoved && tagName === 'line') {
+-                pointMoved = checkAndAdjustNearAttr(['x1', 'y1'], dx, dy) || checkAndAdjustNearAttr(['x2', 'y2'], dx, dy);
++            // 2. Universal Attributes Logic
++            if (!moveResult || !moveResult.modified) {
++                moveResult = UniversalAttributes.movePoint(tagStr, relPos, dx, dy);
+             }
+ 
+-            // D. Check near cx/cy or r for circles
+-            if (!pointMoved && tagName === 'circle') {
+-                pointMoved = checkAndAdjustNearAttr(['cx', 'cy'], dx, dy);
+-                if (!pointMoved) {
+-                    pointMoved = checkAndAdjustNearAttr(['r'], dx - dy, 0, (str) => {
+-                        return str.replace(/\br=["']([^"']+)["']/i, (m, v) => `r="${Math.max(0, parseFloat(v))}"`);
+-                    });
+-                }
+-            }
+-
+-            // E. Check near width/height/x/y/rx/ry for rect
+-            if (!pointMoved && tagName === 'rect') {
+-                pointMoved = checkAndAdjustNearAttr(['x', 'y'], dx, dy);
+-                if (!pointMoved) {
+-                    pointMoved = checkAndAdjustNearAttr(['width'], dx - dy, 0, (str) => {
+-                        return str.replace(/\bwidth=["']([^"']+)["']/i, (m, v) => `width="${Math.max(0, parseFloat(v))}"`);
+-                    });
+-                }
+-                if (!pointMoved) {
+-                    pointMoved = checkAndAdjustNearAttr(['height'], dx - dy, 0, (str) => {
+-                        return str.replace(/\bheight=["']([^"']+)["']/i, (m, v) => `height="${Math.max(0, parseFloat(v))}"`);
+-                    });
+-                }
+-                if (!pointMoved) {
+-                    pointMoved = checkAndAdjustNearAttr(['rx'], dx - dy, 0, (str) => {
+-                        return str.replace(/\brx=["']([^"']+)["']/i, (m, v) => `rx="${Math.max(0, parseFloat(v))}"`);
+-                    });
+-                }
+-                if (!pointMoved) {
+-                    pointMoved = checkAndAdjustNearAttr(['ry'], dx - dy, 0, (str) => {
+-                        return str.replace(/\bry=["']([^"']+)["']/i, (m, v) => `ry="${Math.max(0, parseFloat(v))}"`);
+-                    });
+-                }
+-            }
+-
+-            // F. Check near x/y for text
+-            if (!pointMoved && tagName === 'text') {
+-                pointMoved = checkAndAdjustNearAttr(['x', 'y'], dx, dy);
+-            }
+-
+-            // G. Universal check for stroke-width
+-            if (!pointMoved) {
+-                // For stroke-width step 0.1, we bypass checkAndAdjustNearAttr's default logic by passing the calculated step inside xDelta
+-                pointMoved = checkAndAdjustNearAttr(['stroke-width'], (dx - dy) * 0.1, 0, (str) => {
+-                    return str.replace(/\bstroke-width=["']([^"']+)["']/i, (m, v) => {
+-                        let currentVal = parseFloat(v);
+-                        if (isNaN(currentVal)) currentVal = 1;
+-                        // Avoid float rounding errors
+-                        return `stroke-width="${Math.max(0, currentVal).toFixed(1).replace(/\.0$/, '')}"`;
+-                    });
+-                });
+-            }
+-
+-            // H. Universal check for font-size
+-            if (!pointMoved) {
+-                pointMoved = checkAndAdjustNearAttr(['font-size'], dx - dy, 0, (str) => {
+-                    return str.replace(/\bfont-size=["']([^"']+)["']/i, (m, v) => {
+-                        let currentVal = parseFloat(v);
+-                        if (isNaN(currentVal)) currentVal = 14;
+-                        return `font-size="${Math.max(0, currentVal).toFixed(1).replace(/\.0$/, '')}"`;
+-                    });
+-                });
+-            }
+-
+-            // I. Universal check for text-anchor
+-            if (!pointMoved) {
+-                pointMoved = checkAndAdjustNearAttr(['text-anchor'], dx - dy, 0, (str) => {
+-                    const cycle = ['start', 'middle', 'end'];
+-                    return str.replace(/\btext-anchor=["']([^"']+)["']/i, (m, v) => {
+-                        let dir = dx - dy;
+-                        let idx = cycle.indexOf(v.toLowerCase());
+-                        if (idx === -1) idx = 0;
+-                        let newIdx = (idx + dir + cycle.length) % cycle.length;
+-                        return `text-anchor="${cycle[newIdx]}"`;
+-                    });
+-                });
+-            }
+-
+-            // J. Universal check for transform commands
+-            if (!pointMoved) {
+-                const transformMatch = tagStr.match(/\btransform=["']([^"']+)["']/i);
+-                if (transformMatch) {
+-                    const valStart = transformMatch.index + transformMatch[0].indexOf(transformMatch[1]);
+-                    const valEnd = valStart + transformMatch[1].length;
+-                    
+-                    if (relPos >= valStart && relPos <= valEnd) {
+-                        const localRelPos = relPos - valStart;
+-                        const cmdRegex = /(translate|rotate|scale|skewX|skewY)\s*\(([^)]+)\)/ig;
+-                        let m;
+-                        let newVal = transformMatch[1];
+-                        
+-                        while ((m = cmdRegex.exec(transformMatch[1])) !== null) {
+-                            if (localRelPos >= m.index - 1 && localRelPos <= m.index + m[0].length + 1) {
+-                                const type = m[1].toLowerCase();
+-                                const argsStr = m[2];
+-                                
+-                                const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+-                                let args = [];
+-                                let nMatch;
+-                                while((nMatch = numRegex.exec(argsStr)) !== null) {
+-                                    args.push(parseFloat(nMatch[1]));
+-                                }
+-                                
+-                                if (type === 'translate') {
+-                                    if (args.length >= 1) args[0] += dx;
+-                                    if (args.length >= 2) args[1] += dy;
+-                                    else if (dy !== 0) args.push(dy); 
+-                                } else if (type === 'rotate') {
+-                                    let dir = dx - dy; // Standardizing rotation to dx-dy (up/right increase, down/left decrease)
+-                                    if (args.length >= 1) {
+-                                        if (dir > 0) args[0] = Math.ceil((args[0] + 1) / 45) * 45;
+-                                        else if (dir < 0) args[0] = Math.floor((args[0] - 1) / 45) * 45;
+-                                    }
+-                                } else if (type === 'scale' || type === 'skewx' || type === 'skewy') {
+-                                    let dir = (dx - dy) * 0.1;
+-                                    if (args.length >= 1) args[0] += dir;
+-                                    if (args.length >= 2) args[1] += dir;
+-                                }
+-                                
+-                                const newCmd = `${m[1]}(${args.map(n => Number(n.toFixed(3))).join(', ')})`;
+-                                newVal = newVal.substring(0, m.index) + newCmd + newVal.substring(m.index + m[0].length);
+-                                pointMoved = true;
+-                                break;
+-                            }
+-                        }
+-                        if (pointMoved) {
+-                            tagStr = tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd);
+-                        }
++            // 3. Element Move Logic (Fallback if cursor is not on a specific point)
++            if (!moveResult || !moveResult.modified) {
++                if (handler.moveElement) {
++                    const newTagStr = handler.moveElement(tagStr, dx, dy);
++                    if (newTagStr !== tagStr) {
++                        moveResult = { modified: true, tagStr: newTagStr };
+                     }
+                 }
+             }
+ 
+-            // --- 2. Element Move Logic (Fallback if cursor is not on a specific point) ---
+-            if (!pointMoved) {
+-                if (tagName === 'circle' || tagName === 'ellipse') {
+-                    tagStr = adjustAttr(tagStr, 'cx', dx);
+-                    tagStr = adjustAttr(tagStr, 'cy', dy);
+-                } else if (['rect', 'image', 'use', 'text'].includes(tagName)) {
+-                    tagStr = adjustAttr(tagStr, 'x', dx);
+-                    tagStr = adjustAttr(tagStr, 'y', dy);
+-                } else if (tagName === 'line') {
+-                    tagStr = adjustAttr(tagStr, 'x1', dx);
+-                    tagStr = adjustAttr(tagStr, 'x2', dx);
+-                    tagStr = adjustAttr(tagStr, 'y1', dy);
+-                    tagStr = adjustAttr(tagStr, 'y2', dy);
+-                } else if (tagName === 'polygon' || tagName === 'polyline') {
+-                    tagStr = adjustPoints(tagStr, dx, dy);
+-                } else if (tagName === 'path') {
+-                    tagStr = tagStr.replace(/\bd=["']([^"']+)["']/i, (match, val) => `d="${shiftPathD(val, dx, dy)}"`);
+-                } else {
+-                    return; 
+-                }
+-            }
+-
++            if (!moveResult || !moveResult.modified) return;
++            
++            tagStr = moveResult.tagStr;
+             const newCode = code.substring(0, activeTagInfo.start) + tagStr + code.substring(activeTagInfo.tagEnd);
+             
+-            // Adjust cursor gracefully if element expanded/shrunk
+             const offset = tagStr.length - (activeTagInfo.tagEnd - activeTagInfo.start);
+             let newCursor = textarea.selectionStart;
+             if (newCursor > activeTagInfo.start) {
+@@ -1809,7 +1732,6 @@
+             textarea.scrollTop = savedScrollTop;
+             textarea.scrollLeft = savedScrollLeft;
+             
+-            // Re-trigger selection using RAF for smoothness
+             if (selectionRafId) cancelAnimationFrame(selectionRafId);
+             selectionRafId = requestAnimationFrame(updateSelection);
+         }
+@@ -2128,10 +2050,8 @@
+             let finalSVG = code;
+ 
+             if (/<svg/i.test(code)) {
+-                // If the code is already a full SVG document, export exactly as is
+                 finalSVG = code;
+             } else if (/<symbol/i.test(code)) {
+-                // Wrap a standalone symbol in a viewable SVG shell
+                 let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
+                 let viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+                 
+@@ -2145,7 +2065,6 @@
+                            `  <use href="#${symbolId}" />\n` +
+                            `</svg>`;
+             } else {
+-                // Wrap raw shapes without a symbol tag
+                 let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
+                 let viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+                 let indentedCode = code.split('\n').map(line => '  ' + line).join('\n');
+@@ -2188,7 +2107,7 @@
+                 textarea.scrollLeft = 0;
+             };
+             reader.readAsText(file);
+-            event.target.value = ''; // Reset input to allow loading the same file again
++            event.target.value = ''; 
+         }
+ 
+         // Drag and Drop Support

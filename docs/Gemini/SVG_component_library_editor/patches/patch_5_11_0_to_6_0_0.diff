@@ -1,0 +1,18 @@
+--- svg_component_editor_v5_11_0.html	2026-06-02 04:51:46.629012590 +0300
++++ svg_component_editor_v6_0_0.html	2026-06-02 04:54:21.121055059 +0300
+@@ -471,7 +471,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v5.11.0</div>
++                <div class="footer-right">v6.0.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -2569,4 +2569,4 @@
+         })();
+     </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>

@@ -1,0 +1,22 @@
+--- svg_component_editor_v7_6_0.html	2026-06-04 16:40:54.090012504 +0300
++++ svg_component_editor_v7_7_0.html	2026-06-04 16:45:00.514142315 +0300
+@@ -477,7 +477,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v7.6.0</div>
++                <div class="footer-right">v7.7.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -2732,8 +2732,8 @@
+                 };
+                 
+                 const script = document.createElement('script');
+-                script.src = 'svg_component_editor_v7_5_0_tests.js';
+-                script.onerror = () => console.error("Test suite not found: svg_component_editor_v7_5_0_tests.js");
++                script.src = 'svg_component_editor_v7_7_0_tests.js';
++                script.onerror = () => console.error("Test suite not found: svg_component_editor_v7_7_0_tests.js");
+                 document.body.appendChild(script);
+             }
+         })();

@@ -1,0 +1,34 @@
+--- svg_component_editor_v3_9.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_10.html	2026-05-31 19:17:26.529529970 +0300
+@@ -370,7 +370,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v3.9</footer>
++    <footer>v3.10</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -1994,7 +1994,11 @@
+             const code = textarea.value;
+             let finalSVG = code;
+ 
+-            if (/<symbol/i.test(code)) {
++            if (/<svg/i.test(code)) {
++                // If the code is already a full SVG document, export exactly as is
++                finalSVG = code;
++            } else if (/<symbol/i.test(code)) {
++                // Wrap a standalone symbol in a viewable SVG shell
+                 let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
+                 let viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+                 
+@@ -2007,7 +2011,8 @@
+                            `  <defs>\n${indentedCode}\n  </defs>\n` +
+                            `  <use href="#${symbolId}" />\n` +
+                            `</svg>`;
+-            } else if (!/<svg/i.test(code)) {
++            } else {
++                // Wrap raw shapes without a symbol tag
+                 let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
+                 let viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+                 let indentedCode = code.split('\n').map(line => '  ' + line).join('\n');

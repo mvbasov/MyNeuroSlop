@@ -1,0 +1,25 @@
+--- svg_component_editor_v6_2_0.html	2026-06-02 13:45:03.300705608 +0300
++++ svg_component_editor_v6_3_0.html	2026-06-02 13:48:45.284677243 +0300
+@@ -473,7 +473,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v6.2.0</div>
++                <div class="footer-right">v6.3.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -2477,11 +2477,11 @@
+                 if (type === 'comment_start' && activeTagInfo) {
+                     const lineStart = code.lastIndexOf('\n', activeTagInfo.start - 1);
+                     insertPos = lineStart === -1 ? 0 : lineStart + 1;
+-                    template = insertPos === 0 ? "<!--\n\n" : "\n<!--\n";
++                    template = "<!--\n";
+                     indent = "";
+                 } else if (type === 'comment_end' && activeTagInfo) {
+                     insertPos = activeTagInfo.fullEnd;
+-                    template = "\n-->\n";
++                    template = "\n-->";
+                     indent = "";
+                 } else {
+                     if (activeTagInfo) {

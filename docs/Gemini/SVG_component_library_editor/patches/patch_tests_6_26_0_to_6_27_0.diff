@@ -1,0 +1,20 @@
+--- svg_component_editor_v6_26_0_tests.js	2026-06-04 15:20:02.971036786 +0300
++++ svg_component_editor_v6_27_0_tests.js	2026-06-04 15:31:56.167075431 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.26.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.27.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -247,6 +247,10 @@
+                 window.TEST_API.textarea.selectionStart = attrIdx + 3;
+                 window.TEST_API.textarea.selectionEnd = attrIdx + 3;
+                 
++                // BUGFIX: The application uses an asynchronous polling loop to update 'activeTagInfo'.
++                // We MUST wait 50ms for it to sync with the new cursor position, otherwise the first command executes on stale tag data!
++                await new Promise(r => setTimeout(r, 50));
++                
+                 // Fire shotgun API cascade for the rotation command
+                 const commands = [[`rot_${angle}`], ['rotate', angle], [angle], [Number(angle)], [`rotate_${angle}`]];
+                 for (let args of commands) {

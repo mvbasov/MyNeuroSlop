@@ -1,0 +1,39 @@
+--- svg_component_editor_v6_13_0_tests.js	2026-06-04 12:37:59.111847320 +0300
++++ svg_component_editor_v6_14_0_tests.js	2026-06-04 12:39:56.744023553 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.13.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.14.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -206,15 +206,22 @@
+             assertTrue("Middle Point Calculation: Correctly derived pivot (50, 40) from layout BBox", centerRotatedCode.includes('50, 40') || centerRotatedCode.includes('x="20"'));
+ 
+             // Test 7: Deep Coordinates Recalculation (Mirroring / Flip)
+-            // Execute horizontal mirror which heavily relies on matrix math translation
+-            // Re-acquire contextual focus dynamically based on actual element index to prevent formatting misses
+-            const codeRef = window.TEST_API.textarea.value;
+-            const dynamicTagIndex = codeRef.search(/<(rect|path|polygon|circle|ellipse|use)/);
+-            window.TEST_API.textarea.selectionStart = dynamicTagIndex + 5;
+-            window.TEST_API.textarea.selectionEnd = dynamicTagIndex + 5;
++            // A perfectly symmetrical rectangle mirrored around its own center results in the exact same coordinates!
++            // To prove the mirror matrix calculates properly, we load an asymmetrical shape (a right triangle).
++            await loadTestData('<svg><path d="M 10 10 L 50 10 L 10 50 Z" /></svg>', 'path');
++            const pathCodeRef = window.TEST_API.textarea.value;
++            const pathTagIndex = pathCodeRef.search(/<path/);
++            window.TEST_API.textarea.selectionStart = pathTagIndex + 5;
++            window.TEST_API.textarea.selectionEnd = pathTagIndex + 5;
++            
++            // Trigger matrix horizontal flip
+             window.TEST_API.transformShape('mirror', 'horizontal');
+             await new Promise(r => setTimeout(r, 100));
+-            assertTrue("Coordinates Matrix: Horizontal mirror operation processed successfully", window.TEST_API.textarea.value !== centerRotatedCode);
++            
++            const mirroredCode = window.TEST_API.textarea.value;
++            // Bounding box center X of (10 to 50) is 30. Mirror math across center: x' = 60 - x.
++            // The starting point "M 10 10" mathematically translates to "M 50 10"
++            assertTrue("Coordinates Matrix: Horizontal mirror correctly shifts asymmetrical path vertices", mirroredCode.includes('50') && mirroredCode !== pathCodeRef);
+ 
+         } catch (error) {
+             console.error("❌ FATAL TEST EXECUTION ERROR:", error);

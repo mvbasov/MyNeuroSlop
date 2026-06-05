@@ -1,0 +1,19 @@
+--- svg_theme_experimenter_v1_11_0.html	2026-06-02 20:18:52.266400952 +0300
++++ svg_theme_experimenter_v1_12_0.html	2026-06-02 20:24:21.374209962 +0300
+@@ -447,7 +447,7 @@
+             <div class="output-section">
+                 <button class="copy-btn" id="btn-copy">📋 Copy CSS Variables</button>
+                 <textarea id="css-export" readonly></textarea>
+-                <div class="app-version">v1.11.0</div>
++                <div class="app-version">v1.12.0</div>
+             </div>
+         </div>
+ 
+@@ -872,6 +872,7 @@
+                     }
+                     if (className.includes('footer-left') || className.includes('footer-center') || className.includes('footer-right')) {
+                         varsToHighlight.add('--text-muted');
++                        varsToHighlight.add('--toolbar-bg');
+                     }
+                     if (id === 'preview-container') varsToHighlight.add('--preview-bg');
+                     if (id === 'mock-editor-app') varsToHighlight.add('--bg-color');

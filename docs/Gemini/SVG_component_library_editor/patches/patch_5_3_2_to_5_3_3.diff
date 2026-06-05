@@ -1,0 +1,103 @@
+--- svg_component_editor_v5_3_2.html	2026-06-01 21:05:25.390018945 +0300
++++ svg_component_editor_v5_3_3.html	2026-06-01 21:42:11.367201529 +0300
+@@ -24,25 +24,20 @@
+         #svg-editor-app {
+             /* CSS Variables scoped only to the app - Default Light Theme */
+ 
+-/* 1. Backgrounds (Keep these for the clean shine) */
+-    --bg-color: #f0f7ff;
+-    --panel-bg: #ffffff;
+-    --preview-bg: #fcfdff;
+-
+-    /* 2. Soft Text & UI */
+-    --text-color: #636688; /* Softer, less intense than the previous violet */
+-    --text-muted: #94a3b8;
+-    --border: #e2e8f0;
+-    --toolbar-bg: #f8fafc; /* Softer toolbar base */
+-
+-    /* 3. Softened "Pastel" Accents */
+-    --primary: #9396f5;       /* Desaturated periwinkle */
+-    --primary-hover: #7a7ef1; 
+-    --grid-line: #e2e8f0;     /* Extremely subtle grid */
+-
+-            --danger: #dc2626;
+-            --success: #16a34a;
+-            --font-mono: 'Courier New', Courier, monospace;
++	    /* Balanced light theme with darker editor background */
++	    --bg-color: #E2DCD2;       /* Muted warm gray-beige for main app bg */
++	    --panel-bg: #C9C0B2;       /* Darker, balanced panel bg (editor area) */
++	    --text-color: #2C2A28;     /* Dark but soft black for text */
++	    --text-muted: #6E665C;     /* Harmonized muted gray-brown */
++	    --border: #B7AC9C;         /* Balanced, not too dark or light */
++	    --toolbar-bg: #DCD4C8;     /* In-between toolbar bg */
++	    --preview-bg: #DDD5C9;     /* Slightly lighter than editor for contrast */
++	    --primary: #6B7F8E;        /* Muted slate blue, balanced */
++	    --primary-hover: #7E92A2;  /* Softer on hover */
++	    --grid-line: #C9BEAD;      /* Visible but subtle grid */
++	    --danger: #C98686;         /* Muted rose, not harsh */
++	    --success: #8FAA8A;        /* Soft sage green */
++	    --font-mono: 'Courier New', Courier, monospace;
+ 
+             /* Base App Styling */
+             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+@@ -56,25 +51,23 @@
+             container-type: inline-size;
+         }
+ 
+-        #svg-editor-app.theme-dark {
+-            /* CSS Variables scoped to the Dark Theme override */
+-            --bg-color: #1e1e2e;
+-            --panel-bg: #282a36;
+-            --text-color: #f8f8f2;
+-            --text-muted: #6272a4;
+-            --primary: #3b82f6;       
+-            --primary-hover: #60a5fa; 
+-            --danger: #ff5555;
+-            --success: #50fa7b;
+-            --border: #44475a;
+-            --toolbar-bg: #21222c;
+-            --preview-bg: #14141e;
+-            --grid-line: #555555;
+-        }
+-
+-        /* Smooth CSS variables transition for premium morph feel */
+-        #svg-editor-app *,
+-        #svg-editor-app *::before,
++	#svg-editor-app.theme-dark {
++	    /* Softer dark theme — less shine, more comfortable */
++	    --bg-color: #1e1e2e;          /* Keep deep background */
++	    --panel-bg: #282a36;          /* Keep panel base */
++	    --text-color: #b8b8b0;        /* Softer, less bright than #f8f8f2 */
++	    --text-muted: #6e6e7a;        /* Muted, comfortable */
++	    --primary: #6b8a9e;           /* Dusty blue instead of bright #3b82f6 */
++	    --primary-hover: #7e9aae;     /* Softer hover */
++	    --danger: #cc8888;            /* Muted red instead of #ff5555 */
++	    --success: #88aa88;           /* Muted green instead of #50fa7b */
++	    --border: #3d3f4f;            /* Slightly darker than #44475a for less contrast */
++	    --toolbar-bg: #252530;        /* Slightly darker */
++	    --preview-bg: #1a1a24;        /* Deeper preview background */
++	    --grid-line: #3a3a45;         /* Softer grid lines */
++	}
++
++	#svg-editor-app *::before,
+         #svg-editor-app *::after {
+             transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, stroke 0.3s ease, fill 0.3s ease;
+         }
+@@ -478,7 +471,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v5.3.0</div>
++                <div class="footer-right">v5.3.3</div>
+             </footer>
+         </div>
+     </div>
+@@ -487,7 +480,7 @@
+         // Completely encase application logic in IIFE to protect host environments
+         (function() {
+             // Theme Controller Implementation
+-            const APP_THEME = 'light'; // Supports 'auto', 'dark', 'light'
++            const APP_THEME = 'auto'; // Supports 'auto', 'dark', 'light'
+ 
+             function applyTheme() {
+                 const body = document.body;

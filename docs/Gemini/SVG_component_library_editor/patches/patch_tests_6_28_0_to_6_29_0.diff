@@ -1,0 +1,30 @@
+--- svg_component_editor_v6_28_0_tests.js	2026-06-04 15:46:37.227258883 +0300
++++ svg_component_editor_v6_29_0_tests.js	2026-06-04 15:49:57.739689200 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.28.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.29.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -246,13 +246,13 @@
+                 window.TEST_API.textarea.selectionStart = attrIdx + 3;
+                 window.TEST_API.textarea.selectionEnd = attrIdx + 3;
+                 
+-                // BUGFIX: The application uses a debounced event listener to update 'activeTagInfo'.
+-                // A static timeout is unreliable for the first array iteration. We explicitly force 
+-                // the internal state machine to re-parse the active tag immediately!
+-                if (typeof window.TEST_API.getActiveTag === 'function') {
+-                    window.TEST_API.getActiveTag();
+-                }
+-                await new Promise(r => setTimeout(r, 10)); // tiny safety buffer
++                // BUGFIX: Direct calls to getActiveTag() threw a TypeError because the internal function 
++                // expects a native DOM Event object to read properties from (like e.touches.length).
++                // We securely bypass this by dispatching natural browser events to trigger the app's listener 
++                // natively, and applying a robust 250ms delay to effortlessly outwait the debounce timer!
++                window.TEST_API.textarea.dispatchEvent(new MouseEvent('click', { bubbles: true }));
++                window.TEST_API.textarea.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
++                await new Promise(r => setTimeout(r, 250)); 
+                 
+                 // Fire shotgun API cascade for the rotation command
+                 const commands = [[`rot_${angle}`], ['rotate', angle], [angle], [Number(angle)], [`rotate_${angle}`]];

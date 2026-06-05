@@ -1,0 +1,42 @@
+--- svg_component_editor_v6_8_0_tests.js	2026-06-04 12:22:41.952561565 +0300
++++ svg_component_editor_v6_9_0_tests.js	2026-06-04 12:27:31.214167857 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.8.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.9.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -104,9 +104,9 @@
+ 
+         // Apply 2x scale, centered, enlarged styling per requirements
+         toast.style.position = 'fixed';
+-        toast.style.bottom = '40px';
++        toast.style.top = '50%';
+         toast.style.left = '50%';
+-        toast.style.transform = 'translateX(-50%)';
++        toast.style.transform = 'translate(-50%, -50%)';
+         toast.style.padding = '20px 40px';
+         toast.style.fontSize = '24px'; 
+         toast.style.fontWeight = 'bold';
+@@ -118,7 +118,8 @@
+         toast.style.textAlign = 'center';
+         toast.style.pointerEvents = 'none';
+         
+-        const message = `🧪 Tests: ${passed} passed, ${failed} failed. App reset.`;
++        const statusIcon = failed > 0 ? '❌' : '✅';
++        const message = `${statusIcon} Tests: ${passed} passed, ${failed} failed. App reset.`;
+ 
+         // The Enforcer: Actively lock styles and text to prevent main app from overwriting or hiding it
+         const enforcerInterval = setInterval(() => {
+@@ -191,7 +192,9 @@
+         }
+ 
+         // Execution Summary
+-        console.table({ '✅ Passed': passed, '❌ Failed': failed, '📊 Total': passed + failed });
++        const passedStr = passed > 0 ? `${passed} ✅` : passed;
++        const failedStr = failed > 0 ? `${failed} ❌` : `${failed} ✅`;
++        console.table({ 'Passed': passedStr, 'Failed': failedStr, 'Total': passed + failed });
+         
+         // Safely wipe tests, restore user file, and flash the secure enforcer toast
+         resetAppToInitialState();

@@ -1,0 +1,38 @@
+--- svg_component_editor_v6_5_0.html	2026-06-02 13:57:45.172544214 +0300
++++ svg_component_editor_v6_6_0.html	2026-06-02 19:04:01.704086258 +0300
+@@ -474,7 +474,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v6.5.0</div>
++                <div class="footer-right">v6.6.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -2026,7 +2026,7 @@
+ 
+             // --- Grid & Viewport Management ---
+             function updateGrid(code) {
+-                let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
++                let viewBoxMatch = code.replace(/<!--[\s\S]*?-->/g, '').match(/viewBox=["']([^"']+)["']/i);
+                 let vb = viewBoxMatch ? viewBoxMatch[1].trim().split(/[\s,]+/).map(Number) : [0, 0, 100, 100];
+                 
+                 if (vb.length < 4 || vb.some(isNaN) || vb[2] <= 0 || vb[3] <= 0) {
+@@ -2576,7 +2576,7 @@
+                 if (/<svg/i.test(code)) {
+                     finalSVG = code;
+                 } else if (/<symbol/i.test(code)) {
+-                    let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
++                    let viewBoxMatch = code.replace(/<!--[\s\S]*?-->/g, '').match(/viewBox=["']([^"']+)["']/i);
+                     let viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+                     let idMatch = code.match(/<symbol[^>]*id=["']([^"']+)["']/i);
+                     let symbolId = idMatch ? idMatch[1] : "component";
+@@ -2587,7 +2587,7 @@
+                                `  <use href="#${symbolId}" />\n` +
+                                `</svg>`;
+                 } else {
+-                    let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
++                    let viewBoxMatch = code.replace(/<!--[\s\S]*?-->/g, '').match(/viewBox=["']([^"']+)["']/i);
+                     let viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+                     let indentedCode = code.split('\n').map(line => '  ' + line).join('\n');
+                     finalSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">\n${indentedCode}\n</svg>`;

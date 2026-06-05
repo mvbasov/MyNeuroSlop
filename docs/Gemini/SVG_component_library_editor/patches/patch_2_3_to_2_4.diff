@@ -1,0 +1,359 @@
+--- svg_component_editor_v2_3.html	2026-05-31 19:17:26.525529956 +0300
++++ svg_component_editor_v2_4.html	2026-05-31 19:17:26.525529956 +0300
+@@ -368,7 +368,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v2.3</footer>
++    <footer>v2.4</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -395,17 +395,22 @@
+         const gridPatternLine = document.getElementById('gridPatternLine');
+         const gridLabels = document.getElementById('grid-labels');
+         const errorBadge = document.getElementById('error-badge');
+-        
+         const toggleGrid = document.getElementById('toggle-grid');
+ 
+-        // State
++        // State & Singletons
+         let history = [];
+         let historyIndex = -1;
+         let lastValidRender = "";
+         let activeTagInfo = null;
+         let debounceTimeout;
++        let selectionRafId = null;
++        let scrollRafId = null;
++        
+         // Track previously highlighted node to restore its state
+         let previouslyHighlightedNode = { node: null, originalStroke: null };
++        
++        // Reusable Parser Singleton (optimization)
++        const domParser = new DOMParser();
+ 
+         // Initialization
+         window.onload = () => {
+@@ -422,11 +427,18 @@
+         });
+ 
+         const selectionEvents = ['keyup', 'click', 'focus', 'touchend'];
+-        selectionEvents.forEach(evt => textarea.addEventListener(evt, () => updateSelection()));
++        selectionEvents.forEach(evt => textarea.addEventListener(evt, () => {
++            // Debounce selection updates to animation frame to prevent layout thrashing
++            if (selectionRafId) cancelAnimationFrame(selectionRafId);
++            selectionRafId = requestAnimationFrame(updateSelection);
++        }));
+ 
+         textarea.addEventListener('scroll', () => {
+-            backdrop.scrollTop = textarea.scrollTop;
+-            backdrop.scrollLeft = textarea.scrollLeft;
++            if (scrollRafId) cancelAnimationFrame(scrollRafId);
++            scrollRafId = requestAnimationFrame(() => {
++                backdrop.scrollTop = textarea.scrollTop;
++                backdrop.scrollLeft = textarea.scrollLeft;
++            });
+         });
+ 
+         toggleGrid.addEventListener('change', () => {
+@@ -436,7 +448,12 @@
+         window.addEventListener('keydown', (e) => {
+             if (e.ctrlKey || e.metaKey) {
+                 if (e.key === 'z') { e.preventDefault(); undo(); }
+-                if (e.key === 'y') { e.preventDefault(); redo(); }
++                if (e.key === 'y' || (e.shiftKey && e.key === 'Z')) { e.preventDefault(); redo(); }
++            }
++            // Add fast arrow movement throttling natively
++            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
++                if (selectionRafId) cancelAnimationFrame(selectionRafId);
++                selectionRafId = requestAnimationFrame(updateSelection);
+             }
+         });
+ 
+@@ -444,17 +461,15 @@
+         function processInput(forceUpdate = false) {
+             const code = textarea.value;
+             
+-            // Check for parsing errors by mocking the parse process
+-            const parser = new DOMParser();
+-            // Convert symbol to svg so it can be parsed natively for BBoxes
++            // Check for parsing errors by converting symbol to svg
+             const previewCode = code.replace(/<symbol/gi, '<svg').replace(/<\/symbol>/gi, '</svg>');
+-            const doc = parser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${previewCode}</svg>`, "image/svg+xml");
++            const doc = domParser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${previewCode}</svg>`, "image/svg+xml");
+             const isError = doc.querySelector("parsererror");
+ 
+             if (isError) {
+                 errorBadge.style.display = 'inline-block';
+-                // Update highlight but do not update preview
+-                updateSelection();
++                if (selectionRafId) cancelAnimationFrame(selectionRafId);
++                selectionRafId = requestAnimationFrame(updateSelection);
+                 return;
+             }
+             
+@@ -463,7 +478,9 @@
+             userSvgContainer.innerHTML = previewCode;
+             
+             updateGrid(code);
+-            updateSelection();
++            
++            if (selectionRafId) cancelAnimationFrame(selectionRafId);
++            selectionRafId = requestAnimationFrame(updateSelection);
+         }
+ 
+         // --- History System ---
+@@ -621,6 +638,12 @@
+ 
+         // Identify specific point or path command near cursor for secondary highlight
+         function getActiveSubElement(tagStr, relPos, tagName, activeNode) {
++            // Helper function to find attribute boundaries
++            const getAttrMatch = (attr) => {
++                const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
++                return m ? { start: m.index, end: m.index + m[0].length } : null;
++            };
++
+             if (['polygon', 'polyline'].includes(tagName)) {
+                 const pointsMatch = tagStr.match(/\bpoints=["']([^"']+)["']/i);
+                 if (pointsMatch) {
+@@ -645,11 +668,6 @@
+             }
+ 
+             if (tagName === 'line') {
+-                const getAttrMatch = (attr) => {
+-                    const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+-                    return m ? { start: m.index, end: m.index + m[0].length } : null;
+-                };
+-                
+                 const checkPair = (a1, a2) => {
+                     const m1 = getAttrMatch(a1);
+                     const m2 = getAttrMatch(a2);
+@@ -686,11 +704,6 @@
+             }
+ 
+             if (tagName === 'rect') {
+-                const getAttrMatch = (attr) => {
+-                    const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+-                    return m ? { start: m.index, end: m.index + m[0].length } : null;
+-                };
+-
+                 let xVal = parseFloat(activeNode.getAttribute('x') || 0);
+                 let yVal = parseFloat(activeNode.getAttribute('y') || 0);
+                 let wVal = parseFloat(activeNode.getAttribute('width') || 0);
+@@ -718,11 +731,6 @@
+             }
+ 
+             if (tagName === 'circle') {
+-                const getAttrMatch = (attr) => {
+-                    const m = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+-                    return m ? { start: m.index, end: m.index + m[0].length } : null;
+-                };
+-
+                 const checkPair = (a1, a2) => {
+                     const m1 = getAttrMatch(a1);
+                     const m2 = getAttrMatch(a2);
+@@ -1001,8 +1009,8 @@
+             gridRect.setAttribute('width', vw);
+             gridRect.setAttribute('height', vh);
+ 
+-            // Generate Labels (first, last, and every 2nd interval)
+-            let labelsHTML = '';
++            // Generate Labels (Optimized to use array joining instead of string concatenation)
++            let labelsArr = [];
+             
+             // Add upper bounds to maxSteps to prevent infinite loops
+             const maxStepsX = Math.min(Math.floor(vw / step), 500);
+@@ -1013,13 +1021,13 @@
+                 if (i === 0 || i === maxStepsX || i % 2 === 0) {
+                     let valX = vx + i * step;
+                     let textX = parseFloat(valX.toFixed(2));
+-                    labelsHTML += `<text x="${valX}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`;
++                    labelsArr.push(`<text x="${valX}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`);
+                 }
+             }
+             
+             if (vw - maxStepsX * step > 0.001 && maxStepsX < 500) {
+                 let textX = parseFloat((vx + vw).toFixed(2));
+-                labelsHTML += `<text x="${vx + vw}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`;
++                labelsArr.push(`<text x="${vx + vw}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`);
+             }
+ 
+             // Y-axis labels
+@@ -1027,16 +1035,16 @@
+                 if (i === 0 || i === maxStepsY || i % 2 === 0) {
+                     let valY = vy + i * step;
+                     let textY = parseFloat(valY.toFixed(2));
+-                    labelsHTML += `<text x="${vx - step*0.3}" y="${valY + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`;
++                    labelsArr.push(`<text x="${vx - step*0.3}" y="${valY + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`);
+                 }
+             }
+             
+             if (vh - maxStepsY * step > 0.001 && maxStepsY < 500) {
+                 let textY = parseFloat((vy + vh).toFixed(2));
+-                labelsHTML += `<text x="${vx - step*0.3}" y="${vy + vh + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`;
++                labelsArr.push(`<text x="${vx - step*0.3}" y="${vy + vh + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`);
+             }
+ 
+-            gridLabels.innerHTML = labelsHTML;
++            gridLabels.innerHTML = labelsArr.join('');
+         }
+ 
+         // --- Tools (Move, Insert, Delete) ---
+@@ -1238,85 +1246,45 @@
+                 }
+             }
+ 
+-            // C. Check near x1/y1 vs x2/y2 for lines
+-            if (!pointMoved && tagName === 'line') {
+-                const isNearAttr = (attrList) => {
+-                    for (let attr of attrList) {
+-                        const match = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+-                        if (match && relPos >= match.index && relPos <= match.index + match[0].length) {
+-                            return true;
+-                        }
++            // Helper to check attributes cleanly
++            const checkAndAdjustNearAttr = (attrList, xDelta, yDelta, postFixFn = null) => {
++                for (let attr of attrList) {
++                    const match = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
++                    if (match && relPos >= match.index && relPos <= match.index + match[0].length) {
++                        if (xDelta !== 0) tagStr = adjustAttr(tagStr, attrList[0], xDelta);
++                        if (yDelta !== 0 && attrList.length > 1) tagStr = adjustAttr(tagStr, attrList[1], yDelta);
++                        if (postFixFn) tagStr = postFixFn(tagStr);
++                        return true;
+                     }
+-                    return false;
+-                };
+-                
+-                if (isNearAttr(['x1', 'y1'])) {
+-                    tagStr = adjustAttr(tagStr, 'x1', dx);
+-                    tagStr = adjustAttr(tagStr, 'y1', dy);
+-                    pointMoved = true;
+-                } else if (isNearAttr(['x2', 'y2'])) {
+-                    tagStr = adjustAttr(tagStr, 'x2', dx);
+-                    tagStr = adjustAttr(tagStr, 'y2', dy);
+-                    pointMoved = true;
+                 }
++                return false;
++            };
++
++            // C. Check near x1/y1 vs x2/y2 for lines
++            if (!pointMoved && tagName === 'line') {
++                pointMoved = checkAndAdjustNearAttr(['x1', 'y1'], dx, dy) || checkAndAdjustNearAttr(['x2', 'y2'], dx, dy);
+             }
+ 
+             // D. Check near cx/cy or r for circles
+             if (!pointMoved && tagName === 'circle') {
+-                const isNearAttr = (attrList) => {
+-                    for (let attr of attrList) {
+-                        const match = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+-                        if (match && relPos >= match.index && relPos <= match.index + match[0].length) {
+-                            return true;
+-                        }
+-                    }
+-                    return false;
+-                };
+-
+-                if (isNearAttr(['cx', 'cy'])) {
+-                    tagStr = adjustAttr(tagStr, 'cx', dx);
+-                    tagStr = adjustAttr(tagStr, 'cy', dy);
+-                    pointMoved = true;
+-                } else if (isNearAttr(['r'])) {
+-                    const deltaR = dx - dy; // right(dx=+1) or up(dy=-1) => +1. left(dx=-1) or down(dy=+1) => -1
+-                    tagStr = adjustAttr(tagStr, 'r', deltaR);
+-                    // Prevent radius from becoming negative
+-                    tagStr = tagStr.replace(/\br=["']([^"']+)["']/i, (m, v) => {
+-                        let n = parseFloat(v);
+-                        return `r="${n < 0 ? 0 : n}"`;
++                pointMoved = checkAndAdjustNearAttr(['cx', 'cy'], dx, dy);
++                if (!pointMoved) {
++                    // Radius movement logic
++                    pointMoved = checkAndAdjustNearAttr(['r'], dx - dy, 0, (str) => {
++                        return str.replace(/\br=["']([^"']+)["']/i, (m, v) => `r="${Math.max(0, parseFloat(v))}"`);
+                     });
+-                    pointMoved = true;
+                 }
+             }
+ 
+             // E. Check near width/height for rect
+             if (!pointMoved && tagName === 'rect') {
+-                const isNearAttr = (attrList) => {
+-                    for (let attr of attrList) {
+-                        const match = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+-                        if (match && relPos >= match.index && relPos <= match.index + match[0].length) {
+-                            return true;
+-                        }
+-                    }
+-                    return false;
+-                };
+-
+-                if (isNearAttr(['width'])) {
+-                    const deltaW = dx - dy; 
+-                    tagStr = adjustAttr(tagStr, 'width', deltaW);
+-                    tagStr = tagStr.replace(/\bwidth=["']([^"']+)["']/i, (m, v) => {
+-                        let n = parseFloat(v);
+-                        return `width="${n < 0 ? 0 : n}"`;
+-                    });
+-                    pointMoved = true;
+-                } else if (isNearAttr(['height'])) {
+-                    const deltaH = dx - dy; 
+-                    tagStr = adjustAttr(tagStr, 'height', deltaH);
+-                    tagStr = tagStr.replace(/\bheight=["']([^"']+)["']/i, (m, v) => {
+-                        let n = parseFloat(v);
+-                        return `height="${n < 0 ? 0 : n}"`;
++                pointMoved = checkAndAdjustNearAttr(['width'], dx - dy, 0, (str) => {
++                    return str.replace(/\bwidth=["']([^"']+)["']/i, (m, v) => `width="${Math.max(0, parseFloat(v))}"`);
++                });
++                if (!pointMoved) {
++                    pointMoved = checkAndAdjustNearAttr(['height'], dx - dy, 0, (str) => {
++                        return str.replace(/\bheight=["']([^"']+)["']/i, (m, v) => `height="${Math.max(0, parseFloat(v))}"`);
+                     });
+-                    pointMoved = true;
+                 }
+             }
+ 
+@@ -1354,8 +1322,10 @@
+             updateCode(newCode, true);
+             textarea.focus();
+             textarea.setSelectionRange(newCursor, newCursor);
+-            updateSelection();
+-            setTimeout(() => updateSelection(), 10);
++            
++            // Re-trigger selection using RAF for smoothness
++            if (selectionRafId) cancelAnimationFrame(selectionRafId);
++            selectionRafId = requestAnimationFrame(updateSelection);
+         }
+ 
+         function rotateShape(angle) {
+@@ -1573,8 +1543,8 @@
+             textarea.focus();
+             textarea.setSelectionRange(newCursor, newCursor);
+             
+-            updateSelection();
+-            setTimeout(() => updateSelection(), 10);
++            if (selectionRafId) cancelAnimationFrame(selectionRafId);
++            selectionRafId = requestAnimationFrame(updateSelection);
+         }
+ 
+         function insertShape(type) {
+@@ -1608,7 +1578,9 @@
+             const newPos = insertPos + indent.length + template.length;
+             textarea.focus();
+             textarea.setSelectionRange(newPos, newPos);
+-            updateSelection();
++            
++            if (selectionRafId) cancelAnimationFrame(selectionRafId);
++            selectionRafId = requestAnimationFrame(updateSelection);
+         }
+ 
+         function deleteActiveShape() {
+@@ -1627,7 +1599,9 @@
+             
+             textarea.focus();
+             textarea.setSelectionRange(start, start);
+-            updateSelection();
++            
++            if (selectionRafId) cancelAnimationFrame(selectionRafId);
++            selectionRafId = requestAnimationFrame(updateSelection);
+         }
+ 
+         // --- Output ---

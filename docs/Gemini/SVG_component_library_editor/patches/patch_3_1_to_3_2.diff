@@ -1,0 +1,340 @@
+--- svg_component_editor_v3_1.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_2.html	2026-05-31 19:17:26.529529970 +0300
+@@ -369,7 +369,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v3.1</footer>
++    <footer>v3.2</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -517,6 +517,127 @@
+             if (save) saveHistory(newCode);
+         }
+ 
++        // --- Grid & Viewport Management ---
++        function updateGrid(code) {
++            let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
++            let vb = viewBoxMatch ? viewBoxMatch[1].trim().split(/[\s,]+/).map(Number) : [0, 0, 100, 100];
++            
++            if (vb.length < 4 || vb.some(isNaN) || vb[2] <= 0 || vb[3] <= 0) {
++                vb = [0, 0, 100, 100];
++            }
++            
++            const vx = vb[0], vy = vb[1], vw = vb[2], vh = vb[3];
++            const step = vw / 10;
++            const pad = step * 2.5;
++
++            mainSvg.setAttribute('viewBox', `${vx - pad} ${vy - pad} ${vw + 2*pad} ${vh + 2*pad}`);
++            userSvgContainer.setAttribute('x', vx);
++            userSvgContainer.setAttribute('y', vy);
++            userSvgContainer.setAttribute('width', vw);
++            userSvgContainer.setAttribute('height', vh);
++
++            gridPattern.setAttribute('width', step);
++            gridPattern.setAttribute('height', step);
++            gridPatternLine.setAttribute('d', `M ${step} 0 L 0 0 0 ${step}`);
++            
++            gridRect.setAttribute('x', vx);
++            gridRect.setAttribute('y', vy);
++            gridRect.setAttribute('width', vw);
++            gridRect.setAttribute('height', vh);
++
++            let labelsArr = [];
++            const maxStepsX = Math.min(Math.floor(vw / step), 500);
++            const maxStepsY = Math.min(Math.floor(vh / step), 500);
++
++            for (let i = 0; i <= maxStepsX; i++) {
++                if (i === 0 || i === maxStepsX || i % 2 === 0) {
++                    let valX = vx + i * step;
++                    let textX = parseFloat(valX.toFixed(2));
++                    labelsArr.push(`<text x="${valX}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`);
++                }
++            }
++            
++            if (vw - maxStepsX * step > 0.001 && maxStepsX < 500) {
++                let textX = parseFloat((vx + vw).toFixed(2));
++                labelsArr.push(`<text x="${vx + vw}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`);
++            }
++
++            for (let i = 0; i <= maxStepsY; i++) {
++                if (i === 0 || i === maxStepsY || i % 2 === 0) {
++                    let valY = vy + i * step;
++                    let textY = parseFloat(valY.toFixed(2));
++                    labelsArr.push(`<text x="${vx - step*0.3}" y="${valY + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`);
++                }
++            }
++            
++            if (vh - maxStepsY * step > 0.001 && maxStepsY < 500) {
++                let textY = parseFloat((vy + vh).toFixed(2));
++                labelsArr.push(`<text x="${vx - step*0.3}" y="${vy + vh + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`);
++            }
++
++            gridLabels.innerHTML = labelsArr.join('');
++        }
++
++        // Custom HTML/XML parser to map cursor positions to DOM hierarchy
++        function getActiveTag(html, cursor) {
++            const regex = /(<!--[\s\S]*?-->|<\/?([a-z0-9:-]+)[^>]*>)/gi;
++            let match;
++            let stack = [];
++            let domIndex = 0;
++            let elements = [];
++
++            while ((match = regex.exec(html)) !== null) {
++                const text = match[0];
++                const start = match.index;
++                const end = start + text.length;
++
++                if (text.startsWith('<!--')) continue;
++
++                if (text.startsWith('</')) {
++                    if (stack.length > 0) {
++                        let top = stack.pop();
++                        top.fullEnd = end;
++                        top.closeStart = start;
++                    }
++                    continue;
++                }
++
++                const isSelfClosing = text.endsWith('/>');
++                const tagNameMatch = text.match(/<([a-z0-9:-]+)/i);
++                const tagName = tagNameMatch ? tagNameMatch[1] : '';
++
++                const el = { domIndex: domIndex++, start: start, tagEnd: end, fullEnd: end, closeStart: isSelfClosing ? end : -1, tagName: tagName };
++                elements.push(el);
++
++                if (!isSelfClosing && tagName.toLowerCase() !== 'br' && tagName.toLowerCase() !== 'hr') {
++                    stack.push(el);
++                }
++            }
++
++            for (let s of stack) {
++                s.fullEnd = html.length;
++                s.closeStart = html.length;
++            }
++
++            let active = null;
++            let minSize = Infinity;
++            for (let el of elements) {
++                // Determine if cursor is enclosed by the full tag scope
++                if (cursor >= el.start && cursor <= el.fullEnd) {
++                    let size = el.fullEnd - el.start;
++                    if (size < minSize) {
++                        minSize = size;
++                        active = el;
++                    }
++                }
++            }
++            return active;
++        }
++
++        function escapeHTML(str) {
++            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
++        }
++
+         // --- Tracking & Highlighting ---
+         function updateSelection() {
+             const code = textarea.value;
+@@ -662,6 +783,15 @@
+                 return m ? { start: m.index, end: m.index + m[0].length } : null;
+             };
+ 
++            // Universal attribute checks
++            const swMatch = getAttrMatch('stroke-width');
++            if (swMatch && relPos >= swMatch.start && relPos <= swMatch.end) {
++                return {
++                    start: swMatch.start,
++                    end: swMatch.end
++                };
++            }
++
+             if (['polygon', 'polyline'].includes(tagName)) {
+                 const pointsMatch = tagStr.match(/\bpoints=["']([^"']+)["']/i);
+                 if (pointsMatch) {
+@@ -1037,7 +1167,7 @@
+                                     cy: endY
+                                 };
+                                 
+-                                // Extra visual feedback for Bezier Q Curves
++                                // Extra visual feedback for Bezier Curves
+                                 if (upper === 'Q') {
+                                     ret.qData = {
+                                         startX: qStartX,
+@@ -1073,139 +1203,6 @@
+             return null;
+         }
+ 
+-        // Custom HTML/XML parser to map cursor positions to DOM hierarchy
+-        function getActiveTag(html, cursor) {
+-            const regex = /(<!--[\s\S]*?-->|<\/?([a-z0-9:-]+)[^>]*>)/gi;
+-            let match;
+-            let stack = [];
+-            let domIndex = 0;
+-            let elements = [];
+-
+-            while ((match = regex.exec(html)) !== null) {
+-                const text = match[0];
+-                const start = match.index;
+-                const end = start + text.length;
+-
+-                if (text.startsWith('<!--')) continue;
+-
+-                if (text.startsWith('</')) {
+-                    if (stack.length > 0) {
+-                        let top = stack.pop();
+-                        top.fullEnd = end;
+-                        top.closeStart = start;
+-                    }
+-                    continue;
+-                }
+-
+-                const isSelfClosing = text.endsWith('/>');
+-                const tagNameMatch = text.match(/<([a-z0-9:-]+)/i);
+-                const tagName = tagNameMatch ? tagNameMatch[1] : '';
+-
+-                const el = { domIndex: domIndex++, start: start, tagEnd: end, fullEnd: end, closeStart: isSelfClosing ? end : -1, tagName: tagName };
+-                elements.push(el);
+-
+-                if (!isSelfClosing && tagName.toLowerCase() !== 'br' && tagName.toLowerCase() !== 'hr') {
+-                    stack.push(el);
+-                }
+-            }
+-
+-            for (let s of stack) {
+-                s.fullEnd = html.length;
+-                s.closeStart = html.length;
+-            }
+-
+-            let active = null;
+-            let minSize = Infinity;
+-            for (let el of elements) {
+-                // Determine if cursor is enclosed by the full tag scope
+-                if (cursor >= el.start && cursor <= el.fullEnd) {
+-                    let size = el.fullEnd - el.start;
+-                    if (size < minSize) {
+-                        minSize = size;
+-                        active = el;
+-                    }
+-                }
+-            }
+-            return active;
+-        }
+-
+-        function escapeHTML(str) {
+-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+-        }
+-
+-        // --- Grid & Viewport Management ---
+-        function updateGrid(code) {
+-            // Extract viewBox from user code or use default
+-            let viewBoxMatch = code.match(/viewBox=["']([^"']+)["']/i);
+-            let vb = viewBoxMatch ? viewBoxMatch[1].trim().split(/[\s,]+/).map(Number) : [0, 0, 100, 100];
+-            
+-            // Fallback for invalid parsing or zero/negative dimensions which cause infinite loops
+-            if (vb.length < 4 || vb.some(isNaN) || vb[2] <= 0 || vb[3] <= 0) {
+-                vb = [0, 0, 100, 100];
+-            }
+-            
+-            const vx = vb[0], vy = vb[1], vw = vb[2], vh = vb[3];
+-            const step = vw / 10;
+-            const pad = step * 2.5; // Padding to fit coordinate labels safely
+-
+-            // Configure Master Viewbox
+-            mainSvg.setAttribute('viewBox', `${vx - pad} ${vy - pad} ${vw + 2*pad} ${vh + 2*pad}`);
+-            
+-            // Set User Container explicitly
+-            userSvgContainer.setAttribute('x', vx);
+-            userSvgContainer.setAttribute('y', vy);
+-            userSvgContainer.setAttribute('width', vw);
+-            userSvgContainer.setAttribute('height', vh);
+-
+-            // Configure Grid Pattern
+-            gridPattern.setAttribute('width', step);
+-            gridPattern.setAttribute('height', step);
+-            gridPatternLine.setAttribute('d', `M ${step} 0 L 0 0 0 ${step}`);
+-            
+-            // Configure Grid Area
+-            gridRect.setAttribute('x', vx);
+-            gridRect.setAttribute('y', vy);
+-            gridRect.setAttribute('width', vw);
+-            gridRect.setAttribute('height', vh);
+-
+-            // Generate Labels (Optimized to use array joining instead of string concatenation)
+-            let labelsArr = [];
+-            
+-            // Add upper bounds to maxSteps to prevent infinite loops
+-            const maxStepsX = Math.min(Math.floor(vw / step), 500);
+-            const maxStepsY = Math.min(Math.floor(vh / step), 500);
+-
+-            // X-axis labels
+-            for (let i = 0; i <= maxStepsX; i++) {
+-                if (i === 0 || i === maxStepsX || i % 2 === 0) {
+-                    let valX = vx + i * step;
+-                    let textX = parseFloat(valX.toFixed(2));
+-                    labelsArr.push(`<text x="${valX}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`);
+-                }
+-            }
+-            
+-            if (vw - maxStepsX * step > 0.001 && maxStepsX < 500) {
+-                let textX = parseFloat((vx + vw).toFixed(2));
+-                labelsArr.push(`<text x="${vx + vw}" y="${vy - step*0.3}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="middle" font-family="var(--font-mono)">${textX}</text>`);
+-            }
+-
+-            // Y-axis labels
+-            for (let i = 0; i <= maxStepsY; i++) {
+-                if (i === 0 || i === maxStepsY || i % 2 === 0) {
+-                    let valY = vy + i * step;
+-                    let textY = parseFloat(valY.toFixed(2));
+-                    labelsArr.push(`<text x="${vx - step*0.3}" y="${valY + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`);
+-                }
+-            }
+-            
+-            if (vh - maxStepsY * step > 0.001 && maxStepsY < 500) {
+-                let textY = parseFloat((vy + vh).toFixed(2));
+-                labelsArr.push(`<text x="${vx - step*0.3}" y="${vy + vh + step*0.15}" font-size="${step*0.4}" fill="var(--grid-line)" text-anchor="end" font-family="var(--font-mono)">${textY}</text>`);
+-            }
+-
+-            gridLabels.innerHTML = labelsArr.join('');
+-        }
+-
+         // --- Tools (Move, Insert, Delete) ---
+         function moveShape(dx, dy) {
+             if (!activeTagInfo) return;
+@@ -1405,7 +1402,6 @@
+                 }
+             }
+ 
+-            // Helper to check attributes cleanly
+             const checkAndAdjustNearAttr = (attrList, xDelta, yDelta, postFixFn = null) => {
+                 for (let attr of attrList) {
+                     const match = tagStr.match(new RegExp(`\\b${attr}=["'][^"']*["']`, 'i'));
+@@ -1428,7 +1424,6 @@
+             if (!pointMoved && tagName === 'circle') {
+                 pointMoved = checkAndAdjustNearAttr(['cx', 'cy'], dx, dy);
+                 if (!pointMoved) {
+-                    // Radius movement logic
+                     pointMoved = checkAndAdjustNearAttr(['r'], dx - dy, 0, (str) => {
+                         return str.replace(/\br=["']([^"']+)["']/i, (m, v) => `r="${Math.max(0, parseFloat(v))}"`);
+                     });
+@@ -1465,6 +1460,19 @@
+                 pointMoved = checkAndAdjustNearAttr(['x', 'y'], dx, dy);
+             }
+ 
++            // G. Universal check for stroke-width
++            if (!pointMoved) {
++                // For stroke-width step 0.1, we bypass checkAndAdjustNearAttr's default logic by passing the calculated step inside xDelta
++                pointMoved = checkAndAdjustNearAttr(['stroke-width'], (dx - dy) * 0.1, 0, (str) => {
++                    return str.replace(/\bstroke-width=["']([^"']+)["']/i, (m, v) => {
++                        let currentVal = parseFloat(v);
++                        if (isNaN(currentVal)) currentVal = 1;
++                        // Avoid float rounding errors
++                        return `stroke-width="${Math.max(0, currentVal).toFixed(1).replace(/\.0$/, '')}"`;
++                    });
++                });
++            }
++
+             // --- 2. Element Move Logic (Fallback if cursor is not on a specific point) ---
+             if (!pointMoved) {
+                 if (tagName === 'circle' || tagName === 'ellipse') {

@@ -1,0 +1,65 @@
+--- svg_component_editor_v3_8.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_9.html	2026-05-31 19:17:26.529529970 +0300
+@@ -238,8 +238,8 @@
+             border: none;
+             outline: none;
+             resize: none;
+-            white-space: pre-wrap;
+-            word-wrap: break-word;
++            white-space: pre;       /* Prevents word-wrap synchronization bugs */
++            overflow-wrap: normal;  
+             box-sizing: border-box;
+             tab-size: 2;
+         }
+@@ -249,12 +249,13 @@
+             background: transparent;
+             caret-color: var(--primary);
+             z-index: 2;
++            overflow: auto; /* Ensures scrollbar appears when needed */
+         }
+ 
+         .backdrop {
+             z-index: 1;
+             color: var(--text-color);
+-            overflow: hidden;
++            overflow: auto; /* Matches textarea to perfectly sync clientHeight/clientWidth */
+             pointer-events: none;
+         }
+ 
+@@ -369,7 +370,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v3.8</footer>
++    <footer>v3.9</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -759,6 +760,7 @@
+             }
+             
+             // 1. Update text backdrop
++            let finalHTML = '';
+             if (activeTagInfo) {
+                 const before = escapeHTML(code.substring(0, activeTagInfo.start));
+                 let highlight = '';
+@@ -783,10 +785,17 @@
+                 }
+                 
+                 const after = escapeHTML(code.substring(activeTagInfo.tagEnd));
+-                backdrop.innerHTML = before + `<mark>${highlight}</mark>` + after;
++                finalHTML = before + `<mark>${highlight}</mark>` + after;
+             } else {
+-                backdrop.innerHTML = escapeHTML(code);
++                finalHTML = escapeHTML(code);
+             }
++            
++            // Fix vertical alignment desync by ensuring trailing empty lines are preserved in the backdrop div
++            if (code.endsWith('\n')) {
++                finalHTML += ' ';
++            }
++            
++            backdrop.innerHTML = finalHTML;
+         }
+ 
+         // Identify specific point or path command near cursor for secondary highlight

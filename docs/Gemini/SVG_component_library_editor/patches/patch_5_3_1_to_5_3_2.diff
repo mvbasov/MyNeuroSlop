@@ -1,0 +1,48 @@
+--- svg_component_editor_v5_3_1.html	2026-06-01 20:59:17.789795823 +0300
++++ svg_component_editor_v5_3_2.html	2026-06-01 21:05:25.390018945 +0300
+@@ -24,21 +24,21 @@
+         #svg-editor-app {
+             /* CSS Variables scoped only to the app - Default Light Theme */
+ 
+-            /* 1. Background & Panels */
+-            --bg-color: #f9fafb;
+-            --panel-bg: #ffffff;
+-            --preview-bg: #ffffff;
+-    
+-            /* 2. Text & UI */
+-            --text-color: #374151;
+-            --text-muted: #9ca3af;
+-            --border: #e5e7eb;
+-            --toolbar-bg: #f3f4f6;
+-    
+-            /* 3. Drawing & Accent Colors */
+-            --primary: #4f46e5;
+-            --primary-hover: #4338ca;
+-            --grid-line: #e5e7eb;
++/* 1. Backgrounds (Keep these for the clean shine) */
++    --bg-color: #f0f7ff;
++    --panel-bg: #ffffff;
++    --preview-bg: #fcfdff;
++
++    /* 2. Soft Text & UI */
++    --text-color: #636688; /* Softer, less intense than the previous violet */
++    --text-muted: #94a3b8;
++    --border: #e2e8f0;
++    --toolbar-bg: #f8fafc; /* Softer toolbar base */
++
++    /* 3. Softened "Pastel" Accents */
++    --primary: #9396f5;       /* Desaturated periwinkle */
++    --primary-hover: #7a7ef1; 
++    --grid-line: #e2e8f0;     /* Extremely subtle grid */
+ 
+             --danger: #dc2626;
+             --success: #16a34a;
+@@ -487,7 +487,7 @@
+         // Completely encase application logic in IIFE to protect host environments
+         (function() {
+             // Theme Controller Implementation
+-            const APP_THEME = 'auto'; // Supports 'auto', 'dark', 'light'
++            const APP_THEME = 'light'; // Supports 'auto', 'dark', 'light'
+ 
+             function applyTheme() {
+                 const body = document.body;

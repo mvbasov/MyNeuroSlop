@@ -1,0 +1,99 @@
+--- svg_component_editor_v3_14.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_16.html	2026-05-31 19:17:26.529529970 +0300
+@@ -220,6 +220,11 @@
+             position: relative;
+             background-color: var(--panel-bg);
+             overflow: hidden;
++            transition: box-shadow 0.2s;
++        }
++
++        .editor-wrapper.drag-over {
++            box-shadow: inset 0 0 0 2px var(--primary);
+         }
+ 
+         textarea, .backdrop {
+@@ -328,8 +333,10 @@
+         <div class="toolbar-group toolbar-right">
+             <button onclick="undo()" title="Undo (Ctrl+Z)">↶</button>
+             <button onclick="redo()" title="Redo (Ctrl+Y)">↷</button>
++            <button class="primary" onclick="document.getElementById('file-input').click()" title="Load File">📂</button>
+             <button class="primary" id="copy-btn" onclick="copyToClipboard()" title="Copy Code">📋</button>
+             <button class="primary" onclick="downloadSVG()" title="Save SVG">💾</button>
++            <input type="file" id="file-input" accept=".svg,.txt,.html,.xml" style="display: none;" onchange="loadFromFile(event)">
+         </div>
+     </header>
+ 
+@@ -354,7 +361,7 @@
+     </div>
+     
+     <div class="panel editor-panel">
+-        <div class="editor-wrapper">
++        <div class="editor-wrapper" id="editor-wrapper">
+             <div class="backdrop" id="backdrop"></div>
+             <textarea id="code" spellcheck="false"></textarea>
+         </div>
+@@ -367,7 +374,7 @@
+                 <input type="checkbox" id="toggle-grid" checked> Grid
+             </label>
+         </div>
+-        <div>v3.14</div>
++        <div>v3.16</div>
+     </footer>
+ 
+     <script>
+@@ -396,6 +403,7 @@
+         const gridLabels = document.getElementById('grid-labels');
+         const errorBadge = document.getElementById('error-badge');
+         const toggleGrid = document.getElementById('toggle-grid');
++        const editorWrapper = document.getElementById('editor-wrapper');
+ 
+         // State & Singletons
+         let history = [];
+@@ -2075,6 +2083,46 @@
+             textarea.focus();
+         }
+ 
++        function loadFromFile(event) {
++            const file = event.target.files[0];
++            if (!file) return;
++
++            const reader = new FileReader();
++            reader.onload = function(e) {
++                updateCode(e.target.result, true);
++                textarea.scrollTop = 0;
++                textarea.scrollLeft = 0;
++            };
++            reader.readAsText(file);
++            event.target.value = ''; // Reset input to allow loading the same file again
++        }
++
++        // Drag and Drop Support
++        if (editorWrapper) {
++            editorWrapper.addEventListener('dragover', (e) => {
++                e.preventDefault();
++                editorWrapper.classList.add('drag-over');
++            });
++            editorWrapper.addEventListener('dragleave', (e) => {
++                e.preventDefault();
++                editorWrapper.classList.remove('drag-over');
++            });
++            editorWrapper.addEventListener('drop', (e) => {
++                e.preventDefault();
++                editorWrapper.classList.remove('drag-over');
++                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
++                    const file = e.dataTransfer.files[0];
++                    const reader = new FileReader();
++                    reader.onload = function(evt) {
++                        updateCode(evt.target.result, true);
++                        textarea.scrollTop = 0;
++                        textarea.scrollLeft = 0;
++                    };
++                    reader.readAsText(file);
++                }
++            });
++        }
++
+     </script>
+ </body>
+ </html>
+\ No newline at end of file

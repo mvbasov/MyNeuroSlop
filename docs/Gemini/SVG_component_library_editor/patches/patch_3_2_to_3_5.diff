@@ -1,0 +1,399 @@
+--- svg_component_editor_v3_2.html	2026-05-31 19:17:26.529529970 +0300
++++ svg_component_editor_v3_5.html	2026-05-31 19:17:26.529529970 +0300
+@@ -369,7 +369,7 @@
+         </div>
+     </div>
+ 
+-    <footer>v3.2</footer>
++    <footer>v3.5</footer>
+ 
+     <script>
+         const defaultCode = `<!-- NPN Transistor -->
+@@ -378,8 +378,8 @@
+     <circle cx="50" cy="50" r="42" stroke-width="2" />
+     <line x1="0" y1="50" x2="35" y2="50" />
+     <line x1="35" y1="28" x2="35" y2="72" stroke-width="4.5" />
+-    <path d="M 35,40 L 60,20 L 60,0" />
+-    <path d="M 35,60 L 60,80 L 60,100" />
++    <path d="M35,40 L60,20 L60,0" />
++    <path d="M35,60 L60,80 L60,100" />
+     <polygon points="58,78 46,76 54,67" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"/>
+   </g>
+ </symbol>`;
+@@ -799,7 +799,7 @@
+                     const valEnd = valStart + pointsMatch[1].length;
+                     if (relPos >= valStart && relPos <= valEnd) {
+                         const localRelPos = relPos - valStart;
+-                        const pairRegex = /(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g;
++                        const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                         let pMatch;
+                         while ((pMatch = pairRegex.exec(pointsMatch[1])) !== null) {
+                             if (localRelPos >= pMatch.index - 1 && localRelPos <= pMatch.index + pMatch[0].length + 1) {
+@@ -997,7 +997,7 @@
+                         while ((cMatch = cmdRegex.exec(dMatch[1])) !== null) {
+                             const chunk = cMatch[0];
+                             const letter = chunk.trim()[0];
+-                            const nums = chunk.substring(1).trim().split(/[\s,]+/).filter(n => n !== "").map(Number);
++                            const nums = (chunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                             const upper = letter.toUpperCase();
+                             const isRel = letter === letter.toLowerCase();
+ 
+@@ -1042,7 +1042,7 @@
+                                     let currentStartY = qStartY;
+                                     let foundSub = null;
+                                     let pMatch;
+-                                    const pairRegex = /(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g;
++                                    const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                                     let pairIndex = 0;
+ 
+                                     while ((pMatch = pairRegex.exec(chunk)) !== null) {
+@@ -1107,7 +1107,7 @@
+                                     let currentStartY = qStartY;
+                                     let foundSub = null;
+                                     let pMatch;
+-                                    const pairRegex = /(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g;
++                                    const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                                     let pairIndex = 0;
+ 
+                                     while ((pMatch = pairRegex.exec(chunk)) !== null) {
+@@ -1160,6 +1160,65 @@
+                                     if (foundSub) return foundSub;
+                                 }
+ 
++                                if (['M', 'L', 'T', 'S'].includes(upper)) {
++                                    let currentStartX = qStartX;
++                                    let currentStartY = qStartY;
++                                    let foundSub = null;
++                                    let pMatch;
++                                    const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++
++                                    while ((pMatch = pairRegex.exec(chunk)) !== null) {
++                                        const pStart = cMatch.index + pMatch.index;
++                                        const pEnd = cMatch.index + pMatch.index + pMatch[0].length;
++
++                                        let absX = isRel ? currentStartX + parseFloat(pMatch[1]) : parseFloat(pMatch[1]);
++                                        let absY = isRel ? currentStartY + parseFloat(pMatch[2]) : parseFloat(pMatch[2]);
++
++                                        if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
++                                            foundSub = {
++                                                start: valStart + pStart,
++                                                end: valStart + pEnd,
++                                                cx: absX,
++                                                cy: absY
++                                            };
++                                            break;
++                                        }
++                                        currentStartX = absX;
++                                        currentStartY = absY;
++                                    }
++                                    if (foundSub) return foundSub;
++                                }
++
++                                if (upper === 'H' || upper === 'V') {
++                                    let currentStartX = qStartX;
++                                    let currentStartY = qStartY;
++                                    let foundSub = null;
++                                    let nMatch;
++                                    const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++
++                                    while ((nMatch = numRegex.exec(chunk)) !== null) {
++                                        const pStart = cMatch.index + nMatch.index;
++                                        const pEnd = cMatch.index + nMatch.index + nMatch[0].length;
++
++                                        let val = parseFloat(nMatch[1]);
++                                        let absX = upper === 'H' ? (isRel ? currentStartX + val : val) : currentStartX;
++                                        let absY = upper === 'V' ? (isRel ? currentStartY + val : val) : currentStartY;
++
++                                        if (localRelPos >= pStart - 1 && localRelPos <= pEnd + 1) {
++                                            foundSub = {
++                                                start: valStart + pStart,
++                                                end: valStart + pEnd,
++                                                cx: absX,
++                                                cy: absY
++                                            };
++                                            break;
++                                        }
++                                        if (upper === 'H') currentStartX = absX;
++                                        if (upper === 'V') currentStartY = absY;
++                                    }
++                                    if (foundSub) return foundSub;
++                                }
++
+                                 let ret = {
+                                     start: valStart + cMatch.index,
+                                     end: valStart + cMatch.index + chunk.length,
+@@ -1225,7 +1284,7 @@
+             function adjustPoints(str, deltaX, deltaY) {
+                 const regex = /\bpoints=["']([^"']+)["']/i;
+                 return str.replace(regex, (match, val) => {
+-                    const newVals = val.split(/[\s,]+/).map(Number);
++                    const newVals = (val.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                     let out = [];
+                     for (let i = 0; i < newVals.length; i += 2) {
+                         if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+@@ -1236,6 +1295,46 @@
+                 });
+             }
+ 
++            // Util: Format polygon points consistently
++            function formatPointsData(pointsStr) {
++                const newVals = (pointsStr.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
++                let out = [];
++                for (let i = 0; i < newVals.length; i += 2) {
++                    if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
++                        out.push(`${newVals[i]},${newVals[i+1]}`);
++                    }
++                }
++                return out.join(' ');
++            }
++
++            // Util: Format path d string consistently
++            function formatPathData(dStr) {
++                const commands = dStr.match(/[a-df-zA-DF-Z][^a-df-zA-DF-Z]*/g);
++                if (!commands) return dStr;
++                return commands.map(cmdChunk => {
++                    const letter = cmdChunk.trim()[0];
++                    const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
++                    const upper = letter.toUpperCase();
++                    if (upper === 'Z') return letter;
++                    let outNums = [];
++                    if (upper === 'H' || upper === 'V') {
++                        for(let n of nums) outNums.push(n);
++                    } else if (upper === 'A') {
++                        for (let i = 0; i < nums.length; i += 7) {
++                            let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
++                            if (i+5 < nums.length) part += ` ${nums[i+5]},${nums[i+6]}`;
++                            outNums.push(part);
++                        }
++                    } else {
++                        for (let i = 0; i < nums.length; i += 2) {
++                            if (i+1 < nums.length) outNums.push(`${nums[i]},${nums[i+1]}`);
++                            else outNums.push(nums[i]);
++                        }
++                    }
++                    return letter + outNums.join(' ');
++                }).join(' ');
++            }
++
+             // Util: Shift all coordinates in a full path d string
+             function shiftPathD(dStr, deltaX, deltaY) {
+                 const commands = dStr.match(/[a-df-zA-DF-Z][^a-df-zA-DF-Z]*/g);
+@@ -1243,36 +1342,38 @@
+                 let firstCmd = true;
+                 const res = commands.map(cmdChunk => {
+                     const letter = cmdChunk.trim()[0];
+-                    const nums = cmdChunk.substring(1).trim().split(/[\s,]+/).filter(n => n !== "").map(Number);
++                    const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                     const upper = letter.toUpperCase();
+                     const isRel = letter === letter.toLowerCase();
+ 
+-                    if (upper === 'Z') return cmdChunk;
++                    if (upper === 'Z') return letter;
+ 
++                    let applyX = deltaX;
++                    let applyY = deltaY;
+                     if (isRel && !(firstCmd && letter === 'm')) {
+-                        firstCmd = false;
+-                        return cmdChunk; 
++                        applyX = 0;
++                        applyY = 0;
+                     }
+-
+                     firstCmd = false;
++
+                     let outNums = [];
+                     if (upper === 'H') {
+-                        for(let n of nums) outNums.push(n + deltaX);
++                        for(let n of nums) outNums.push(n + applyX);
+                     } else if (upper === 'V') {
+-                        for(let n of nums) outNums.push(n + deltaY);
++                        for(let n of nums) outNums.push(n + applyY);
+                     } else if (upper === 'A') {
+                         for (let i = 0; i < nums.length; i += 7) {
+                             let part = `${nums[i]},${nums[i+1]} ${nums[i+2]} ${nums[i+3]} ${nums[i+4]}`;
+-                            if (i+5 < nums.length) part += ` ${nums[i+5] + deltaX},${nums[i+6] + deltaY}`;
++                            if (i+5 < nums.length) part += ` ${nums[i+5] + applyX},${nums[i+6] + applyY}`;
+                             outNums.push(part);
+                         }
+                     } else {
+                         for (let i = 0; i < nums.length; i += 2) {
+-                            if (i+1 < nums.length) outNums.push(`${nums[i] + deltaX},${nums[i+1] + deltaY}`);
+-                            else outNums.push(nums[i] + deltaX);
++                            if (i+1 < nums.length) outNums.push(`${nums[i] + applyX},${nums[i+1] + applyY}`);
++                            else outNums.push(nums[i] + applyX);
+                         }
+                     }
+-                    return letter + ' ' + outNums.join(' ');
++                    return letter + outNums.join(' ');
+                 });
+                 return res.join(' ');
+             }
+@@ -1280,14 +1381,10 @@
+             // Util: Shift a specific command block directly mapped by point move
+             function shiftSinglePathCommand(cmdChunk, deltaX, deltaY) {
+                 const letter = cmdChunk.trim()[0];
+-                const nums = cmdChunk.substring(1).trim().split(/[\s,]+/).filter(n => n !== "").map(Number);
++                const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                 const upper = letter.toUpperCase();
+ 
+-                if (upper === 'Z') return cmdChunk;
+-
+-                // Preserve trailing whitespace
+-                const trailingMatch = cmdChunk.match(/[\s,]*$/);
+-                const trailingStr = trailingMatch ? trailingMatch[0] : '';
++                if (upper === 'Z') return letter;
+ 
+                 let outNums = [];
+                 // Apply the delta to all relevant coordinates. For relative coordinates, 
+@@ -1309,7 +1406,7 @@
+                     }
+                 }
+                 
+-                return letter + (outNums.length ? ' ' : '') + outNums.join(' ') + trailingStr;
++                return letter + outNums.join(' ');
+             }
+ 
+             // --- 1. Point Move Logic (Context-Aware based on cursor) ---
+@@ -1323,7 +1420,7 @@
+                     
+                     if (relPos >= valStart && relPos <= valEnd) {
+                         const localRelPos = relPos - valStart;
+-                        const pairRegex = /(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g;
++                        const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                         let pMatch;
+                         let newVal = pointsMatch[1];
+                         
+@@ -1338,6 +1435,7 @@
+                             }
+                         }
+                         if (pointMoved) {
++                            newVal = formatPointsData(newVal);
+                             tagStr = tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd);
+                         }
+                     }
+@@ -1363,8 +1461,8 @@
+                                 const letter = chunk.trim()[0];
+                                 const upper = letter.toUpperCase();
+ 
+-                                if (upper === 'Q' || upper === 'C') {
+-                                    const pairRegex = /(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/g;
++                                if (['Q', 'C', 'M', 'L', 'T', 'S'].includes(upper)) {
++                                    const pairRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)(?:[,\s]+|(?=-))(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
+                                     let pMatch;
+                                     let modifiedChunk = chunk;
+                                     let pairMoved = false;
+@@ -1385,6 +1483,27 @@
+                                         pointMoved = true;
+                                         break;
+                                     }
++                                } else if (upper === 'H' || upper === 'V') {
++                                    const numRegex = /(-?\d+(?:\.\d+)?(?:e[-+]?\d+)?)/ig;
++                                    let nMatch;
++                                    let modifiedChunk = chunk;
++                                    let numMoved = false;
++
++                                    while ((nMatch = numRegex.exec(chunk)) !== null) {
++                                        if (localRelPos >= cMatch.index + nMatch.index - 1 && localRelPos <= cMatch.index + nMatch.index + nMatch[0].length + 1) {
++                                            const delta = upper === 'H' ? dx : dy;
++                                            const nn = parseFloat(nMatch[1]) + delta;
++                                            modifiedChunk = modifiedChunk.substring(0, nMatch.index) + nn + modifiedChunk.substring(nMatch.index + nMatch[0].length);
++                                            numMoved = true;
++                                            break;
++                                        }
++                                    }
++
++                                    if (numMoved) {
++                                        newVal = newVal.substring(0, cMatch.index) + modifiedChunk + newVal.substring(cMatch.index + cMatch[0].length);
++                                        pointMoved = true;
++                                        break;
++                                    }
+                                 }
+ 
+                                 if (!pointMoved) {
+@@ -1396,6 +1515,7 @@
+                             }
+                         }
+                         if (pointMoved) {
++                            newVal = formatPathData(newVal);
+                             tagStr = tagStr.substring(0, valStart) + newVal + tagStr.substring(valEnd);
+                         }
+                     }
+@@ -1595,7 +1715,7 @@
+                 modified = true;
+             } else if (tagName === 'polygon' || tagName === 'polyline') {
+                 tagStr = tagStr.replace(/\bpoints=["']([^"']+)["']/i, (match, val) => {
+-                    const newVals = val.trim().split(/[\s,]+/).filter(n => n !== "").map(Number);
++                    const newVals = (val.match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                     let out = [];
+                     for (let i = 0; i < newVals.length; i += 2) {
+                         if (!isNaN(newVals[i]) && !isNaN(newVals[i+1])) {
+@@ -1616,7 +1736,7 @@
+ 
+                     const processCommand = (cmdChunk) => {
+                         const letter = cmdChunk.trim()[0];
+-                        const nums = cmdChunk.substring(1).trim().split(/[\s,]+/).filter(n => n !== "").map(Number);
++                        const nums = (cmdChunk.substring(1).match(/-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
+                         const upper = letter.toUpperCase();
+                         const isRel = letter === letter.toLowerCase();
+ 
+@@ -1632,13 +1752,13 @@
+                             for (let n of nums) {
+                                 currX = isRel ? currX + n : n;
+                                 let [rx, ry] = rotPoint(currX, currY);
+-                                out.push(`L ${f(rx)},${f(ry)}`);
++                                out.push(`L${f(rx)},${f(ry)}`);
+                             }
+                         } else if (upper === 'V') {
+                             for (let n of nums) {
+                                 currY = isRel ? currY + n : n;
+                                 let [rx, ry] = rotPoint(currX, currY);
+-                                out.push(`L ${f(rx)},${f(ry)}`);
++                                out.push(`L${f(rx)},${f(ry)}`);
+                             }
+                         } else if (upper === 'M' || upper === 'L' || upper === 'T') {
+                             for (let i = 0; i < nums.length; i += 2) {
+@@ -1649,7 +1769,7 @@
+                                     startY = currY;
+                                 }
+                                 let [rx, ry] = rotPoint(currX, currY);
+-                                out.push(`${(upper === 'M' && i === 0) ? 'M' : (upper === 'M' ? 'L' : upper)} ${f(rx)},${f(ry)}`);
++                                out.push(`${(upper === 'M' && i === 0) ? 'M' : (upper === 'M' ? 'L' : upper)}${f(rx)},${f(ry)}`);
+                             }
+                         } else if (upper === 'Q' || upper === 'S') {
+                             for (let i = 0; i < nums.length; i += 4) {
+@@ -1661,7 +1781,7 @@
+                                 let [rc1x, rc1y] = rotPoint(c1x, c1y);
+                                 let [rendX, rendY] = rotPoint(endX, endY);
+                                 
+-                                out.push(`${upper} ${f(rc1x)},${f(rc1y)} ${f(rendX)},${f(rendY)}`);
++                                out.push(`${upper}${f(rc1x)},${f(rc1y)} ${f(rendX)},${f(rendY)}`);
+                                 currX = endX;
+                                 currY = endY;
+                             }
+@@ -1678,7 +1798,7 @@
+                                 let [rc2x, rc2y] = rotPoint(c2x, c2y);
+                                 let [rendX, rendY] = rotPoint(endX, endY);
+                                 
+-                                out.push(`C ${f(rc1x)},${f(rc1y)} ${f(rc2x)},${f(rc2y)} ${f(rendX)},${f(rendY)}`);
++                                out.push(`C${f(rc1x)},${f(rc1y)} ${f(rc2x)},${f(rc2y)} ${f(rendX)},${f(rendY)}`);
+                                 currX = endX;
+                                 currY = endY;
+                             }
+@@ -1701,7 +1821,7 @@
+ 
+                                 let [rendX, rendY] = rotPoint(endX, endY);
+                                 
+-                                out.push(`A ${f(rx_val)},${f(ry_val)} ${f(xRot)} ${largeArc} ${sweep} ${f(rendX)},${f(rendY)}`);
++                                out.push(`A${f(rx_val)},${f(ry_val)} ${f(xRot)} ${largeArc} ${sweep} ${f(rendX)},${f(rendY)}`);
+                                 currX = endX;
+                                 currY = endY;
+                             }
+@@ -1736,7 +1856,7 @@
+             let shapeMap = {
+                 'circle': `<circle cx="50" cy="50" r="10" />`,
+                 'line': `<line x1="10" y1="10" x2="90" y2="90" />`,
+-                'path': `<path d="M 20,20 L 80,80" />`,
++                'path': `<path d="M20,20 L80,80" />`,
+                 'polygon': `<polygon points="20,80 50,20 80,80" />`,
+                 'polyline': `<polyline points="20,20 50,80 80,20" />`,
+                 'rect': `<rect x="10" y="10" width="80" height="80" />`,

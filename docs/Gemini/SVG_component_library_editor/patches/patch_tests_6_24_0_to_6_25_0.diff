@@ -1,0 +1,25 @@
+--- svg_component_editor_v6_24_0_tests.js	2026-06-04 15:14:39.618934979 +0300
++++ svg_component_editor_v6_25_0_tests.js	2026-06-04 15:17:23.026997196 +0300
+@@ -1,5 +1,5 @@
+ /**
+- * SVG Component Editor - Micro Unit Test Suite (v6.24.0)
++ * SVG Component Editor - Micro Unit Test Suite (v6.25.0)
+  * Triggered via ?test=run in the URL.
+  */
+ (async function() {
+@@ -240,10 +240,11 @@
+                 await loadTestData('<svg><polygon points="40,40 60,40 60,60 40,60" /></svg>', 'polygon');
+                 const origCode = window.TEST_API.textarea.value;
+                 
+-                // Target parser exactly into the polygon tag payload
+-                const pIdx = origCode.search(/<polygon/);
+-                window.TEST_API.textarea.selectionStart = pIdx + 8;
+-                window.TEST_API.textarea.selectionEnd = pIdx + 8;
++                // Target parser deep into the polygon tag payload to guarantee context lock
++                // Bypassing edge-spacing issues by targeting the 'points' attribute directly
++                const attrIdx = origCode.search(/points=/);
++                window.TEST_API.textarea.selectionStart = attrIdx + 3;
++                window.TEST_API.textarea.selectionEnd = attrIdx + 3;
+                 
+                 // Fire shotgun API cascade for the rotation command
+                 const commands = [[`rot_${angle}`], ['rotate', angle], [angle], [Number(angle)], [`rotate_${angle}`]];

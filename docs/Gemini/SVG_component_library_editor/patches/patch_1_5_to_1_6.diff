@@ -1,0 +1,245 @@
+--- svg_component_editor_v1_5.html	2026-05-31 19:17:26.533529984 +0300
++++ svg_component_editor_v1_6.html	2026-05-31 19:17:26.533529984 +0300
+@@ -6,12 +6,40 @@
+     <title>SVG Component Library Editor</title>
+     <script src="https://cdn.tailwindcss.com"></script>
+     <style>
++        /* Exact layout matching for the text editor and its highlight backdrop */
++        .code-layer {
++            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
++            font-size: 14px;
++            line-height: 1.5;
++            padding: 1rem;
++            margin: 0;
++            border: none;
++            box-sizing: border-box;
++            white-space: pre-wrap;
++            word-wrap: break-word;
++            tab-size: 2;
++            text-align: left;
++            overflow-y: auto;
++            overflow-x: hidden;
++        }
++
++        /* Hide the backdrop's scrollbar so it perfectly aligns with the textarea */
++        #editor-backdrop::-webkit-scrollbar { width: 8px; }
++        #editor-backdrop::-webkit-scrollbar-track { background: transparent; }
++        #editor-backdrop::-webkit-scrollbar-thumb { background: transparent; }
++
+         /* Custom scrollbar for the code editor */
+-        textarea::-webkit-scrollbar { width: 8px; }
+-        textarea::-webkit-scrollbar-track { background: #f8fafc; }
+-        textarea::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+-        textarea::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
++        #svg-editor::-webkit-scrollbar { width: 8px; }
++        #svg-editor::-webkit-scrollbar-track { background: transparent; }
++        #svg-editor::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
++        #svg-editor::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+         
++        #editor-backdrop mark {
++            background-color: #bfdbfe; /* tailwind blue-200 */
++            color: transparent;
++            border-radius: 2px;
++        }
++
+         /* Ensures the SVG preview fits nicely inside the bounds */
+         #preview-container svg {
+             max-width: 100%;
+@@ -47,7 +75,7 @@
+             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M17.5 19.2c-2.05-.03-5.32-.97-6.5-1.92-1.18.95-4.45 1.89-6.5 1.92A2 2 0 0 1 2.5 17.2V6.8a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2v10.4a2 2 0 0 1-2 2z"></path><path d="m7.5 9.8 4 3.2 4-3.2"></path></svg>
+             <h1 class="text-lg font-semibold text-slate-700 hidden sm:flex items-center">
+                 SVG Component Editor
+-                <span class="ml-2 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10px] text-slate-500 font-mono tracking-wider">v1.5</span>
++                <span class="ml-2 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10px] text-slate-500 font-mono tracking-wider">v1.6</span>
+             </h1>
+         </div>
+         <div class="flex items-center gap-2">
+@@ -107,7 +135,7 @@
+                     </div>
+ 
+                     <!-- Move Group -->
+-                    <div class="flex items-center gap-1">
++                    <div class="flex items-center gap-1 border-r border-slate-200 pr-3">
+                         <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mr-1">Move:</span>
+                         <button id="move-up" class="px-1.5 py-0.5 text-[10px] bg-white border border-slate-300 rounded hover:bg-slate-50 text-slate-600 transition-colors">▲</button>
+                         <button id="move-down" class="px-1.5 py-0.5 text-[10px] bg-white border border-slate-300 rounded hover:bg-slate-50 text-slate-600 transition-colors">▼</button>
+@@ -115,14 +143,22 @@
+                         <button id="move-right" class="px-1.5 py-0.5 text-[10px] bg-white border border-slate-300 rounded hover:bg-slate-50 text-slate-600 transition-colors">▶</button>
+                     </div>
+ 
++                    <!-- Delete Group -->
++                    <div class="flex items-center gap-1">
++                        <button id="btn-delete" class="px-1.5 py-0.5 text-[10px] bg-red-50 border border-red-200 rounded hover:bg-red-100 text-red-600 transition-colors font-medium" title="Delete Element">⌫ Del</button>
++                    </div>
++
+                     <button id="copy-btn" class="text-[10px] text-blue-600 hover:text-blue-800 font-medium transition-colors ml-auto sm:ml-0 border border-blue-200 hover:bg-blue-50 px-2 py-1 rounded">
+                         Copy
+                     </button>
+                 </div>
+             </div>
+             
+-            <!-- Textarea -->
+-            <textarea id="svg-editor" class="flex-1 w-full p-4 font-mono text-sm sm:text-[15px] text-slate-800 bg-slate-50 focus:bg-white border-none outline-none resize-none leading-relaxed" spellcheck="false" placeholder="Paste your <symbol> or SVG fragment here..."></textarea>
++            <!-- Editor Container (Overlaid text logic) -->
++            <div class="relative flex-1 w-full bg-slate-50 overflow-hidden isolate focus-within:bg-white transition-colors">
++                <div id="editor-backdrop" class="code-layer absolute inset-0 text-transparent z-0 pointer-events-none" aria-hidden="true"></div>
++                <textarea id="svg-editor" class="code-layer absolute inset-0 text-slate-800 bg-transparent focus:outline-none resize-none z-10 w-full h-full" spellcheck="false" placeholder="Paste your <symbol> or SVG fragment here..."></textarea>
++            </div>
+         </section>
+     </main>
+ 
+@@ -134,6 +170,7 @@
+     <script>
+         document.addEventListener('DOMContentLoaded', () => {
+             const editor = document.getElementById('svg-editor');
++            const backdrop = document.getElementById('editor-backdrop');
+             const previewContainer = document.getElementById('preview-container');
+             const toggleGridBtn = document.getElementById('toggle-grid-btn');
+             const downloadBtn = document.getElementById('download-btn');
+@@ -183,6 +220,22 @@
+             // Prevent focus stealing for editor buttons
+             const preventFocus = (e) => e.preventDefault();
+ 
++            // Scroll Syncing for Code Highlight Backdrop
++            editor.addEventListener('scroll', () => {
++                backdrop.scrollTop = editor.scrollTop;
++                backdrop.scrollLeft = editor.scrollLeft;
++            });
++
++            // HTML Escaper for Backdrop Injection
++            function escapeHtml(str) {
++                return str
++                    .replace(/&/g, '&amp;')
++                    .replace(/</g, '&lt;')
++                    .replace(/>/g, '&gt;')
++                    .replace(/"/g, '&quot;')
++                    .replace(/'/g, '&#039;');
++            }
++
+             // History Functions
+             function pushHistory() {
+                 const state = { val: editor.value, sel: editor.selectionStart };
+@@ -228,18 +281,19 @@
+                 }
+             });
+             
+-            // Insert Bindings
++            // Tool Bindings
+             document.getElementById('ins-circle').addEventListener('mousedown', (e) => { preventFocus(e); insertElement('\n    <circle cx="50" cy="50" r="10" />'); });
+             document.getElementById('ins-line').addEventListener('mousedown', (e) => { preventFocus(e); insertElement('\n    <line x1="30" y1="50" x2="70" y2="50" />'); });
+             document.getElementById('ins-path').addEventListener('mousedown', (e) => { preventFocus(e); insertElement('\n    <path d="M 30 50 L 70 50" />'); });
+             document.getElementById('ins-poly').addEventListener('mousedown', (e) => { preventFocus(e); insertElement('\n    <polygon points="50,30 70,70 30,70" />'); });
+ 
+-            // Move Bindings
+             document.getElementById('move-up').addEventListener('mousedown', (e) => { preventFocus(e); moveElement(0, -1); });
+             document.getElementById('move-down').addEventListener('mousedown', (e) => { preventFocus(e); moveElement(0, 1); });
+             document.getElementById('move-left').addEventListener('mousedown', (e) => { preventFocus(e); moveElement(-1, 0); });
+             document.getElementById('move-right').addEventListener('mousedown', (e) => { preventFocus(e); moveElement(1, 0); });
+ 
++            document.getElementById('btn-delete').addEventListener('mousedown', (e) => { preventFocus(e); deleteElement(); });
++
+             // Event Listeners for Editor
+             editor.addEventListener('input', () => {
+                 updatePreview();
+@@ -388,8 +442,33 @@
+ 
+             // --- CURSOR TRACKING & HIGHLIGHTING LOGIC ---
+ 
++            function updateBackdrop(text, targetNode) {
++                if (!isHighlightEnabled || !targetNode) {
++                    backdrop.innerHTML = escapeHtml(text) + '\n '; // trailing space protects scroll bounds
++                    backdrop.scrollTop = editor.scrollTop;
++                    return;
++                }
++
++                const before = text.slice(0, targetNode.start);
++                const hlText = text.slice(targetNode.start, targetNode.end);
++                const after = text.slice(targetNode.end);
++
++                backdrop.innerHTML = escapeHtml(before) + 
++                                     '<mark>' + escapeHtml(hlText) + '</mark>' + 
++                                     escapeHtml(after) + '\n ';
++
++                // Ensure the backdrop's scroll stays perfectly locked to the editor
++                backdrop.scrollTop = editor.scrollTop;
++            }
++
+             function handleCursorMove() {
+-                // Clear highlight if option is disabled
++                const text = editor.value;
++                const cursorPos = editor.selectionStart;
++                const targetNode = getCursorElementBounds(text, cursorPos);
++                
++                // Always sync the text backdrop to reflect typing or highlights
++                updateBackdrop(text, targetNode);
++
+                 if (!isHighlightEnabled) {
+                     if (currentHighlightId !== -1) {
+                         const oldEls = previewContainer.querySelectorAll('.svg-highlight');
+@@ -399,14 +478,11 @@
+                     return;
+                 }
+ 
+-                const text = editor.value;
+-                const cursorPos = editor.selectionStart;
+-                const targetNode = getCursorElementBounds(text, cursorPos);
+                 const elementIndex = targetNode ? targetNode.index : -1;
+ 
+                 if (elementIndex === currentHighlightId) return;
+ 
+-                // Remove previous highlight
++                // Remove previous SVG visual highlight
+                 if (currentHighlightId !== -1) {
+                     const oldEls = previewContainer.querySelectorAll('.svg-highlight');
+                     oldEls.forEach(el => el.classList.remove('svg-highlight'));
+@@ -414,7 +490,7 @@
+ 
+                 currentHighlightId = elementIndex;
+ 
+-                // Apply new highlight
++                // Apply new SVG visual highlight
+                 if (elementIndex !== -1) {
+                     const target = previewContainer.querySelector(`[data-editor-id="${elementIndex}"]`);
+                     if (target) {
+@@ -501,6 +577,41 @@
+                 updatePreview();
+                 pushHistory();
+             }
++
++            function deleteElement() {
++                const text = editor.value;
++                const cursorPos = editor.selectionStart;
++                const targetNode = getCursorElementBounds(text, cursorPos);
++                
++                if (!targetNode) {
++                    showToast("Place cursor on an element to delete it.");
++                    return;
++                }
++
++                if (historyPos >= 0 && editHistory[historyPos].val !== text) pushHistory();
++
++                let start = targetNode.start;
++                let end = targetNode.end;
++
++                // Smart whitespace cleanup (removes empty leading spaces if the element was alone on the line)
++                let i = start - 1;
++                while (i >= 0 && text[i] === ' ') i--;
++                if (i < 0 || text[i] === '\n') {
++                    start = i + 1; // Include leading spaces in the cut
++                    if (text[end] === '\n') {
++                        end += 1; // Include the trailing newline
++                    } else if (text[end] === '\r' && text[end+1] === '\n') {
++                        end += 2;
++                    }
++                }
++
++                const newText = text.slice(0, start) + text.slice(end);
++                editor.value = newText;
++                
++                editor.setSelectionRange(start, start);
++                updatePreview();
++                pushHistory();
++            }
+ 
+             function moveElement(dx, dy) {
+                 const text = editor.value;
