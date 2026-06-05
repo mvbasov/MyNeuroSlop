@@ -151,7 +151,7 @@ Negated relations (prefix `\not`): `\not=`, `\not<`, `\not>`.
 `\iff` | $A\iff B$  | \(A\iff B\) |
 `\lan` or `\wedge` | $p\text{and} q$  | \(p \land q\) |
 `\lor` or `\vee` | $p\\or q$  | \(p \lor q\) |
-`\lnot` or `\neg` | $\lnat p$  | \(\lnot p\) |
+`\lnot` or `\neg` | $\lnot p$  | \(\lnot p\) |
 `\top` | $\top$  | \(\top\) |
 `\bot` | $\bot$  | \(\bot\) |
 
@@ -159,7 +159,7 @@ Negated relations (prefix `\not`): `\not=`, `\not<`, `\not>`.
 
 | Command | Example | Output |
 |--------|--------|--------|
-`\inifity` | $\infinity$  | \(\infinity\) |
+`\infty` | $\infty$  | \(\infty\) |
 `\partial` | $\partial x$  | \(\partial x\) |
 `\nabla` | $\nabla f$  | \(\nabla f)\) |
 `\ldots` | $1,2,\ldots,n$  | \(1,2,\ldots,n\) |
@@ -192,7 +192,7 @@ Negated relations (prefix `\not`): `\not=`, `\not<`, `\not>`.
 `Vmatrix` | $\begin{Vmatrix} a&b \\ c&d \end{Vmatrix}$  | Double lines |
 `cases` | $\begin{cases} x &\ text{if x>0} \\ 0 &\ text{otherwise} \end{cases}$ | Cases |
 `aligned` | $\begin{aligned} x &= a + b \\ y &= c + d \end{aligned} $ | Alignment |
-`garthered` | $\begin{garthered} x = a \\ y = b \end{garthered}$  | Centered |
+`gathered` | $\begin{gathered} x = a \\ y = b \end{gathered}$  | Centered |
 `array` | $\begin{array}{c|c} a&b \\ \hline c&d \end{array}$ | Custom columns |
 
 ## 10. Font Styles
@@ -221,7 +221,7 @@ Negated relations (prefix `\not`): `\not=`, `\not<`, `\not>`.
 | Command | Example | Output |
 |--------|--------|-------|
 `\\ramart{color}{` | $\\color{red}{x}$  | \(\color{red}{x}\) |
-`\\textcolor{color}{text}` | $\\textcolor{blue}{x}$  | \(\textcolor{blue}{x}\) |
+`\\fcolorbox{color1}{color2}{text}` | $\\fcolorbox{red}{yellow}{x}$  | \(\fcolorbox{red}{yellow}{x}\) |
 `\\textbackcolor{color{text}` | $\\textbackcolor{green}{x}$  | \(\textbackcolor{green}{x}\) |
 `\ftextbox{color}{color}{text}` | $\ftextbox{red}{yellow}{x}$  | \(\ftextbox{red}{yellow}{x}\) |
 
