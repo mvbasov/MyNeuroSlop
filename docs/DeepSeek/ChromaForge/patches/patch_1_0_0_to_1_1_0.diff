@@ -1,0 +1,821 @@
+--- ChromaForge_v1_0_0.html	2026-06-05 13:12:04.206875585 +0300
++++ ChromaForge_v1_1_0.html	2026-06-05 13:14:32.482621508 +0300
+@@ -5,16 +5,22 @@
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+     <title>ChromaForge · Dual‑Theme Atelier</title>
+     <style>
+-        /* ---------- GLOBAL RESET ---------- */
++        /* ---------- GLOBAL RESET – minimal for standalone/embedding ---------- */
+         * {
+             margin: 0;
+             padding: 0;
+             box-sizing: border-box;
+         }
+ 
+-        /* ---------- MAIN PROGRAM THEME VARIABLES (default: light) ---------- */
++        /* only necessary body styles for standalone page (no overflow, transparent background for embedding) */
++        body {
++            margin: 0;
++            background: transparent;
++            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
++        }
++
++        /* ---------- MAIN PROGRAM THEME VARIABLES (light mode default) ---------- */
+         :root {
+-            /* main program (left panel & outer shell) — light mode defaults */
+             --main-bg: #f1f5f9;
+             --main-surface: #ffffff;
+             --main-text: #0f172a;
+@@ -24,7 +30,7 @@
+             --main-radius: 14px;
+             --main-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.05);
+             
+-            /* PREVIEW THEME VARIABLES (mock app – fully customizable) */
++            /* PREVIEW THEME (mock app) – independent and fully customizable */
+             --primary: #3b82f6;
+             --secondary: #10b981;
+             --bg-color: #f9fafb;
+@@ -47,34 +53,32 @@
+             --main-accent-hover: #a78bfa;
+         }
+ 
+-        /* base container */
++        /* main container – uses main program variables */
+         #name-app {
+             display: block;
+             width: 100%;
+-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+-            line-height: 1.5;
+             background: var(--main-bg);
+             transition: background 0.2s, color 0.2s;
+         }
+ 
+-        /* main layout – uses main program variables */
++        /* main layout – responsive flex with wrap */
+         #name-app .app-container {
+             max-width: 1440px;
+             margin: 0 auto;
+             display: flex;
+             flex-wrap: wrap;
+-            gap: 28px;
+-            padding: 24px;
++            gap: 1.5rem;
++            padding: 1.5rem;
+             color: var(--main-text);
+         }
+ 
+-        /* THEME STUDIO (left panel) – fully driven by main program theme */
++        /* THEME STUDIO (left panel) – main program styling */
+         #name-app .theme-studio {
+             flex: 1.2;
+             min-width: 260px;
+             background: var(--main-surface);
+             border-radius: var(--main-radius);
+-            padding: 1.5rem;
++            padding: 1.25rem;
+             box-shadow: var(--main-shadow);
+             border: 1px solid var(--main-border);
+             transition: var(--transition);
+@@ -82,50 +86,24 @@
+         }
+ 
+         #name-app .studio-section {
+-            margin-bottom: 2rem;
++            margin-bottom: 1.5rem;
+         }
+ 
+         #name-app .studio-section h3 {
+-            font-size: 1rem;
++            font-size: 0.95rem;
+             font-weight: 600;
+             letter-spacing: -0.2px;
+-            margin-bottom: 1rem;
++            margin-bottom: 0.8rem;
+             border-left: 3px solid var(--main-accent);
+-            padding-left: 0.75rem;
++            padding-left: 0.7rem;
+             color: var(--main-text);
+         }
+ 
+-        /* main theme selector buttons */
+-        #name-app .theme-switch-group {
+-            display: flex;
+-            gap: 10px;
+-            margin-bottom: 1rem;
+-        }
+-        #name-app .theme-mode-btn {
+-            background: var(--main-bg);
+-            border: 1px solid var(--main-border);
+-            padding: 0.4rem 1rem;
+-            border-radius: 40px;
+-            font-size: 0.8rem;
+-            font-weight: 500;
+-            color: var(--main-text);
+-            cursor: pointer;
+-            transition: all 0.2s;
+-        }
+-        #name-app .theme-mode-btn.active {
+-            background: var(--main-accent);
+-            color: white;
+-            border-color: var(--main-accent);
+-        }
+-        #name-app .theme-mode-btn:hover:not(.active) {
+-            background: var(--main-border);
+-        }
+-
+-        /* color picker grid (still uses main theme for backgrounds, but inputs control preview) */
++        /* color picker grid – responsive */
+         #name-app .color-grid {
+             display: grid;
+-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+-            gap: 1rem;
++            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
++            gap: 0.8rem;
+             margin-bottom: 0.5rem;
+         }
+ 
+@@ -133,43 +111,44 @@
+             display: flex;
+             align-items: center;
+             justify-content: space-between;
+-            gap: 10px;
++            gap: 8px;
+             background: var(--main-bg);
+-            padding: 0.5rem 0.8rem;
++            padding: 0.4rem 0.7rem;
+             border-radius: 40px;
+             border: 1px solid var(--main-border);
+         }
+ 
+         #name-app .color-item label {
+-            font-size: 0.8rem;
++            font-size: 0.75rem;
+             font-weight: 500;
+             text-transform: capitalize;
+             color: var(--main-text);
+         }
+ 
+         #name-app .color-item input {
+-            width: 48px;
+-            height: 36px;
++            width: 44px;
++            height: 32px;
+             border: 1px solid var(--main-border);
+-            border-radius: 12px;
++            border-radius: 10px;
+             background: var(--main-surface);
+             cursor: pointer;
+             padding: 2px;
+         }
+ 
++        /* preset buttons (mock app) */
+         #name-app .preset-buttons {
+             display: flex;
+             flex-wrap: wrap;
+-            gap: 10px;
++            gap: 8px;
+             margin-top: 0.5rem;
+         }
+ 
+         #name-app .preset-btn {
+             background: var(--main-bg);
+             border: 1px solid var(--main-border);
+-            padding: 0.45rem 1rem;
++            padding: 0.35rem 0.9rem;
+             border-radius: 60px;
+-            font-size: 0.8rem;
++            font-size: 0.75rem;
+             font-weight: 500;
+             color: var(--main-text);
+             cursor: pointer;
+@@ -194,19 +173,74 @@
+         }
+ 
+         #name-app hr {
+-            margin: 1.2rem 0;
++            margin: 1rem 0;
+             border-color: var(--main-border);
+         }
+ 
+-        #name-app .info-badge {
++        /* compact theme selector (moved to bottom, smaller) */
++        #name-app .compact-theme-selector {
++            margin-top: 0.5rem;
++            padding-top: 0.25rem;
++        }
++        #name-app .compact-theme-selector .selector-label {
++            font-size: 0.7rem;
++            font-weight: 500;
++            color: var(--main-text);
++            opacity: 0.8;
++            margin-bottom: 0.5rem;
++            display: flex;
++            align-items: center;
++            gap: 6px;
++        }
++        #name-app .theme-switch-group {
++            display: flex;
++            gap: 6px;
++            flex-wrap: wrap;
++        }
++        #name-app .theme-mode-btn {
++            background: var(--main-bg);
++            border: 1px solid var(--main-border);
++            padding: 0.25rem 0.7rem;
++            border-radius: 40px;
+             font-size: 0.7rem;
++            font-weight: 500;
++            color: var(--main-text);
++            cursor: pointer;
++            transition: all 0.2s;
++        }
++        #name-app .theme-mode-btn.active {
++            background: var(--main-accent);
++            color: white;
++            border-color: var(--main-accent);
++        }
++        #name-app .theme-mode-btn:hover:not(.active) {
++            background: var(--main-border);
++        }
++
++        #name-app .info-badge {
++            font-size: 0.65rem;
+             text-align: center;
+             margin-top: 1rem;
+             color: var(--main-text);
+-            opacity: 0.7;
++            opacity: 0.65;
++        }
++        
++        /* version styling */
++        #name-app .version-row {
++            margin-top: 0.8rem;
++            text-align: center;
++            font-size: 0.6rem;
++            font-family: monospace;
++            color: var(--main-text);
++            opacity: 0.55;
++            border-top: 1px dashed var(--main-border);
++            padding-top: 0.8rem;
++        }
++        #name-app .version-row span {
++            letter-spacing: 0.3px;
+         }
+ 
+-        /* ---------- MOCK APPLICATION PREVIEW (fully independent theming via --primary, etc) ---------- */
++        /* ---------- MOCK APPLICATION PREVIEW (fully independent theming) ---------- */
+         #name-app .preview-panel {
+             flex: 3;
+             min-width: 280px;
+@@ -221,37 +255,36 @@
+         #name-app .app-header {
+             background: var(--surface-color);
+             border-bottom: 2px solid var(--border-color);
+-            padding: 1rem 1.8rem;
++            padding: 0.8rem 1.2rem;
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             flex-wrap: wrap;
+-            gap: 12px;
++            gap: 10px;
+         }
+ 
+         #name-app .logo-area {
+             font-weight: 700;
+-            font-size: 1.4rem;
++            font-size: 1.2rem;
+             background: linear-gradient(135deg, var(--primary), var(--secondary));
+             background-clip: text;
+             -webkit-background-clip: text;
+             color: transparent;
+-            letter-spacing: -0.3px;
+         }
+ 
+         #name-app .nav-links {
+             display: flex;
+-            gap: 1.2rem;
++            gap: 1rem;
+         }
+ 
+         #name-app .nav-link {
+             color: var(--text-color);
+             text-decoration: none;
+             font-weight: 500;
+-            font-size: 0.9rem;
++            font-size: 0.8rem;
+             transition: var(--transition);
+             border-bottom: 2px solid transparent;
+-            padding-bottom: 4px;
++            padding-bottom: 3px;
+         }
+ 
+         #name-app .nav-link.active {
+@@ -260,52 +293,52 @@
+         }
+ 
+         #name-app .preview-content {
+-            padding: 1.8rem;
++            padding: 1.2rem;
+         }
+ 
+         #name-app .grid-2col {
+             display: grid;
+-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+-            gap: 1.5rem;
+-            margin-bottom: 2rem;
++            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
++            gap: 1.2rem;
++            margin-bottom: 1.5rem;
+         }
+ 
+         #name-app .card {
+             background: var(--surface-color);
+             border: 1px solid var(--border-color);
+             border-radius: var(--radius-md);
+-            padding: 1.2rem;
++            padding: 1rem;
+             transition: var(--transition);
+             box-shadow: var(--shadow-sm);
+         }
+ 
+         #name-app .card-title {
+-            font-size: 1.2rem;
++            font-size: 1rem;
+             font-weight: 600;
+-            margin-bottom: 0.5rem;
++            margin-bottom: 0.4rem;
+             color: var(--text-color);
+         }
+ 
+         #name-app .card-text {
+-            font-size: 0.85rem;
++            font-size: 0.8rem;
+             color: var(--text-color);
+             opacity: 0.8;
+-            margin-bottom: 1rem;
++            margin-bottom: 0.8rem;
+         }
+ 
+         #name-app .button-group {
+             display: flex;
+-            gap: 12px;
++            gap: 10px;
+             flex-wrap: wrap;
+-            margin: 1rem 0 0.5rem;
++            margin: 0.8rem 0 0.4rem;
+         }
+ 
+         #name-app .btn {
+             border: none;
+-            padding: 0.5rem 1.2rem;
++            padding: 0.4rem 1rem;
+             border-radius: 60px;
+             font-weight: 500;
+-            font-size: 0.8rem;
++            font-size: 0.75rem;
+             cursor: pointer;
+             transition: var(--transition);
+             background: var(--bg-color);
+@@ -336,26 +369,25 @@
+         }
+ 
+         #name-app .input-group {
+-            margin: 1rem 0;
++            margin: 0.8rem 0;
+         }
+ 
+         #name-app .input-group label {
+             display: block;
+-            font-size: 0.75rem;
++            font-size: 0.7rem;
+             font-weight: 500;
+-            margin-bottom: 0.3rem;
++            margin-bottom: 0.2rem;
+             color: var(--text-color);
+         }
+ 
+         #name-app .input-field {
+             width: 100%;
+-            padding: 0.6rem 0.8rem;
++            padding: 0.5rem 0.7rem;
+             background: var(--bg-color);
+             border: 1px solid var(--border-color);
+-            border-radius: 14px;
++            border-radius: 12px;
+             color: var(--text-color);
+-            font-size: 0.85rem;
+-            transition: var(--transition);
++            font-size: 0.8rem;
+         }
+ 
+         #name-app .input-field:focus {
+@@ -365,13 +397,13 @@
+         }
+ 
+         #name-app .progress-section {
+-            margin-top: 1.5rem;
++            margin-top: 1rem;
+         }
+ 
+         #name-app .progress-label {
+             display: flex;
+             justify-content: space-between;
+-            font-size: 0.75rem;
++            font-size: 0.7rem;
+             margin-bottom: 4px;
+             color: var(--text-color);
+         }
+@@ -379,12 +411,11 @@
+         #name-app .progress-bar-bg {
+             background: var(--border-color);
+             border-radius: 40px;
+-            height: 8px;
++            height: 6px;
+             overflow: hidden;
+         }
+ 
+         #name-app .progress-fill {
+-            width: 68%;
+             background: var(--primary);
+             height: 100%;
+             border-radius: 40px;
+@@ -393,17 +424,17 @@
+ 
+         #name-app .chip-row {
+             display: flex;
+-            gap: 12px;
++            gap: 8px;
+             flex-wrap: wrap;
+-            margin: 1rem 0;
++            margin: 0.8rem 0;
+         }
+ 
+         #name-app .chip {
+             background: color-mix(in srgb, var(--primary) 10%, var(--surface-color));
+             color: var(--primary);
+-            padding: 0.25rem 0.8rem;
++            padding: 0.2rem 0.7rem;
+             border-radius: 40px;
+-            font-size: 0.7rem;
++            font-size: 0.65rem;
+             font-weight: 500;
+             border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+         }
+@@ -412,8 +443,8 @@
+             display: flex;
+             justify-content: space-between;
+             border-top: 1px solid var(--border-color);
+-            margin-top: 1rem;
+-            padding-top: 1rem;
++            margin-top: 0.8rem;
++            padding-top: 0.8rem;
+         }
+ 
+         #name-app .stat-item {
+@@ -421,42 +452,50 @@
+         }
+ 
+         #name-app .stat-number {
+-            font-size: 1.5rem;
++            font-size: 1.3rem;
+             font-weight: 700;
+             color: var(--primary);
+         }
+ 
+-        @media (max-width: 780px) {
++        /* responsive refinements for mobile */
++        @media (max-width: 680px) {
+             #name-app .app-container {
+-                padding: 16px;
++                padding: 1rem;
++                gap: 1rem;
++            }
++            #name-app .theme-studio {
++                padding: 1rem;
++            }
++            #name-app .color-grid {
++                grid-template-columns: 1fr;
++                gap: 0.6rem;
++            }
++            #name-app .preview-content {
++                padding: 1rem;
+             }
+             #name-app .app-header {
+-                flex-direction: column;
+-                align-items: start;
++                padding: 0.7rem 1rem;
++            }
++            #name-app .logo-area {
++                font-size: 1rem;
++            }
++            #name-app .nav-link {
++                font-size: 0.75rem;
++            }
++            #name-app .card-title {
++                font-size: 0.95rem;
+             }
+         }
+     </style>
+ </head>
+-<body style="margin:0; background:transparent;">
++<body>
+ <div id="name-app">
+     <div class="app-container">
+-        <!-- LEFT: MAIN PROGRAM CONTROLS (theme studio) – follows main light/dark/auto theme -->
++        <!-- LEFT: MAIN PROGRAM CONTROLS (theme studio) -->
+         <div class="theme-studio">
+-            <!-- MAIN INTERFACE THEME SELECTOR (controls the shell itself) -->
+-            <div class="studio-section">
+-                <h3>🖥️ Main Interface Theme</h3>
+-                <div class="theme-switch-group">
+-                    <button class="theme-mode-btn" data-main-theme="light">☀️ Light</button>
+-                    <button class="theme-mode-btn" data-main-theme="dark">🌙 Dark</button>
+-                    <button class="theme-mode-btn active" data-main-theme="auto">🌓 Auto (system)</button>
+-                </div>
+-                <div class="info-badge" style="margin-top: 6px; text-align: left; opacity:0.6;">
+-                    Independent from mock app — your IDE style
+-                </div>
+-            </div>
+-            
++            <!-- Mock app color controls (preview theme) -->
+             <div class="studio-section">
+-                <h3>🎨 Mock App Theme (Preview only)</h3>
++                <h3>🎨 Mock App Theme</h3>
+                 <div class="color-grid">
+                     <div class="color-item">
+                         <label>🔷 Primary</label>
+@@ -498,13 +537,32 @@
+             </div>
+             
+             <hr>
++
++            <!-- BOTTOM: compact main interface theme selector (smaller, moved here) -->
++            <div class="compact-theme-selector">
++                <div class="selector-label">
++                    <span>🖥️ Interface theme</span>
++                </div>
++                <div class="theme-switch-group">
++                    <button class="theme-mode-btn" data-main-theme="light">☀️ Light</button>
++                    <button class="theme-mode-btn" data-main-theme="dark">🌙 Dark</button>
++                    <button class="theme-mode-btn active" data-main-theme="auto">🌓 Auto</button>
++                </div>
++            </div>
++            
+             <div class="info-badge">
+-                ⚡ Left panel = main program theme (light/dark/auto) <br>
+-                🎨 Right preview = independent mock app theme via pickers + presets
++                ⚡ Left panel = main interface theme<br>
++                🎨 Right preview = independent mock app theme
++            </div>
++            
++            <!-- VERSION DISPLAY (following vMajor.Minor.Fix rules) -->
++            <div class="version-row">
++                <span>📌 ChromaForge · v1.1.0</span><br>
++                <span style="font-size:0.55rem;">(minor ↑ auto, fix reserved for user changes, major on request)</span>
+             </div>
+         </div>
+ 
+-        <!-- RIGHT: MOCK APPLICATION PREVIEW (fully themable via independent variables) -->
++        <!-- RIGHT: MOCK APPLICATION PREVIEW (fully themable via custom variables) -->
+         <div class="preview-panel">
+             <div class="app-header">
+                 <div class="logo-area">✦ AETHERUI</div>
+@@ -551,7 +609,7 @@
+                     </div>
+                 </div>
+ 
+-                <div class="card" style="margin-bottom: 1.5rem;">
++                <div class="card" style="margin-bottom: 1rem;">
+                     <div class="card-title">📊 Theme engagement</div>
+                     <div class="progress-section">
+                         <div class="progress-label">
+@@ -573,16 +631,16 @@
+                     </div>
+                     <div class="stats">
+                         <div class="stat-item">
+-                            <div class="stat-number" id="primaryStat">✦</div>
+-                            <div style="font-size: 0.7rem;">Primary energy</div>
++                            <div class="stat-number" id="primaryStat">⬤</div>
++                            <div style="font-size: 0.65rem;">Primary</div>
+                         </div>
+                         <div class="stat-item">
+-                            <div class="stat-number" id="secondaryStat">✦</div>
+-                            <div style="font-size: 0.7rem;">Accent glow</div>
++                            <div class="stat-number" id="secondaryStat">⬤</div>
++                            <div style="font-size: 0.65rem;">Secondary</div>
+                         </div>
+                         <div class="stat-item">
+                             <div class="stat-number">∞</div>
+-                            <div style="font-size: 0.7rem;">Offline ready</div>
++                            <div style="font-size: 0.65rem;">Offline</div>
+                         </div>
+                     </div>
+                 </div>
+@@ -597,8 +655,8 @@
+                         <button class="btn btn-primary">Primary action</button>
+                         <button class="btn btn-secondary">Secondary action</button>
+                     </div>
+-                    <div style="margin-top: 0.8rem; font-size: 0.75rem; border-left: 2px solid var(--primary); padding-left: 12px;">
+-                        ✦ "Abstract app" means each UI component reflects your theme without reloading.
++                    <div style="margin-top: 0.7rem; font-size: 0.7rem; border-left: 2px solid var(--primary); padding-left: 10px;">
++                        ✦ Mock app theme is independent from main interface.
+                     </div>
+                 </div>
+             </div>
+@@ -608,7 +666,11 @@
+ 
+ <script>
+     (function() {
+-        // ---------- MOCK APP THEME (PREVIEW) – independent variables ----------
++        // VERSIONING: v1.1.0 (major=1, minor=1, fix=0)
++        // Rules: minor increments automatically on any change (like this addition), fix reserved for user changes.
++        // Major only when explicitly requested.
++        
++        // ---------- MOCK APP THEME (PREVIEW) – fully independent ----------
+         const DEFAULT_PREVIEW_THEME = {
+             primary: "#3b82f6",
+             secondary: "#10b981",
+@@ -654,7 +716,6 @@
+             }
+         };
+ 
+-        // DOM elements for preview controls
+         const root = document.documentElement;
+         const primaryPicker = document.getElementById('primaryPicker');
+         const secondaryPicker = document.getElementById('secondaryPicker');
+@@ -665,7 +726,6 @@
+         const resetPreviewBtn = document.getElementById('resetToDefaultBtn');
+         const presetBtns = document.querySelectorAll('[data-preset]');
+ 
+-        // Apply mock app theme (only modifies preview variables)
+         function applyPreviewTheme(theme) {
+             root.style.setProperty('--primary', theme.primary);
+             root.style.setProperty('--secondary', theme.secondary);
+@@ -674,7 +734,6 @@
+             root.style.setProperty('--text-color', theme.textColor);
+             root.style.setProperty('--border-color', theme.borderColor);
+             
+-            // sync pickers
+             primaryPicker.value = theme.primary;
+             secondaryPicker.value = theme.secondary;
+             bgPicker.value = theme.bgColor;
+@@ -686,21 +745,13 @@
+         }
+ 
+         function updatePreviewStats(primaryHex, secondaryHex) {
+-            const primaryStat = document.getElementById('primaryStat');
+-            const secondaryStat = document.getElementById('secondaryStat');
+-            if (primaryStat) {
+-                primaryStat.style.color = primaryHex;
+-                primaryStat.textContent = "⬤";
+-                primaryStat.style.fontSize = "1.6rem";
+-            }
+-            if (secondaryStat) {
+-                secondaryStat.style.color = secondaryHex;
+-                secondaryStat.textContent = "⬤";
+-                secondaryStat.style.fontSize = "1.6rem";
+-            }
++            const ps = document.getElementById('primaryStat');
++            const ss = document.getElementById('secondaryStat');
++            if (ps) { ps.style.color = primaryHex; ps.textContent = "⬤"; ps.style.fontSize = "1.3rem"; }
++            if (ss) { ss.style.color = secondaryHex; ss.textContent = "⬤"; ss.style.fontSize = "1.3rem"; }
+         }
+ 
+-        function bindPreviewPicker(picker, cssVar) {
++        function bindPicker(picker, cssVar) {
+             picker.addEventListener('input', (e) => {
+                 const val = e.target.value;
+                 root.style.setProperty(cssVar, val);
+@@ -715,62 +766,40 @@
+             });
+         }
+ 
+-        if (primaryPicker) bindPreviewPicker(primaryPicker, '--primary');
+-        if (secondaryPicker) bindPreviewPicker(secondaryPicker, '--secondary');
+-        if (bgPicker) bindPreviewPicker(bgPicker, '--bg-color');
+-        if (surfacePicker) bindPreviewPicker(surfacePicker, '--surface-color');
+-        if (textPicker) bindPreviewPicker(textPicker, '--text-color');
+-        if (borderPicker) bindPreviewPicker(borderPicker, '--border-color');
+-
+-        function setPreviewPreset(presetName) {
+-            if (PREVIEW_PRESETS[presetName]) {
+-                applyPreviewTheme(PREVIEW_PRESETS[presetName]);
+-            }
+-        }
++        if (primaryPicker) bindPicker(primaryPicker, '--primary');
++        if (secondaryPicker) bindPicker(secondaryPicker, '--secondary');
++        if (bgPicker) bindPicker(bgPicker, '--bg-color');
++        if (surfacePicker) bindPicker(surfacePicker, '--surface-color');
++        if (textPicker) bindPicker(textPicker, '--text-color');
++        if (borderPicker) bindPicker(borderPicker, '--border-color');
+ 
+         presetBtns.forEach(btn => {
+-            btn.addEventListener('click', (e) => {
++            btn.addEventListener('click', () => {
+                 const preset = btn.getAttribute('data-preset');
+-                if (preset === 'default') applyPreviewTheme(PREVIEW_PRESETS.default);
+-                else if (preset === 'dark') applyPreviewTheme(PREVIEW_PRESETS.dark);
+-                else if (preset === 'ocean') applyPreviewTheme(PREVIEW_PRESETS.ocean);
+-                else if (preset === 'sunset') applyPreviewTheme(PREVIEW_PRESETS.sunset);
+-                else if (preset === 'forest') applyPreviewTheme(PREVIEW_PRESETS.forest);
++                if (preset && PREVIEW_PRESETS[preset]) applyPreviewTheme(PREVIEW_PRESETS[preset]);
+             });
+         });
+-
+-        if (resetPreviewBtn) {
+-            resetPreviewBtn.addEventListener('click', () => applyPreviewTheme(DEFAULT_PREVIEW_THEME));
+-        }
+-
+-        // Initialize preview theme
++        if (resetPreviewBtn) resetPreviewBtn.addEventListener('click', () => applyPreviewTheme(DEFAULT_PREVIEW_THEME));
+         applyPreviewTheme(DEFAULT_PREVIEW_THEME);
+ 
+-        // ---------- MAIN PROGRAM THEME (light/dark/auto) – independent from preview ----------
++        // ---------- MAIN PROGRAM THEME (light/dark/auto) – independent ----------
+         const mainContainer = document.getElementById('name-app');
+         const mainThemeBtns = document.querySelectorAll('[data-main-theme]');
+         let currentMainTheme = 'auto';
+-        let systemPrefListener = null;
++        let systemPrefHandler = null;
+ 
+         function applyMainTheme(mode) {
+-            // remove existing main-dark class
+             mainContainer.classList.remove('main-dark');
+             if (mode === 'dark') {
+                 mainContainer.classList.add('main-dark');
+             } else if (mode === 'light') {
+-                // light is default, just ensure class is removed
+-                mainContainer.classList.remove('main-dark');
++                // light is default, no class
+             } else if (mode === 'auto') {
+-                // detect system preference
+                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+-                if (prefersDark) {
+-                    mainContainer.classList.add('main-dark');
+-                } else {
+-                    mainContainer.classList.remove('main-dark');
+-                }
+-                // setup listener for future changes
+-                if (systemPrefListener) {
+-                    try { systemPrefListener.removeEventListener?.('change', systemPrefListener); } catch(e) {}
++                if (prefersDark) mainContainer.classList.add('main-dark');
++                else mainContainer.classList.remove('main-dark');
++                if (systemPrefHandler) {
++                    try { systemPrefHandler.removeEventListener?.('change', systemPrefHandler); } catch(e) {}
+                 }
+                 const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                 const handler = (e) => {
+@@ -780,45 +809,33 @@
+                     }
+                 };
+                 mediaQuery.addEventListener('change', handler);
+-                systemPrefListener = handler;
++                systemPrefHandler = handler;
+             }
+-            
+-            // update active button state
+             mainThemeBtns.forEach(btn => {
+-                const btnMode = btn.getAttribute('data-main-theme');
+-                if (btnMode === mode) {
+-                    btn.classList.add('active');
+-                } else {
+-                    btn.classList.remove('active');
+-                }
++                if (btn.getAttribute('data-main-theme') === mode) btn.classList.add('active');
++                else btn.classList.remove('active');
+             });
+         }
+ 
+         mainThemeBtns.forEach(btn => {
+             btn.addEventListener('click', () => {
+                 const mode = btn.getAttribute('data-main-theme');
+-                if (mode === 'light' || mode === 'dark' || mode === 'auto') {
++                if (mode) {
+                     currentMainTheme = mode;
+                     applyMainTheme(currentMainTheme);
+                 }
+             });
+         });
+-
+-        // initialize main program theme to auto (system default)
+-        currentMainTheme = 'auto';
+         applyMainTheme('auto');
+ 
+-        // small interactive: nav links dummy
+-        const navLinks = document.querySelectorAll('#name-app .nav-link');
+-        navLinks.forEach(link => {
++        // dummy nav links (no routing, just active state)
++        document.querySelectorAll('#name-app .nav-link').forEach(link => {
+             link.addEventListener('click', (e) => {
+                 e.preventDefault();
+-                navLinks.forEach(l => l.classList.remove('active'));
++                document.querySelectorAll('#name-app .nav-link').forEach(l => l.classList.remove('active'));
+                 link.classList.add('active');
+             });
+         });
+-
+-        console.log("✅ Dual‑theme ready: main UI (light/dark/auto) + independent mock app theming");
+     })();
+ </script>
+ </body>
