@@ -46,7 +46,7 @@ print("Hello, world!")
 **KaTeX examples**
 - Inline: $E = mc^2$
 - Display: $$ \displaystyle \int_{0}^{\infty} e^{-x^2} dx = \frac{\sqrt{\pi}}{2} $$
-- Vector: $\vec{F} = m\\vec{a}$
+- Vector: $\vec{F} = m\vec{a}$
 - Matrix: $$ \begin{pmatrix} a & b \\ c & d \end{pmatrix} $$
 
 $$ \text{File}_{B} = \text{File}_{A} + \text{Diff}_{A \to B} $$
