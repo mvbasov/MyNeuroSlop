@@ -1,0 +1,4 @@
+--extra-index-url https://pytorch.org
+torch
+numpy==1.26.4
+sentence-transformers

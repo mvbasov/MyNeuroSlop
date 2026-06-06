@@ -1,0 +1,1 @@
+docker run -d -p 11434:11434 --name ollama-numpy ollama/ollama
