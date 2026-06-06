@@ -138,7 +138,6 @@ def get_qdrant_client():
     return QdrantClient(url=f"http://{QDRANT_URL}:{QDRANT_PORT}", timeout=60.0)
 
 def ensure_ollama_model():
-    """Check if model exists, pull if missing."""
     try:
         resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=10)
         if resp.status_code == 200:
@@ -146,7 +145,7 @@ def ensure_ollama_model():
             if any(m.get("name", "").startswith(EMBED_MODEL) for m in models):
                 logger.info(f"Model {EMBED_MODEL} already present.")
                 return True
-        logger.info(f"Model {EMBED_MODEL} not found. Pulling (may take a few minutes)...")
+        logger.info(f"Model {EMBED_MODEL} not found. Pulling...")
         pull_resp = requests.post(f"{OLLAMA_URL}/api/pull", json={"name": EMBED_MODEL}, timeout=300)
         if pull_resp.status_code == 200:
             logger.info(f"Successfully pulled {EMBED_MODEL}")
@@ -159,7 +158,6 @@ def ensure_ollama_model():
         return False
 
 def sanitize_text(text, max_len=250):
-    """Remove control characters and truncate to safe length for all-minilm."""
     cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
     if len(cleaned) > max_len:
         cleaned = cleaned[:max_len].rsplit(' ', 1)[0]
@@ -168,7 +166,6 @@ def sanitize_text(text, max_len=250):
     return cleaned.strip()
 
 def chunk_text_smart(text, max_chars=250):
-    """Split text into chunks not exceeding max_chars, preserving words."""
     if len(text) <= max_chars:
         return [text]
     chunks = []
@@ -212,11 +209,29 @@ def get_embedding_with_retry(text, max_retries=12):
             time.sleep(2 ** attempt)
     raise Exception(f"Ollama failed after {max_retries} retries for text: {sanitized[:100]}...")
 
-def split_md_sections(content, filename, rel_path):
+def get_file_url(rel_path, anchor=None):
+    """
+    Convert a relative file path (e.g., 'md/QuickNotes.md') to a file:// URL
+    using HTML_BASE_PATH, replacing .md extension with .html, and appending anchor if present.
+    """
+    # Normalize path separators
+    rel_path = rel_path.replace('\\', '/')
+    # Replace .md extension with .html (case-insensitive)
+    if rel_path.lower().endswith('.md'):
+        html_path = rel_path[:-3] + '.html'
+    else:
+        # For non-.md files, still try to replace .md if present, else keep as is (unlikely)
+        html_path = rel_path
+    base = HTML_BASE_PATH.rstrip('/')
+    url = f"file://{base}/{html_path}"
+    if anchor:
+        url += f"#{anchor}"
+    return url
+
+def split_md_sections(content, rel_path):
     """
     Split markdown by --- and timestamp heading.
-    Returns list of dicts with text, anchor, timestamp, and file_url.
-    file_url uses HTML_BASE_PATH and .html extension with anchor.
+    Returns list of dicts with text, anchor, timestamp, file_url.
     """
     sections = []
     lines = content.splitlines()
@@ -225,17 +240,13 @@ def split_md_sections(content, filename, rel_path):
     current_anchor = None
     current_timestamp = None
 
-    # Prepare HTML file name: basename .md -> .html
-    base_name = os.path.basename(filename)
-    html_filename = base_name.replace('.md', '.html')
-    file_url_base = f"file://{HTML_BASE_PATH.rstrip('/')}/{html_filename}"
-
     while i < len(lines):
         line = lines[i]
         if line.strip() == '- - -' and i + 1 < len(lines):
             next_line = lines[i+1].strip()
             match = re.match(r'^#####\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})$', next_line)
             if match:
+                # Save previous section if any
                 if current_section_lines:
                     text = '\n'.join(current_section_lines).strip()
                     if text:
@@ -243,7 +254,7 @@ def split_md_sections(content, filename, rel_path):
                             'text': text,
                             'anchor': current_anchor,
                             'timestamp': current_timestamp,
-                            'file_url': f"{file_url_base}#{current_anchor}" if current_anchor else None
+                            'file_url': get_file_url(rel_path, current_anchor)
                         })
                 date_str, time_str = match.group(1), match.group(2)
                 dt_str = f"{date_str} {time_str}"
@@ -256,6 +267,7 @@ def split_md_sections(content, filename, rel_path):
         current_section_lines.append(line)
         i += 1
 
+    # Last section
     if current_section_lines:
         text = '\n'.join(current_section_lines).strip()
         if text:
@@ -263,7 +275,7 @@ def split_md_sections(content, filename, rel_path):
                 'text': text,
                 'anchor': current_anchor,
                 'timestamp': current_timestamp,
-                'file_url': f"{file_url_base}#{current_anchor}" if current_anchor else None
+                'file_url': get_file_url(rel_path, current_anchor)
             })
 
     # Further split each section into smaller chunks if needed
@@ -273,18 +285,17 @@ def split_md_sections(content, filename, rel_path):
         if len(text) > 250:
             sub_chunks = chunk_text_smart(text, max_chars=250)
             for idx, sub in enumerate(sub_chunks):
+                # For sub-chunks, append _partN to anchor to make them unique (though not needed for linking)
+                sub_anchor = sec['anchor'] + f"_part{idx+1}" if sec['anchor'] else None
                 final_chunks.append({
                     'text': sub,
-                    'anchor': sec['anchor'] + f"_part{idx+1}" if sec['anchor'] else None,
+                    'anchor': sub_anchor,
                     'timestamp': sec['timestamp'],
-                    'file_url': sec['file_url']  # anchor may not match exactly but fine
+                    'file_url': get_file_url(rel_path, sec['anchor'])  # Keep original anchor for linking
                 })
         else:
             final_chunks.append(sec)
     return final_chunks
-
-def chunk_text_legacy(text, max_chars=250):
-    return chunk_text_smart(text, max_chars)
 
 def parse_file(filepath):
     try:
@@ -335,12 +346,13 @@ def ingest_documents():
                 if not content.strip():
                     continue
 
+                # For .md files, use intelligent section splitting
                 if filename.lower().endswith('.md'):
-                    sections = split_md_sections(content, filename, rel_path)
+                    sections = split_md_sections(content, rel_path)
                     for idx, sec in enumerate(sections):
                         if not sec['text'].strip():
                             continue
-                        logger.info(f"Processing {rel_path} sub-chunk {idx+1}/{len(sections)}")
+                        logger.info(f"Processing {rel_path} chunk {idx+1}/{len(sections)}")
                         try:
                             vec = get_embedding_with_retry(sec['text'])
                             chunk_id_str = f"{path}_sec_{idx}_{sec.get('anchor', '')}"
@@ -356,16 +368,17 @@ def ingest_documents():
                             consecutive_failures = 0
                             time.sleep(1)
                         except Exception as e:
-                            logger.error(f"Failed to index sub-chunk {idx+1} of {rel_path}: {e}")
+                            logger.error(f"Failed to index chunk {idx+1} of {rel_path}: {e}")
                             consecutive_failures += 1
                             if consecutive_failures >= 5:
                                 break
                 else:
-                    # Non-markdown files: keep old behavior, no file_url (or could build one)
+                    # For non-markdown files, create simple chunks and a link without anchor
                     text = parse_file(path).strip()
                     if not text:
                         continue
-                    chunks = chunk_text_legacy(text, max_chars=250)
+                    chunks = chunk_text_smart(text, max_chars=250)
+                    file_url = get_file_url(rel_path, anchor=None)  # no anchor
                     for j, chunk in enumerate(chunks):
                         if not chunk.strip():
                             continue
@@ -374,7 +387,13 @@ def ingest_documents():
                             vec = get_embedding_with_retry(chunk)
                             chunk_id_str = f"{path}_chunk_{j}"
                             doc_id = int(hashlib.md5(chunk_id_str.encode('utf-8')).hexdigest()[:15], 16)
-                            payload = {"text": chunk, "filepath": rel_path, "anchor": None, "file_url": None}
+                            payload = {
+                                "text": chunk,
+                                "filepath": rel_path,
+                                "anchor": None,
+                                "timestamp": None,
+                                "file_url": file_url
+                            }
                             client.upsert(COLLECTION_NAME, [{"id": doc_id, "vector": vec, "payload": payload}])
                             consecutive_failures = 0
                             time.sleep(1)

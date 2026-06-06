@@ -51,6 +51,8 @@ services:
       echo 'Embedding model cached!';
       echo 'Pulling Small Language Model (qwen2.5:0.5b)...';
       curl -s -X POST http://ollama:11434/api/pull -d '{\"name\": \"qwen2.5:0.5b\"}' &&
+      echo 'Pulling embedding model (paraphrase-multilingual)...';
+      curl -s -X POST http://ollama:11434/api/pull -d '{"name": "paraphrase-multilingual"}' &&
       echo 'All models cached locally on disk!'
       "
     restart: "no"
