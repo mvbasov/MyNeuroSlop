@@ -14,14 +14,8 @@ from flask import Flask, request, jsonify, render_template_string
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Make third-party HTTP logging switchable off by default
-if os.environ.get("ENABLE_HTTP_LOGS", "false").lower() != "true":
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("qdrant_client.http").setLevel(logging.WARNING)
-
 # Versioning
-VERSION = "1.5.0"
+VERSION = "1.4.0"
 
 # Environment variables
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")

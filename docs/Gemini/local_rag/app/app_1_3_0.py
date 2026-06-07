@@ -14,14 +14,8 @@ from flask import Flask, request, jsonify, render_template_string
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Make third-party HTTP logging switchable off by default
-if os.environ.get("ENABLE_HTTP_LOGS", "false").lower() != "true":
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("qdrant_client.http").setLevel(logging.WARNING)
-
 # Versioning
-VERSION = "1.5.0"
+VERSION = "1.3.0"
 
 # Environment variables
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
@@ -186,7 +180,7 @@ def sanitize_text(text, max_len=2000):
             cleaned = cleaned[:max_len]
     return cleaned.strip()
 
-def chunk_text_smart(text, max_chars=150):
+def chunk_text_smart(text, max_chars=400):
     if len(text) <= max_chars:
         return [text]
     chunks = []
@@ -211,10 +205,7 @@ def get_embedding_with_retry(text, max_retries=12):
         "model": EMBED_MODEL,
         "prompt": sanitized,
         "keep_alive": "5m",
-        "options": {
-            "num_thread": 1,
-            "num_ctx": 512
-        }
+        "options": {"num_thread": 1}
     }
     for attempt in range(max_retries):
         try:
@@ -360,8 +351,8 @@ def split_md_sections(content, rel_path, global_metadata):
     final_chunks = []
     for sec in sections:
         text = sec['text']
-        if len(text) > 150:
-            sub_chunks = chunk_text_smart(text, max_chars=150)
+        if len(text) > 400:
+            sub_chunks = chunk_text_smart(text, max_chars=400)
             for idx, sub in enumerate(sub_chunks):
                 sub_anchor = sec['anchor'] + f"_part{idx+1}" if sec['anchor'] else None
                 final_chunks.append({

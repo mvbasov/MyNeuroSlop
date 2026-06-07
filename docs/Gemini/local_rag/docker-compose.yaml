@@ -25,7 +25,7 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - ./ollama_storage:/root/.ollama 
+      - ~/.ollama:/root/.ollama 
     deploy:
       resources:
         limits:
@@ -78,4 +78,5 @@ services:
       - OLLAMA_URL=http://ollama:11434
       - QDRANT_URL=qdrant
       - QDRANT_PORT=6333
+#      - ENABLE_HTTP_LOGS=true  # <--- Add this to see HTTP logs again        
     restart: unless-stopped
