@@ -1,6 +1,5 @@
 version: '3.8'
 
-# File version 1.9.0
 services:
   # Vector Database: Optimized for CPU and strictly bounded in memory
   qdrant:
@@ -45,10 +44,10 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
-    # Pass the model variable to the puller for automated downloading
+    # Передаем переменную модели в пуллер для автоматической загрузки
     environment:
       - EMBED_MODEL=nomic-embed-text
-      # - EMBED_MODEL=all-minilm  # Uncomment to revert back to all-minilm
+      # - EMBED_MODEL=all-minilm  # Раскомментируйте для возврата к all-minilm
     entrypoint: >
       sh -c "
       echo 'Pulling embedding model ($${EMBED_MODEL})...';
@@ -77,9 +76,9 @@ services:
     tty: true
     environment:
       - PYTHONUNBUFFERED=1
-      # Configure the embedding model at the deployment stage
+      # Настройка модели эмбеддинга на этапе развертывания
       - EMBED_MODEL=nomic-embed-text
-      # - EMBED_MODEL=all-minilm  # Uncomment to revert back to all-minilm
+      # - EMBED_MODEL=all-minilm  # Раскомментируйте для возврата к all-minilm
       # Provide internal docker hostnames to the app
       - OLLAMA_URL=http://ollama:11434
       - QDRANT_URL=qdrant

@@ -14,44 +14,22 @@ from flask import Flask, request, jsonify, render_template_string
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Disable verbose library logs by default
+# Make third-party HTTP logging switchable off by default
 if os.environ.get("ENABLE_HTTP_LOGS", "false").lower() != "true":
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("qdrant_client.http").setLevel(logging.WARNING)
 
-# Current version of the application
-VERSION = "1.9.0"
+# Versioning bumped to 1.6.0
+VERSION = "1.7.0"
 
-# Docker environment variables
+# Environment variables
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
 QDRANT_URL = os.environ.get("QDRANT_URL", "qdrant")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", 6333))
-HTML_BASE_PATH = os.environ.get("HTML_BASE_PATH", "/home/mvb/git/OMNotes/html/")  # Base path for file://
+HTML_BASE_PATH = os.environ.get("HTML_BASE_PATH", "/home/mvb/git/OMNotes/html/")  # Base path for file:// links
 
-# --- Dynamic embedding model selection ---
-# Read selected model from Docker Compose environment variable.
-# Defaults to multilingual "nomic-embed-text".
-# To switch back to English "all-minilm", uncomment it in docker-compose.yaml.
-EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text")
-
-# Auto-detect vector size based on the selected model
-def get_vector_size(model_name):
-    if "nomic" in model_name:
-        return 768  # Dimension for nomic-embed-text
-    elif "bge-m3" in model_name:
-        return 1024 # Dimension for bge-m3
-    elif "all-minilm" in model_name:
-        return 384  # Dimension for all-minilm
-    elif "paraphrase" in model_name:
-        return 384  # Dimension for paraphrase-multilingual
-    else:
-        logger.warning(f"Unknown model: {model_name}. Defaulting vector size to 768.")
-        return 768
-
-VECTOR_SIZE = get_vector_size(EMBED_MODEL)
-logger.info(f"Using embedding model: '{EMBED_MODEL}' with vector dimension size: {VECTOR_SIZE}")
-
+EMBED_MODEL = "all-minilm"
 COLLECTION_NAME = "rag_documents"
 DATA_DIR = "/data"
 HASH_CACHE_FILE = os.path.join(DATA_DIR, ".indexer_hash_cache.json")
@@ -551,13 +529,9 @@ def ingest_documents():
     client = get_qdrant_client()
     for _ in range(5):
         try:
-            # Initialize collection with dynamic vector dimension (VECTOR_SIZE)
             if not client.collection_exists(COLLECTION_NAME):
-                logger.info(f"Creating new collection {COLLECTION_NAME} with dimension {VECTOR_SIZE}...")
-                client.create_collection(
-                    collection_name=COLLECTION_NAME, 
-                    vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE)
-                )
+                # Using size 384 for all-minilm. Change if switching to paraphrase-multilingual.
+                client.create_collection(COLLECTION_NAME, vectors_config=VectorParams(size=384, distance=Distance.COSINE))
             break
         except Exception as e:
             logger.warning(f"Qdrant not ready: {e}, retrying...")

@@ -10,41 +10,41 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, Filter, FieldCondition, MatchValue
 from flask import Flask, request, jsonify, render_template_string
 
-# Setup logging
+# Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Disable verbose library logs by default
+# Отключение подробных логов библиотек по умолчанию
 if os.environ.get("ENABLE_HTTP_LOGS", "false").lower() != "true":
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("qdrant_client.http").setLevel(logging.WARNING)
 
-# Current version of the application
-VERSION = "1.9.0"
+# Текущая версия приложения
+VERSION = "1.8.0"
 
-# Docker environment variables
+# Переменные окружения Docker
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
 QDRANT_URL = os.environ.get("QDRANT_URL", "qdrant")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", 6333))
-HTML_BASE_PATH = os.environ.get("HTML_BASE_PATH", "/home/mvb/git/OMNotes/html/")  # Base path for file://
+HTML_BASE_PATH = os.environ.get("HTML_BASE_PATH", "/home/mvb/git/OMNotes/html/")  # Базовый путь для file://
 
-# --- Dynamic embedding model selection ---
-# Read selected model from Docker Compose environment variable.
-# Defaults to multilingual "nomic-embed-text".
-# To switch back to English "all-minilm", uncomment it in docker-compose.yaml.
+# --- Динамический выбор модели эмбеддингов ---
+# Считываем выбранную модель из переменной окружения Docker Compose.
+# По умолчанию используется русскоязычная "nomic-embed-text".
+# Для переключения обратно на английскую "all-minilm" просто раскомментируйте её в docker-compose.yaml.
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text")
 
-# Auto-detect vector size based on the selected model
+# Автоматическое определение размерности вектора на основе выбранной модели
 def get_vector_size(model_name):
     if "nomic" in model_name:
-        return 768  # Dimension for nomic-embed-text
+        return 768  # Размерность для nomic-embed-text
     elif "bge-m3" in model_name:
-        return 1024 # Dimension for bge-m3
+        return 1024 # Размерность для bge-m3
     elif "all-minilm" in model_name:
-        return 384  # Dimension for all-minilm
+        return 384  # Размерность для all-minilm
     elif "paraphrase" in model_name:
-        return 384  # Dimension for paraphrase-multilingual
+        return 384  # Размерность для paraphrase-multilingual
     else:
         logger.warning(f"Unknown model: {model_name}. Defaulting vector size to 768.")
         return 768
@@ -551,7 +551,7 @@ def ingest_documents():
     client = get_qdrant_client()
     for _ in range(5):
         try:
-            # Initialize collection with dynamic vector dimension (VECTOR_SIZE)
+            # Инициализация коллекции с динамической размерностью вектора (VECTOR_SIZE)
             if not client.collection_exists(COLLECTION_NAME):
                 logger.info(f"Creating new collection {COLLECTION_NAME} with dimension {VECTOR_SIZE}...")
                 client.create_collection(

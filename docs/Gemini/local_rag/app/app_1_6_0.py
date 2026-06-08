@@ -14,44 +14,22 @@ from flask import Flask, request, jsonify, render_template_string
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Disable verbose library logs by default
+# Make third-party HTTP logging switchable off by default
 if os.environ.get("ENABLE_HTTP_LOGS", "false").lower() != "true":
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("qdrant_client.http").setLevel(logging.WARNING)
 
-# Current version of the application
-VERSION = "1.9.0"
+# Versioning bumped to 1.6.0
+VERSION = "1.6.0"
 
-# Docker environment variables
+# Environment variables
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
 QDRANT_URL = os.environ.get("QDRANT_URL", "qdrant")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", 6333))
-HTML_BASE_PATH = os.environ.get("HTML_BASE_PATH", "/home/mvb/git/OMNotes/html/")  # Base path for file://
+HTML_BASE_PATH = os.environ.get("HTML_BASE_PATH", "/home/mvb/git/OMNotes/html/")  # Base path for file:// links
 
-# --- Dynamic embedding model selection ---
-# Read selected model from Docker Compose environment variable.
-# Defaults to multilingual "nomic-embed-text".
-# To switch back to English "all-minilm", uncomment it in docker-compose.yaml.
-EMBED_MODEL = os.environ.get("EMBED_MODEL", "nomic-embed-text")
-
-# Auto-detect vector size based on the selected model
-def get_vector_size(model_name):
-    if "nomic" in model_name:
-        return 768  # Dimension for nomic-embed-text
-    elif "bge-m3" in model_name:
-        return 1024 # Dimension for bge-m3
-    elif "all-minilm" in model_name:
-        return 384  # Dimension for all-minilm
-    elif "paraphrase" in model_name:
-        return 384  # Dimension for paraphrase-multilingual
-    else:
-        logger.warning(f"Unknown model: {model_name}. Defaulting vector size to 768.")
-        return 768
-
-VECTOR_SIZE = get_vector_size(EMBED_MODEL)
-logger.info(f"Using embedding model: '{EMBED_MODEL}' with vector dimension size: {VECTOR_SIZE}")
-
+EMBED_MODEL = "all-minilm"
 COLLECTION_NAME = "rag_documents"
 DATA_DIR = "/data"
 HASH_CACHE_FILE = os.path.join(DATA_DIR, ".indexer_hash_cache.json")
@@ -289,39 +267,6 @@ def get_file_url(rel_path, anchor=None):
         url += f"#{anchor}"
     return url
 
-def extract_markdown_links(content, rel_path, global_metadata):
-    """Extracts Markdown links [text](url), creating explicit chunks to prevent clipping."""
-    link_chunks = []
-    pattern = r'\[([^\]]+)\]\((https?://[^\)]+)\)'
-    
-    matches = re.findall(pattern, content)
-    for text, url in matches:
-        text = text.strip()
-        url = url.strip()
-        
-        if not text or not url:
-            continue
-            
-        # Enrich text to maximize semantic embedding performance
-        chunk_text = f"Source File: {rel_path}\nDescription: {text}\nURL: {url}"
-        
-        meta = global_metadata.copy()
-        meta.update({
-            "extracted_title": text,
-            "url": url,
-            "chunk_type": "link"
-        })
-        
-        link_chunks.append({
-            'text': chunk_text,
-            'anchor': None,
-            'timestamp': None,
-            'file_url': get_file_url(rel_path),
-            'metadata': meta
-        })
-        
-    return link_chunks
-
 def clean_json_string(s):
     """Cleans malformed JSON by removing HTML comments, trailing commas, and invalid escapes."""
     # Remove HTML comments like <!-- Don't edit body below this line -->
@@ -452,7 +397,7 @@ def split_md_sections(content, rel_path, global_metadata):
     return final_chunks
 
 def process_file_content(content, rel_path):
-    """Master pipeline: Parses JSON entirely, strips Pelican headers, extracts explicit links, extracts embedded JSON, chunks markdown."""
+    """Master pipeline: Parses JSON entirely, strips Pelican headers, extracts embedded JSON, chunks markdown."""
     chunks = []
     global_metadata = {}
     
@@ -486,12 +431,8 @@ def process_file_content(content, rel_path):
             
     if is_pelican and header_end > 0:
         content = '\n'.join(lines[header_end:]).strip()
-
-    # 3. Extract and preserve explicit Markdown links [text](url) as unique chunks
-    link_chunks = extract_markdown_links(content, rel_path, global_metadata)
-    chunks.extend(link_chunks)
         
-    # 4. Extract Embedded JSON Blocks (```json ... ```)
+    # 3. Extract Embedded JSON Blocks (```json ... ```)
     json_blocks = re.findall(r'```json\s*(.*?)\s*```', content, re.DOTALL | re.IGNORECASE)
     for block in json_blocks:
         try:
@@ -507,7 +448,7 @@ def process_file_content(content, rel_path):
     # Strip the JSON blocks from standard markdown parsing so we don't duplicate indexing
     content = re.sub(r'```json\s*.*?\s*```', '', content, flags=re.DOTALL | re.IGNORECASE).strip()
 
-    # 5. Extract Embedded Bookmarks JSON (<script>bookmarks = [...]</script>)
+    # 4. Extract Embedded Bookmarks JSON (<script>bookmarks = [...]</script>)
     bookmark_scripts = re.finditer(r'<script[^>]*>\s*bookmarks\s*=\s*(.*?)\s*(?:;)?\s*</script>', content, re.DOTALL | re.IGNORECASE)
     for match in bookmark_scripts:
         block = match.group(1)
@@ -524,7 +465,7 @@ def process_file_content(content, rel_path):
     # Strip the bookmarks scripts from standard markdown parsing so we don't duplicate indexing
     content = re.sub(r'<script[^>]*>\s*bookmarks\s*=\s*.*?</script>', '', content, flags=re.DOTALL | re.IGNORECASE).strip()
     
-    # 6. Process remaining Markdown text via Separator Rules
+    # 5. Process remaining Markdown text via Separator Rules
     if content:
         md_chunks = split_md_sections(content, rel_path, global_metadata)
         chunks.extend(md_chunks)
@@ -551,13 +492,9 @@ def ingest_documents():
     client = get_qdrant_client()
     for _ in range(5):
         try:
-            # Initialize collection with dynamic vector dimension (VECTOR_SIZE)
             if not client.collection_exists(COLLECTION_NAME):
-                logger.info(f"Creating new collection {COLLECTION_NAME} with dimension {VECTOR_SIZE}...")
-                client.create_collection(
-                    collection_name=COLLECTION_NAME, 
-                    vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE)
-                )
+                # Using size 384 for all-minilm. Change if switching to paraphrase-multilingual.
+                client.create_collection(COLLECTION_NAME, vectors_config=VectorParams(size=384, distance=Distance.COSINE))
             break
         except Exception as e:
             logger.warning(f"Qdrant not ready: {e}, retrying...")
