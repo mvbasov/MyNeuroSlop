@@ -1,0 +1,3 @@
+#/usr/bin/env bash
+cat ../data/.indexer_hash_cache.json|jq . | wc -l
+
