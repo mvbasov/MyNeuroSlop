@@ -1,11 +1,129 @@
-<!-- NPN Transistor -->
-<symbol id="npn" viewBox="0 0 210 297">
-  <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="50" cy="50" r="42" stroke-width="2" />
-    <line x1="0" y1="50" x2="35" y2="50" />
-    <line x1="35" y1="28" x2="35" y2="72" stroke-width="4.5" />
-    <path d="M 35 40 L 60 20 L 60 0" />
-    <path d="M 45 68 L 70 88 L 70 108" />
-    <polygon points="58,78 46,76 54,67" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"/>
-  </g>
-</symbol>
+<svg class="circuit-diagram" viewBox="0 0 650 600" width="100%" height="600">
+  <defs id="schematic-library" data-name="simple components" data-version="1.8.0">
+    <symbol id="npn" viewBox="0 0 100 100">
+            <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Main Connection Pins -->
+              <line x1="0" y1="50" x2="25" y2="50"></line>
+              <polyline points="50,0 50,20 25,40"></polyline>
+              <polyline points="50,100 50,80 25,60"></polyline>
+              <!-- Base Plate -->
+              <line x1="25" y1="35" x2="25" y2="65"></line>
+              <!-- Outer Envelope -->
+              <circle cx="40" cy="50" r="33"></circle>
+              <!-- NPN Emitter Arrow (Outward) -->
+              <polygon points="40,72 33,71 37,65" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"></polygon>
+            </g>
+          </symbol>
+    <symbol id="resistor" viewBox="0 0 100 100">
+            <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="0" y1="50" x2="30" y2="50"></line>
+              <rect x="30" y="40" width="40" height="20"></rect>
+              <line x1="70" y1="50" x2="100" y2="50"></line>
+            </g>
+          </symbol>
+    <symbol id="inductor" viewBox="0 0 100 100">
+            <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M 0 50 L 20 50 Q 30 20 40 50 Q 50 20 60 50 Q 70 20 80 50 L 100 50"></path>
+            </g>
+          </symbol>
+    <symbol id="led" viewBox="0 0 100 100">
+            <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Main Connection Pins -->
+              <line x1="0" y1="50" x2="35" y2="50"></line>
+              <line x1="65" y1="50" x2="100" y2="50"></line>
+              <!-- Cathode Bar -->
+              <line x1="65" y1="30" x2="65" y2="70"></line>
+              <!-- Diode Body (Filled Anode Triangle) -->
+              <polygon points="35,30 35,70 65,50" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"></polygon>
+              <!-- Light Emission Rays -->
+              <line x1="42" y1="26" x2="54" y2="14"></line>
+              <line x1="54" y1="34" x2="66" y2="22"></line>
+              <!-- Light Emission Arrowheads (Filled) -->
+              <polygon points="50,10 58,10 58,18" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"></polygon>
+              <polygon points="62,18 70,18 70,26" fill="currentColor" stroke-width="1.5" stroke-linejoin="miter"></polygon>
+            </g>
+          </symbol>
+    <symbol id="battery" viewBox="0 0 100 100">
+            <g stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="0" y1="50" x2="40" y2="50"></line>
+              <line x1="40" y1="20" x2="40" y2="80" stroke-width="2.5"></line>
+              <line x1="60" y1="35" x2="60" y2="65" stroke-width="6"></line>
+              <line x1="60" y1="50" x2="100" y2="50"></line>
+              <line x1="20" y1="25" x2="30" y2="25"></line>
+              <line x1="25" y1="20" x2="25" y2="30"></line>
+            </g>
+          </symbol>
+  </defs>
+<style>
+  .schema-title, .small-label, .component-label {
+    stroke: currentColor;
+    font-family="sans-serif"
+  }
+</style>
+        <text x="300" y="36" class="schema-title" font-family="sans-serif" font-size="25" text-anchor="middle" stroke-width="2">Joule theif</text>
+        <!-- === WIRING PATHS === -->
+        <!-- Positive Rail (V+) -->
+        <path d="M 150 205 L 150 70 L 480 70 L 480 200" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round" />
+        
+        <!-- Negative Rail (GND) with extended emitter wire -->
+        <path d="M 150 305 L 150 510 L 600 510 L 600 425 M 480 450 L 480 510" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round" />
+        
+        <!-- Resistor to Left Coil Path -->
+        <path d="M 300 170 L 300 200 L 410 200" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round" />
+    
+        <!-- Left Coil to Transistor Base Loop -->
+        <path d="M410,300 L330,300 L330,400 L430,400" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round" />
+    
+        <!-- Right Coil to Collector Path -->
+        <path d="M 480 300 L 480 350" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round" />
+    
+        <!-- Collector to LED Path -->
+        <path d="M 480 325 L 600 325" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round" />
+    
+    
+        <!-- === COMPONENTS === -->
+        
+        <!-- 1.5V Battery (Using Library Component) -->
+        <use href="#battery" transform="translate(200, 205) rotate(90)" width="100" height="100" />
+        <text x="60" y="240" class="component-label">1,5V</text>
+        <text x="50" y="260" class="component-label">Battery</text>
+        <text x="20" y="540" class="small-label">Ubat=0.35...1.5V</text>
+    
+        <!-- 2.2K Ohm Resistor -->
+        <use href="#resistor" transform="translate(350, 70) rotate(90) translate(0, 0)" width="100" height="100" />
+        <text x="230" y="100" class="component-label">R1</text>
+        <text x="210" y="125" class="component-label">2.2K</text>
+    
+        <!-- Coils (Transformer on Ferrite Core) -->
+        <!-- Left Coil (Opposite direction rotation) -->
+        <use href="#inductor" transform="translate(460, 200) rotate(90) " width="100" height="100" />
+        <circle cx="400" cy="285" r="3" fill="currentColor" /> <!-- Dot for coil start at the bottom -->
+        <text x="352" y="256" class="component-label" text-anchor="middle">N = 25</text>
+
+        <!-- Right Coil (Mirrored via vertical axe) -->
+        <use href="#inductor" transform="translate(430, 200) scale(-1, 1) rotate(90)" width="100" height="100" />
+        <circle cx="500" cy="215" r="3" fill="currentColor" /> <!-- Reference dot -->
+        <text x="537" y="256" class="component-label" text-anchor="middle">N = 50</text>
+
+        <!-- Ferrite Core lines (Shifted slightly to perfectly center between coils without overlap) -->
+        <line x1="436" y1="200" x2="436" y2="300" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+        <line x1="444" y1="200" x2="444" y2="300" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+        
+        <!-- NPN Transistor -->
+        <use href="#npn" transform="translate(430, 350)" width="100" height="100" />
+        <text x="450" y="540" class="component-label" text-anchor="middle">Q1 2N5551</text>
+        
+        <!-- White LED -->
+        <use href="#led" transform="translate(650, 325) rotate(90)" width="100" height="100" />
+        <text x="610" y="350" class="component-label">LED</text>
+    
+    
+        <!-- === JUNCTION DOTS === -->
+        <!-- V+ to Resistor -->
+        <circle cx="300" cy="70" r="4" fill="currentColor" />
+        <!-- Collector, Coil, and LED junction -->
+        <circle cx="480" cy="325" r="4" fill="currentColor" />
+        <!-- Emitter to GND rail -->
+        <circle cx="480" cy="510" r="4" fill="currentColor" />
+    
+      </svg>
