@@ -1,0 +1,161 @@
+--- MarkupLinter_v1_21_0.html	2026-06-09 21:50:52.872004446 +0300
++++ MarkupLinter_v1_22_0.html	2026-06-09 21:49:42.919269053 +0300
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8">
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%231E3A8A%22%20%2F%3E%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%2234%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%225%22%20%2F%3E%20%20%3Cline%20x1%3D%2276%22%20y1%3D%2274%22%20x2%3D%2290%22%20y2%3D%2288%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%20%3Ctext%20x%3D%2250%22%20y%3D%2257%22%20font-family%3D%22monospace%22%20font-size%3D%2230%22%20font-weight%3D%22bold%22%20fill%3D%22%23FFFFFF%22%20text-anchor%3D%22middle%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+-    <title>Markup Linter · XML/HTML validator · persistent highlight</title>
++    <title>Markup Linter · Final artifact fix</title>
+     <style>
+         body {
+             margin: 0;
+@@ -192,7 +192,6 @@
+             outline: none;
+         }
+         textarea:focus { outline: none; }
+-        /* Prevent wrapping differences between overlay and textarea */
+         .backdrop .highlights, textarea {
+             white-space: pre-wrap;
+             word-wrap: break-word;
+@@ -219,10 +218,10 @@
+ 
+     <div class="app-header">
+         <h1>🔍 Markup Validator</h1>
+-        <div class="subhead">HTML/XML/SVG · line numbers · persistent highlight · modern file picker</div>
++        <div class="subhead">HTML/XML/SVG · persistent highlight · strict mode artifact fixed</div>
+         <div class="toolbar">
+             <div class="toolbar-left">
+-                <button id="loadBtn" class="icon-btn" title="Load file (modern picker)">📂</button>
++                <button id="loadBtn" class="icon-btn" title="Load file">📂</button>
+                 <button id="pasteBtn" class="icon-btn" title="Paste from clipboard">📋</button>
+                 <button id="saveBtn" class="icon-btn" title="Save to file">💾</button>
+                 <button id="copyBtn" class="icon-btn" title="Copy editor content">📄</button>
+@@ -248,20 +247,20 @@
+                 <div class="backdrop" id="backdrop">
+                     <div class="highlights" id="highlights"></div>
+                 </div>
+-                <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example with mismatch:&#10;&lt;div&gt;&#10;  &lt;img src=&quot;x.jpg&quot; alt=&quot;test&quot;&gt;&#10;&lt;/div&gt;"></textarea>
++                <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup..."></textarea>
+             </div>
+         </div>
+         <div id="resultContainer"></div>
+     </div>
+     <footer>
+-        <span>✔ XML strict mode · smart line detection for mismatches · persistent highlight · artifact‑free mode switching</span>
+-        <span class="version">v1.21.0 · final artifact fix</span>
++        <span>✔ Strict XML mode: smart line detection · no overlay artifacts</span>
++        <span class="version">v1.22.0 · final sync fix</span>
+     </footer>
+ </div>
+ 
+ <script>
+     (function(){
+-        // ----- THEME TOGGLE -----
++        // ----- THEME TOGGLE (unchanged) -----
+         const appContainer = document.getElementById('markup-validator-app');
+         const bodyEl = document.body;
+         const themeToggleBtn = document.getElementById('themeToggleBtn');
+@@ -397,7 +396,7 @@
+             syncScroll();
+         }
+         
+-        // ----- Enhanced XML/SVG validator: extract correct line for mismatches
++        // ----- XML/SVG validator with line correction -----
+         function validateXmlSvg(content) {
+             const errors = [];
+             const parser = new DOMParser();
+@@ -542,7 +541,6 @@
+                 scheduleValidation();
+             } catch (err) {
+                 if (err.name !== 'AbortError') {
+-                    console.warn('Modern picker failed, using fallback', err);
+                     legacyFileInput();
+                 }
+             }
+@@ -584,7 +582,7 @@
+                 updateOverlay();
+                 updateLineNumbers();
+                 scheduleValidation();
+-            } catch (err) { alert("Clipboard read failed. Grant permission or paste manually."); }
++            } catch (err) { alert("Clipboard read failed."); }
+         }
+         
+         function saveToFile() {
+@@ -624,19 +622,25 @@
+         // ----- Event listeners -----
+         editor.addEventListener('input', function() { scheduleValidation(); updateOverlay(); updateLineNumbers(); });
+         editor.addEventListener('scroll', syncScroll);
+-        // No clear on focus – persistent highlight
+         
+-        // ----- FIXED mode change: no artifact, full sync -----
++        // ----- FINAL, FOOLPROOF MODE CHANGE HANDLER -----
+         modeSelect.addEventListener('change', function() {
++            // 1. Clear all UI state
+             clearHighlight();
+             resultContainer.innerHTML = '';
+             currentErrors = [];
+-            runValidation();  // re-run with new mode
+             
+-            function fullSync() {
++            // 2. Force re-validation
++            runValidation();
++            
++            // 3. Aggressive sync: hide backdrop, force reflow, rebuild, show
++            function hardSync() {
+                 if (!backdrop || !editor) return;
+-                backdrop.style.height = editor.clientHeight + 'px';
+-                // Force a complete rebuild of the highlight overlay
++                // Temporarily hide to break any stale rendering
++                backdrop.style.display = 'none';
++                // Force a reflow by reading offsetHeight
++                void backdrop.offsetHeight;
++                // Rebuild overlay content from scratch
+                 const text = editor.value;
+                 const lines = text.split('\n');
+                 let html = '';
+@@ -650,15 +654,19 @@
+                     }
+                 }
+                 highlightsDiv.innerHTML = html;
++                // Set exact height
++                backdrop.style.height = editor.clientHeight + 'px';
++                // Show again
++                backdrop.style.display = 'block';
+                 syncScroll();
+                 updateLineNumbers();
+             }
+             
+-            // Use double sync to catch any delayed layout changes
+-            requestAnimationFrame(() => {
+-                fullSync();
+-                setTimeout(fullSync, 20);
+-            });
++            // Execute multiple times to catch any delayed layout changes
++            hardSync();
++            requestAnimationFrame(() => { hardSync(); });
++            setTimeout(() => { hardSync(); }, 20);
++            setTimeout(() => { hardSync(); }, 100);
+         });
+         
+         jumpToInnerBtn.addEventListener('click', jumpToInnermostError);
+@@ -668,7 +676,7 @@
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
+         
+-        // ----- Initial demo content (mismatch example) -----
++        // ----- Initial demo content (the exact problematic markup) -----
+         editor.value = `<div>
+   <h1>Title missing closing tag</h1>
+   <p>Unclosed paragraph</p>
+@@ -684,7 +692,10 @@
+         scheduleValidation();
+         
+         const resizeObserver = new ResizeObserver(() => {
+-            if (backdrop && editor) { backdrop.style.height = editor.clientHeight + 'px'; syncScroll(); }
++            if (backdrop && editor) {
++                backdrop.style.height = editor.clientHeight + 'px';
++                syncScroll();
++            }
+             updateLineNumbers();
+         });
+         resizeObserver.observe(editor);

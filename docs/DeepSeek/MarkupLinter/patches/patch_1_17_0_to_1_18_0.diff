@@ -1,0 +1,288 @@
+--- MarkupLinter_v1_17_0.html	2026-06-09 17:57:36.513259978 +0300
++++ MarkupLinter_v1_18_0.html	2026-06-09 20:52:00.834240127 +0300
+@@ -6,7 +6,7 @@
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%231E3A8A%22%20%2F%3E%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%2234%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%225%22%20%2F%3E%20%20%3Cline%20x1%3D%2276%22%20y1%3D%2274%22%20x2%3D%2290%22%20y2%3D%2288%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%20%3Ctext%20x%3D%2250%22%20y%3D%2257%22%20font-family%3D%22monospace%22%20font-size%3D%2230%22%20font-weight%3D%22bold%22%20fill%3D%22%23FFFFFF%22%20text-anchor%3D%22middle%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" />
+     <!-- PRESERVE_BINARY_END -->
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+-    <title>Markup Linter · HTML / XML / SVG validator</title>
++    <title>Markup Linter · HTML / XML / SVG validator · Innermost error highlight</title>
+     <style>
+         body {
+             margin: 0;
+@@ -374,7 +374,7 @@
+ 
+     <div class="app-header">
+         <h1>🔍 Markup Validator</h1>
+-        <div class="subhead">HTML tag balance / well‑formed XML & SVG · live validation</div>
++        <div class="subhead">HTML tag balance / well‑formed XML & SVG · live validation · <strong>innermost error auto‑highlight</strong></div>
+         <div class="toolbar">
+             <div class="toolbar-left">
+                 <button id="loadBtn" class="icon-btn" aria-label="Load file">📂</button>
+@@ -383,6 +383,7 @@
+                 <button id="copyBtn" class="icon-btn" aria-label="Copy editor content">📄</button>
+                 <button id="clearBtn" class="icon-btn" aria-label="Clear all">🗑</button>
+                 <button id="themeToggleBtn" class="theme-toggle" aria-label="Switch theme">🌓</button>
++                <button id="jumpToInnerBtn" class="icon-btn" title="Jump to innermost error (deepest nesting)">🎯</button>
+             </div>
+             <div class="toolbar-right">
+                 <select id="modeSelect" class="mode-select" aria-label="Validation mode">
+@@ -405,8 +406,8 @@
+         <div id="resultContainer"></div>
+     </div>
+     <footer>
+-        <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.17.0</span>
++        <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance + <strong>innermost error detection</strong></span>
++        <span class="version">version 1.18.0 · inner error highlight</span>
+     </footer>
+ </div>
+ 
+@@ -489,13 +490,14 @@
+         setThemeMode(savedMode);
+         if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+         
+-        // ----- VALIDATOR CORE with persistent highlight (clears on editor focus/input) -----
++        // ----- VALIDATOR CORE with depth tracking for innermost error -----
+         const editor = document.getElementById('codeEditor');
+         const loadBtn = document.getElementById('loadBtn');
+         const pasteBtn = document.getElementById('pasteBtn');
+         const saveBtn = document.getElementById('saveBtn');
+         const copyBtn = document.getElementById('copyBtn');
+         const clearBtn = document.getElementById('clearBtn');
++        const jumpToInnerBtn = document.getElementById('jumpToInnerBtn');
+         const resultContainer = document.getElementById('resultContainer');
+         const fileStatusBadge = document.getElementById('fileStatusBadge');
+         const summaryLabel = document.getElementById('summaryLabel');
+@@ -576,6 +578,8 @@
+                 const row = document.createElement('div');
+                 row.className = 'error-line';
+                 row.setAttribute('data-line', err.line);
++                // Show depth info in tooltip for debugging
++                row.title = `nesting depth: ${err.depth ?? '?'}`;
+                 row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
+                 row.addEventListener('click', () => {
+                     highlightLineInTextarea(err.line);
+@@ -588,40 +592,22 @@
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
+             
+-            // Set the highlighted line (replaces any previous highlight)
+             currentHighlightedLine = lineNum;
+             updateOverlay();
+             
+-            // Scroll to the line
+             const lineHeight = parseInt(getComputedStyle(editor).lineHeight);
+             const approxY = (lineNum - 1) * lineHeight;
+             editor.scrollTop = Math.max(0, approxY - editor.clientHeight / 3);
+             syncScroll();
+-            
+-            // No automatic timeout – highlight stays until user interacts with editor
+-        }
+-        
+-        function validateXmlSvg(content) {
+-            const errors = [];
+-            const parser = new DOMParser();
+-            const doc = parser.parseFromString(content, "text/xml");
+-            const parseError = doc.querySelector('parsererror');
+-            if (parseError) {
+-                const rawErrorMsg = parseError.textContent || '';
+-                let lineMatch = rawErrorMsg.match(/line\s+(\d+)/i);
+-                let line = lineMatch ? parseInt(lineMatch[1], 10) : 1;
+-                if (isNaN(line)) line = 1;
+-                let cleanedMsg = rawErrorMsg.replace(/\s+/g, ' ').trim();
+-                if (cleanedMsg.length > 160) cleanedMsg = cleanedMsg.slice(0, 150) + '…';
+-                errors.push({ line: line, message: `XML/SVG parse: ${cleanedMsg}` });
+-            }
+-            return errors;
+         }
+         
++        // ----- HTML validator with depth tracking -----
+         function validateHtmlRobust(content) {
+             const errors = [];
+             const lines = content.split('\n');
+-            const tagStack = [];
++            const tagStack = [];    // each: { tagName, line, depth }
++            let currentDepth = 0;
++        
+             for (let i = 0; i < lines.length; i++) {
+                 const line = lines[i];
+                 let inDoubleQuote = false, inSingleQuote = false;
+@@ -630,14 +616,14 @@
+                     if (ch === '"' && !inSingleQuote) inDoubleQuote = !inDoubleQuote;
+                     else if (ch === "'" && !inDoubleQuote) inSingleQuote = !inSingleQuote;
+                 }
+-                if (inDoubleQuote) errors.push({ line: i+1, message: `Unclosed double quote (") in line — attribute value likely unterminated.` });
+-                if (inSingleQuote) errors.push({ line: i+1, message: `Unclosed single quote (') in line — attribute value likely unterminated.` });
++                if (inDoubleQuote) errors.push({ line: i+1, message: `Unclosed double quote (") in line — attribute value likely unterminated.`, depth: currentDepth });
++                if (inSingleQuote) errors.push({ line: i+1, message: `Unclosed single quote (') in line — attribute value likely unterminated.`, depth: currentDepth });
+                 
+                 let processedLine = line.replace(/="[^"]*"/g, '=""').replace(/='[^']*'/g, "=''");
+                 const openAngles = (processedLine.match(/</g) || []).length;
+                 const closeAngles = (processedLine.match(/>/g) || []).length;
+                 if (openAngles !== closeAngles) {
+-                    errors.push({ line: i+1, message: `Mismatched angle brackets: ${openAngles} opening '<' vs ${closeAngles} closing '>'` });
++                    errors.push({ line: i+1, message: `Mismatched angle brackets: ${openAngles} opening '<' vs ${closeAngles} closing '>'`, depth: currentDepth });
+                 }
+                 
+                 const tagRegex = /<(\/?)([\w:-]+)(\s+[^>]*?)?(\/)?>/g;
+@@ -652,23 +638,32 @@
+                     const isVoid = voidTags.includes(tagName);
+                     
+                     if (!isClosing && !isSelfClosing && !isVoid) {
+-                        tagStack.push({ tagName, line: i+1 });
++                        // Opening tag
++                        currentDepth++;
++                        tagStack.push({ tagName, line: i+1, depth: currentDepth });
+                     } else if (isClosing) {
+                         if (tagStack.length === 0) {
+-                            errors.push({ line: i+1, message: `Unexpected closing tag </${tagName}> — no matching open tag.` });
++                            errors.push({ line: i+1, message: `Unexpected closing tag </${tagName}> — no matching open tag.`, depth: currentDepth });
+                         } else {
+                             const last = tagStack.pop();
+                             if (last.tagName !== tagName) {
+-                                errors.push({ line: i+1, message: `Mismatched closing: expected </${last.tagName}>, got </${tagName}>.` });
++                                errors.push({ line: i+1, message: `Mismatched closing: expected </${last.tagName}>, got </${tagName}>.`, depth: last.depth });
++                                // push back to keep stack consistent for outer errors
+                                 tagStack.push(last);
++                            } else {
++                                // proper close: decrease depth
++                                currentDepth--;
+                             }
+                         }
+                     }
+                 }
+             }
++            // Unclosed tags remaining
+             for (const leftover of tagStack) {
+-                errors.push({ line: leftover.line, message: `Unclosed tag <${leftover.tagName}> — missing corresponding closing tag.` });
++                errors.push({ line: leftover.line, message: `Unclosed tag <${leftover.tagName}> — missing corresponding closing tag.`, depth: leftover.depth });
+             }
++            
++            // Deduplicate
+             const unique = new Map();
+             for (const e of errors) {
+                 const key = `${e.line}|${e.message.substring(0,70)}`;
+@@ -677,12 +672,42 @@
+             return Array.from(unique.values());
+         }
+         
++        function validateXmlSvg(content) {
++            const errors = [];
++            const parser = new DOMParser();
++            const doc = parser.parseFromString(content, "text/xml");
++            const parseError = doc.querySelector('parsererror');
++            if (parseError) {
++                const rawErrorMsg = parseError.textContent || '';
++                let lineMatch = rawErrorMsg.match(/line\s+(\d+)/i);
++                let line = lineMatch ? parseInt(lineMatch[1], 10) : 1;
++                if (isNaN(line)) line = 1;
++                let cleanedMsg = rawErrorMsg.replace(/\s+/g, ' ').trim();
++                if (cleanedMsg.length > 160) cleanedMsg = cleanedMsg.slice(0, 150) + '…';
++                errors.push({ line: line, message: `XML/SVG parse: ${cleanedMsg}`, depth: 1 });
++            }
++            return errors;
++        }
++        
++        function getInnermostError(errors) {
++            if (!errors.length) return null;
++            // Higher depth = more inner; if tie, smaller line number (earliest inside that depth)
++            return errors.reduce((best, curr) => {
++                const currDepth = curr.depth ?? 0;
++                const bestDepth = best.depth ?? 0;
++                if (currDepth > bestDepth) return curr;
++                if (currDepth === bestDepth && curr.line < best.line) return curr;
++                return best;
++            }, errors[0]);
++        }
++        
+         function runValidation() {
+             const rawCode = editor.value;
+             if (rawCode.trim() === '') {
+                 currentErrors = [];
+                 updateSummary();
+                 renderFullErrorPanel();
++                clearHighlight(); // no errors => clear highlight
+                 return;
+             }
+             let mode = modeSelect.value;
+@@ -702,7 +727,14 @@
+             currentErrors = errors;
+             updateSummary();
+             renderFullErrorPanel();
+-            // Do not clear highlight automatically – keep existing highlight
++            
++            // Automatically highlight innermost error
++            const innermost = getInnermostError(currentErrors);
++            if (innermost) {
++                highlightLineInTextarea(innermost.line);
++            } else {
++                clearHighlight();
++            }
+         }
+         
+         function scheduleValidation() {
+@@ -710,21 +742,44 @@
+             validationTimeout = setTimeout(runValidation, 300);
+         }
+         
++        // ----- Manual jump to innermost error -----
++        function jumpToInnermostError() {
++            if (!currentErrors.length) {
++                // optional feedback
++                const orig = jumpToInnerBtn.textContent;
++                jumpToInnerBtn.textContent = '❌';
++                setTimeout(() => jumpToInnerBtn.textContent = '🎯', 800);
++                return;
++            }
++            const innermost = getInnermostError(currentErrors);
++            if (innermost) {
++                highlightLineInTextarea(innermost.line);
++                // also flash the button briefly as feedback
++                const orig = jumpToInnerBtn.textContent;
++                jumpToInnerBtn.textContent = '✓';
++                setTimeout(() => jumpToInnerBtn.textContent = orig, 500);
++            } else {
++                jumpToInnerBtn.textContent = '❌';
++                setTimeout(() => jumpToInnerBtn.textContent = '🎯', 800);
++            }
++        }
++        
+         // Clear highlight when editor gets focus or user types (interaction)
+-        editor.addEventListener('focus', clearHighlight);
++        // editor.addEventListener('focus', clearHighlight);
+         editor.addEventListener('input', function() {
+-            clearHighlight();
++            //clearHighlight();
+             scheduleValidation();
+             updateOverlay();
+         });
+         editor.addEventListener('scroll', syncScroll);
+         
+-        // When mode changes, re-validate but keep highlight? Better clear highlight to avoid confusion
+         modeSelect.addEventListener('change', function() {
+             clearHighlight();
+             scheduleValidation();
+         });
+         
++        jumpToInnerBtn.addEventListener('click', jumpToInnermostError);
++        
+         function initialOverlaySync() {
+             updateOverlay();
+             syncScroll();
+@@ -835,12 +890,14 @@
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
+         
+-        // Initial demo content
++        // Initial demo content (has nested errors)
+         editor.value = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph
+   <img src="photo.jpg" alt="demo">
+-  <span class="test">Text</span>
++  <span class="test">Text
++    <b>Bold deep inside
++  </span>
+ </div>`;
+         loadedFileName = null;
+         updateFileStatus();

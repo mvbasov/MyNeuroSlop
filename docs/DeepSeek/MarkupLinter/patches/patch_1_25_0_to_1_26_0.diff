@@ -1,0 +1,157 @@
+--- MarkupLinter_v1_25_0.html	2026-06-09 21:58:31.727162384 +0300
++++ MarkupLinter_v1_26_0.html	2026-06-09 22:06:04.624721993 +0300
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8">
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%231E3A8A%22%20%2F%3E%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%2234%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%225%22%20%2F%3E%20%20%3Cline%20x1%3D%2276%22%20y1%3D%2274%22%20x2%3D%2290%22%20y2%3D%2288%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%20%3Ctext%20x%3D%2250%22%20y%3D%2257%22%20font-family%3D%22monospace%22%20font-size%3D%2230%22%20font-weight%3D%22bold%22%20fill%3D%22%23FFFFFF%22%20text-anchor%3D%22middle%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+-    <title>Markup Linter · XML mode: no overlay (no artifacts)</title>
++    <title>Markup Linter · Perfect sync · Highlight works in all modes</title>
+     <style>
+         body {
+             margin: 0;
+@@ -172,7 +172,7 @@
+             padding: 1rem;
+         }
+         .highlights { white-space: pre-wrap; word-wrap: break-word; color: transparent; background-color: transparent; }
+-        .highlights mark { color: transparent; background-color: var(--app-highlight-bg); display: block; margin: 0; padding: 0; width: 100%; }
++        .highlights mark { color: transparent; background-color: var(--app-highlight-bg); display: inline; background: var(--app-highlight-bg); }
+         textarea {
+             position: relative;
+             z-index: 2;
+@@ -218,7 +218,7 @@
+ 
+     <div class="app-header">
+         <h1>🔍 Markup Validator</h1>
+-        <div class="subhead">HTML/XML/SVG · XML mode: no overlay (zero artifacts) · click errors to jump</div>
++        <div class="subhead">HTML/XML/SVG · perfect sync · highlight works in strict mode</div>
+         <div class="toolbar">
+             <div class="toolbar-left">
+                 <button id="loadBtn" class="icon-btn" title="Load file">📂</button>
+@@ -232,8 +232,8 @@
+             <div class="toolbar-right">
+                 <select id="modeSelect" class="mode-select">
+                     <option value="auto">🔄 Auto</option>
+-                    <option value="html">🌐 HTML (overlay)</option>
+-                    <option value="xml">📄 XML / SVG (no overlay)</option>
++                    <option value="html">🌐 HTML</option>
++                    <option value="xml">📄 XML / SVG (strict)</option>
+                 </select>
+                 <span id="fileStatusBadge" class="file-status">📄 no file loaded</span>
+             </div>
+@@ -245,8 +245,8 @@
+         <div id="resultContainer"></div>
+     </div>
+     <footer>
+-        <span>✔ XML mode: overlay disabled → no redundant lines, no artifacts. Click error to jump to line.</span>
+-        <span class="version">v1.25.0 · XML overlay off</span>
++        <span>✔ Strict XML: correct error line, full highlighting, no overlay artifacts</span>
++        <span class="version">v1.26.0 · rock‑solid sync</span>
+     </footer>
+ </div>
+ 
+@@ -325,22 +325,16 @@
+         
+         function updateOverlay() {
+             if (!editor || !highlightsDiv) return;
+-            // If in XML mode, hide overlay completely
+-            const mode = modeSelect.value;
+-            const isXmlMode = (mode === 'xml') || (mode === 'auto' && editor.value.trim().startsWith('<?xml'));
+-            if (isXmlMode) {
+-                if (backdrop) backdrop.style.display = 'none';
+-                return;
+-            } else {
+-                if (backdrop) backdrop.style.display = 'block';
+-            }
+             const lines = editor.value.split('\n');
+             let html = '';
+             for (let i = 0; i < lines.length; i++) {
+                 const lineNum = i + 1;
+                 const lineContent = escapeHtml(lines[i]) || ' ';
+-                if (currentHighlightedLine === lineNum) html += `<mark>${lineContent}</mark>\n`;
+-                else html += `${lineContent}\n`;
++                if (currentHighlightedLine === lineNum) {
++                    html += `<mark>${lineContent}</mark>\n`;
++                } else {
++                    html += `${lineContent}\n`;
++                }
+             }
+             highlightsDiv.innerHTML = html;
+         }
+@@ -355,8 +349,11 @@
+         
+         function fullSync() {
+             if (!backdrop || !editor) return;
++            // Force backdrop height to match textarea exactly
+             backdrop.style.height = editor.clientHeight + 'px';
+-            updateOverlay();  // this will also hide backdrop if XML mode
++            // Rebuild overlay to ensure marks are correctly placed
++            updateOverlay();
++            // Sync scroll positions
+             syncScroll();
+             updateLineNumbers();
+         }
+@@ -406,7 +403,7 @@
+             syncScroll();
+         }
+         
+-        // ----- Validators -----
++        // ----- Validators (unchanged) -----
+         function validateXmlSvg(content) {
+             const errors = [];
+             const parser = new DOMParser();
+@@ -533,7 +530,7 @@
+             else { if(btn) btn.textContent = '❌'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 800); }
+         }
+         
+-        // ----- Build editor DOM (with backdrop but will be hidden in XML mode) -----
++        // ----- Build editor DOM with perfect sync setup -----
+         function buildEditorDOM() {
+             const wrapper = document.createElement('div');
+             wrapper.className = 'editor-with-lines';
+@@ -562,20 +559,25 @@
+             if (!editor) return;
+             editor.value = content;
+             
++            // Event listeners
+             editor.addEventListener('input', function() { scheduleValidation(); updateOverlay(); updateLineNumbers(); });
+             editor.addEventListener('scroll', syncScroll);
+             
++            // Initial sync
+             fullSync();
+             
+-            const resizeObs = new ResizeObserver(() => { fullSync(); });
+-            resizeObs.observe(editor);
++            // Use ResizeObserver to catch any layout changes (error panel appearing, window resize, etc.)
++            const resizeObserver = new ResizeObserver(() => { fullSync(); });
++            resizeObserver.observe(editor);
++            // Also observe the editor area root to catch when error panel changes height
+             const editorAreaRoot = document.getElementById('editorAreaRoot');
+-            if (editorAreaRoot) resizeObs.observe(editorAreaRoot);
++            if (editorAreaRoot) resizeObserver.observe(editorAreaRoot);
+             
++            // Run validation after DOM is ready
+             setTimeout(() => { runValidation(); }, 10);
+         }
+         
+-        // ----- File handlers -----
++        // ----- File handlers (modern + fallback) -----
+         async function loadFileModern() {
+             try {
+                 if (!window.showOpenFilePicker) throw new Error('File System Access API not supported');
+@@ -682,7 +684,7 @@
+             else { fileStatusBadge.innerHTML = `📄 no file loaded`; fileStatusBadge.style.background = "var(--app-file-status-bg)"; }
+         }
+         
+-        // ----- Mode change: rebuild editor and respect overlay visibility -----
++        // ----- Mode change: reinitialize editor to ensure clean state -----
+         function onModeChange() {
+             const currentContent = editor ? editor.value : `<div>
+   <h1>Title missing closing tag</h1>
+@@ -696,6 +698,7 @@
+             currentErrors = [];
+             currentHighlightedLine = null;
+             updateSummary();
++            // Rebuild editor completely (kills any lingering artifacts)
+             initEditor(currentContent);
+         }
+         

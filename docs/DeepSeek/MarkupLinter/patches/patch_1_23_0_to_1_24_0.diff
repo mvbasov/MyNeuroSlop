@@ -1,0 +1,398 @@
+--- MarkupLinter_v1_23_0.html	2026-06-09 21:49:31.615141465 +0300
++++ MarkupLinter_v1_24_0.html	2026-06-09 21:54:33.957822035 +0300
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8">
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%231E3A8A%22%20%2F%3E%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%2234%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%225%22%20%2F%3E%20%20%3Cline%20x1%3D%2276%22%20y1%3D%2274%22%20x2%3D%2290%22%20y2%3D%2288%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%20%3Ctext%20x%3D%2250%22%20y%3D%2257%22%20font-family%3D%22monospace%22%20font-size%3D%2230%22%20font-weight%3D%22bold%22%20fill%3D%22%23FFFFFF%22%20text-anchor%3D%22middle%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+-    <title>Markup Linter · Robust sync · No artifact</title>
++    <title>Markup Linter · Rebuild on mode switch · No artifacts</title>
+     <style>
+         body {
+             margin: 0;
+@@ -218,7 +218,7 @@
+ 
+     <div class="app-header">
+         <h1>🔍 Markup Validator</h1>
+-        <div class="subhead">HTML/XML/SVG · persistent highlight · strict mode sync fixed</div>
++        <div class="subhead">HTML/XML/SVG · persistent highlight · mode switch rebuilds editor (no artifacts)</div>
+         <div class="toolbar">
+             <div class="toolbar-left">
+                 <button id="loadBtn" class="icon-btn" title="Load file">📂</button>
+@@ -239,22 +239,14 @@
+             </div>
+         </div>
+     </div>
+-    <div class="editor-area">
++    <div class="editor-area" id="editorAreaRoot">
+         <div id="summaryLabel" class="validation-summary">⚙️ Ready</div>
+-        <div class="editor-with-lines">
+-            <div id="lineNumbers" class="line-numbers">1</div>
+-            <div class="editor-wrapper">
+-                <div class="backdrop" id="backdrop">
+-                    <div class="highlights" id="highlights"></div>
+-                </div>
+-                <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup..."></textarea>
+-            </div>
+-        </div>
++        <div id="editorContainer"></div>
+         <div id="resultContainer"></div>
+     </div>
+     <footer>
+-        <span>✔ Strict XML: correct error line · no overlay artifacts</span>
+-        <span class="version">v1.23.0 · ResizeObserver sync</span>
++        <span>✔ Strict XML: correct error line · editor rebuild on mode switch eliminates artifacts</span>
++        <span class="version">v1.24.0 · rebuild on mode change</span>
+     </footer>
+ </div>
+ 
+@@ -264,7 +256,7 @@
+         const appContainer = document.getElementById('markup-validator-app');
+         const bodyEl = document.body;
+         const themeToggleBtn = document.getElementById('themeToggleBtn');
+-        let currentMode = 'auto';
++        let currentThemeMode = 'auto';
+         let systemListenerActive = false;
+         let mediaQueryListener = null;
+         const themeIcons = { auto: '🌓', light: '☀️', dark: '🌙' };
+@@ -284,7 +276,7 @@
+         function activateSystemListener() {
+             if (systemListenerActive) return;
+             const darkModeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+-            const handler = (e) => { if (currentMode === 'auto') applyTheme(e.matches ? 'dark' : 'light'); };
++            const handler = (e) => { if (currentThemeMode === 'auto') applyTheme(e.matches ? 'dark' : 'light'); };
+             if (darkModeMedia.addEventListener) darkModeMedia.addEventListener('change', handler);
+             else if (darkModeMedia.addListener) darkModeMedia.addListener(handler);
+             mediaQueryListener = { media: darkModeMedia, handler };
+@@ -298,42 +290,33 @@
+             systemListenerActive = false;
+             mediaQueryListener = null;
+         }
+-        function setThemeMode(mode) { currentMode = mode; updateThemeFromMode(mode); try { localStorage.setItem('markup_validator_theme', mode); } catch(e) {} }
+-        function cycleTheme() { let idx = themeOrder.indexOf(currentMode); let next = themeOrder[(idx + 1) % themeOrder.length]; setThemeMode(next); }
++        function setThemeMode(mode) { currentThemeMode = mode; updateThemeFromMode(mode); try { localStorage.setItem('markup_validator_theme', mode); } catch(e) {} }
++        function cycleTheme() { let idx = themeOrder.indexOf(currentThemeMode); let next = themeOrder[(idx + 1) % themeOrder.length]; setThemeMode(next); }
+         let savedMode = 'auto';
+         try { const stored = localStorage.getItem('markup_validator_theme'); if (stored === 'light' || stored === 'dark' || stored === 'auto') savedMode = stored; } catch(e) {}
+         setThemeMode(savedMode);
+         if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+         
+-        // ----- DOM elements -----
+-        const editor = document.getElementById('codeEditor');
+-        const lineNumbersDiv = document.getElementById('lineNumbers');
+-        const loadBtn = document.getElementById('loadBtn');
+-        const pasteBtn = document.getElementById('pasteBtn');
+-        const saveBtn = document.getElementById('saveBtn');
+-        const copyBtn = document.getElementById('copyBtn');
+-        const clearBtn = document.getElementById('clearBtn');
+-        const jumpToInnerBtn = document.getElementById('jumpToInnerBtn');
+-        const resultContainer = document.getElementById('resultContainer');
+-        const fileStatusBadge = document.getElementById('fileStatusBadge');
+-        const summaryLabel = document.getElementById('summaryLabel');
+-        const modeSelect = document.getElementById('modeSelect');
+-        const backdrop = document.getElementById('backdrop');
+-        const highlightsDiv = document.getElementById('highlights');
+-        
++        // ----- Global state -----
+         let currentErrors = [];
+         let loadedFileName = null;
+         let validationTimeout = null;
+         let currentHighlightedLine = null;
++        let editor = null;
++        let lineNumbersDiv = null;
++        let backdrop = null;
++        let highlightsDiv = null;
++        let resultContainer = document.getElementById('resultContainer');
++        let summaryLabel = document.getElementById('summaryLabel');
++        let modeSelect = document.getElementById('modeSelect');
++        let fileStatusBadge = document.getElementById('fileStatusBadge');
++        let editorContainer = document.getElementById('editorContainer');
+         
++        // Helper functions
+         function escapeHtml(str) { return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+         
+-        function syncScroll() {
+-            if (backdrop && editor) { backdrop.scrollTop = editor.scrollTop; backdrop.scrollLeft = editor.scrollLeft; }
+-            if (lineNumbersDiv && editor) lineNumbersDiv.scrollTop = editor.scrollTop;
+-        }
+-        
+         function updateLineNumbers() {
++            if (!editor || !lineNumbersDiv) return;
+             const lines = editor.value.split('\n');
+             let numbersHtml = '';
+             for (let i = 1; i <= lines.length; i++) numbersHtml += i + '\n';
+@@ -341,6 +324,7 @@
+         }
+         
+         function updateOverlay() {
++            if (!editor || !highlightsDiv) return;
+             const lines = editor.value.split('\n');
+             let html = '';
+             for (let i = 0; i < lines.length; i++) {
+@@ -352,11 +336,18 @@
+             highlightsDiv.innerHTML = html;
+         }
+         
+-        // Full sync: adjust backdrop height, rebuild overlay, sync scroll, update line numbers
++        function syncScroll() {
++            if (backdrop && editor) {
++                backdrop.scrollTop = editor.scrollTop;
++                backdrop.scrollLeft = editor.scrollLeft;
++            }
++            if (lineNumbersDiv && editor) lineNumbersDiv.scrollTop = editor.scrollTop;
++        }
++        
+         function fullSync() {
+             if (!backdrop || !editor) return;
+             backdrop.style.height = editor.clientHeight + 'px';
+-            updateOverlay();   // rebuild highlights (preserves currentHighlightedLine)
++            updateOverlay();
+             syncScroll();
+             updateLineNumbers();
+         }
+@@ -395,6 +386,7 @@
+         }
+         
+         function highlightLineInTextarea(lineNum) {
++            if (!editor) return;
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
+             currentHighlightedLine = lineNum;
+@@ -405,7 +397,7 @@
+             syncScroll();
+         }
+         
+-        // ----- XML/SVG validator with line correction -----
++        // ----- Validators (unchanged) -----
+         function validateXmlSvg(content) {
+             const errors = [];
+             const parser = new DOMParser();
+@@ -494,6 +486,7 @@
+         }
+         
+         function runValidation() {
++            if (!editor) return;
+             const rawCode = editor.value;
+             if (rawCode.trim() === '') {
+                 currentErrors = [];
+@@ -518,19 +511,72 @@
+             const innermost = getInnermostError(currentErrors);
+             if (innermost) highlightLineInTextarea(innermost.line);
+             else clearHighlight();
+-            fullSync();  // ensure all overlays and line numbers are up-to-date after error panel changes
++            fullSync();
+         }
+         
+         function scheduleValidation() { if (validationTimeout) clearTimeout(validationTimeout); validationTimeout = setTimeout(runValidation, 300); }
+         
+         function jumpToInnermostError() {
+-            if (!currentErrors.length) { jumpToInnerBtn.textContent = '❌'; setTimeout(() => jumpToInnerBtn.textContent = '🎯', 800); return; }
++            const btn = document.getElementById('jumpToInnerBtn');
++            if (!currentErrors.length) { if(btn) btn.textContent = '❌'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 800); return; }
+             const innermost = getInnermostError(currentErrors);
+-            if (innermost) { highlightLineInTextarea(innermost.line); jumpToInnerBtn.textContent = '✓'; setTimeout(() => jumpToInnerBtn.textContent = '🎯', 500); }
+-            else { jumpToInnerBtn.textContent = '❌'; setTimeout(() => jumpToInnerBtn.textContent = '🎯', 800); }
++            if (innermost) { highlightLineInTextarea(innermost.line); if(btn) btn.textContent = '✓'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 500); }
++            else { if(btn) btn.textContent = '❌'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 800); }
++        }
++        
++        // ----- Build the editor DOM (fresh, no stale state) -----
++        function buildEditorDOM(content) {
++            const wrapper = document.createElement('div');
++            wrapper.className = 'editor-with-lines';
++            wrapper.innerHTML = `
++                <div class="line-numbers" id="lineNumbers"></div>
++                <div class="editor-wrapper">
++                    <div class="backdrop" id="backdrop">
++                        <div class="highlights" id="highlights"></div>
++                    </div>
++                    <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup..."></textarea>
++                </div>
++            `;
++            return wrapper;
++        }
++        
++        function initEditor(content = '') {
++            // Remove old editor container content
++            editorContainer.innerHTML = '';
++            const newEditorDOM = buildEditorDOM();
++            editorContainer.appendChild(newEditorDOM);
++            
++            // Re-assign global references
++            editor = document.getElementById('codeEditor');
++            lineNumbersDiv = document.getElementById('lineNumbers');
++            backdrop = document.getElementById('backdrop');
++            highlightsDiv = document.getElementById('highlights');
++            
++            if (!editor) return;
++            
++            editor.value = content;
++            
++            // Attach event listeners
++            editor.addEventListener('input', function() { scheduleValidation(); updateOverlay(); updateLineNumbers(); });
++            editor.addEventListener('scroll', syncScroll);
++            editor.addEventListener('focus', function() { /* no clear highlight */ });
++            
++            // Initial sync
++            fullSync();
++            
++            // ResizeObserver for the editor
++            const resizeObs = new ResizeObserver(() => { fullSync(); });
++            resizeObs.observe(editor);
++            
++            // Also observe the editor-area root to catch any layout shifts
++            const editorAreaRoot = document.getElementById('editorAreaRoot');
++            if (editorAreaRoot) resizeObs.observe(editorAreaRoot);
++            
++            // Run validation after a tiny delay to let DOM settle
++            setTimeout(() => { runValidation(); }, 10);
+         }
+         
+-        // ----- File handlers (modern + fallback) -----
++        // ----- File handlers -----
+         async function loadFileModern() {
+             try {
+                 if (!window.showOpenFilePicker) throw new Error('File System Access API not supported');
+@@ -542,7 +588,7 @@
+                 const baseName = file.name.replace(/\.[^/.]+$/, '') || 'document';
+                 loadedFileName = baseName;
+                 updateFileStatus();
+-                editor.value = contents;
++                if (editor) editor.value = contents;
+                 resultContainer.innerHTML = '';
+                 clearHighlight();
+                 fullSync();
+@@ -564,7 +610,7 @@
+                 updateFileStatus();
+                 const reader = new FileReader();
+                 reader.onload = (e) => {
+-                    editor.value = e.target.result;
++                    if (editor) editor.value = e.target.result;
+                     resultContainer.innerHTML = '';
+                     clearHighlight();
+                     fullSync();
+@@ -579,7 +625,7 @@
+         async function pasteFromClip() {
+             try {
+                 const text = await navigator.clipboard.readText();
+-                editor.value = text;
++                if (editor) editor.value = text;
+                 loadedFileName = null;
+                 updateFileStatus();
+                 resultContainer.innerHTML = '';
+@@ -590,6 +636,7 @@
+         }
+         
+         function saveToFile() {
++            if (!editor) return;
+             const content = editor.value;
+             if (!content) return alert('No content to save.');
+             let ext = '.txt';
+@@ -614,45 +661,66 @@
+             URL.revokeObjectURL(url);
+         }
+         
+-        async function copyEditorText() { await navigator.clipboard.writeText(editor.value); const orig = copyBtn.textContent; copyBtn.textContent = '✓'; setTimeout(() => copyBtn.textContent = '📄', 1000); }
++        async function copyEditorText() { 
++            if (!editor) return;
++            await navigator.clipboard.writeText(editor.value); 
++            const copyBtn = document.getElementById('copyBtn');
++            if (copyBtn) { const orig = copyBtn.textContent; copyBtn.textContent = '✓'; setTimeout(() => copyBtn.textContent = orig, 1000); }
++        }
+         
+-        function clearAll() { editor.value = ''; loadedFileName = null; updateFileStatus(); resultContainer.innerHTML = ''; clearHighlight(); fullSync(); scheduleValidation(); }
++        function clearAll() { 
++            if (editor) editor.value = ''; 
++            loadedFileName = null; 
++            updateFileStatus(); 
++            resultContainer.innerHTML = ''; 
++            clearHighlight(); 
++            fullSync(); 
++            scheduleValidation(); 
++        }
+         
+         function updateFileStatus() {
+             if (loadedFileName) { fileStatusBadge.innerHTML = `📄 ${loadedFileName}`; fileStatusBadge.style.background = "var(--app-file-status-active)"; }
+             else { fileStatusBadge.innerHTML = `📄 no file loaded`; fileStatusBadge.style.background = "var(--app-file-status-bg)"; }
+         }
+         
+-        // ----- Event listeners -----
+-        editor.addEventListener('input', function() { scheduleValidation(); updateOverlay(); updateLineNumbers(); });
+-        editor.addEventListener('scroll', syncScroll);
+-        
+-        // Mode change: force validation and full sync after layout settles
+-        modeSelect.addEventListener('change', function() {
+-            clearHighlight();
++        // ----- Mode change: rebuild editor from scratch to kill artifacts -----
++        function onModeChange() {
++            const currentContent = editor ? editor.value : `<div>
++  <h1>Title missing closing tag</h1>
++  <p>Unclosed paragraph</p>
++  <img src="photo.jpg" alt="demo" > 
++  <span class="test">Text
++    <b>Bold deep inside</b>
++  </span>
++</div>`;
++            // Clear error panel and state
+             resultContainer.innerHTML = '';
+             currentErrors = [];
+-            runValidation();  // this already calls fullSync() at the end
+-            // Extra safety: observe that the error panel might have changed height
+-            setTimeout(fullSync, 20);
+-        });
+-        
+-        jumpToInnerBtn.addEventListener('click', jumpToInnermostError);
+-        loadBtn.addEventListener('click', loadFileModern);
+-        pasteBtn.addEventListener('click', pasteFromClip);
+-        saveBtn.addEventListener('click', saveToFile);
+-        copyBtn.addEventListener('click', copyEditorText);
+-        clearBtn.addEventListener('click', clearAll);
+-        
+-        // ----- ResizeObserver: sync whenever textarea size changes (including when error panel appears/disappears) -----
+-        const resizeObserver = new ResizeObserver(() => { fullSync(); });
+-        resizeObserver.observe(editor);
+-        // Also observe the parent container of the error panel (the editor-area) to catch any layout shift
+-        const editorArea = document.querySelector('.editor-area');
+-        if (editorArea) resizeObserver.observe(editorArea);
++            currentHighlightedLine = null;
++            updateSummary();
++            // Rebuild the entire editor DOM
++            initEditor(currentContent);
++        }
++        
++        // ----- Attach global button listeners -----
++        function bindGlobalButtons() {
++            const loadBtn = document.getElementById('loadBtn');
++            const pasteBtn = document.getElementById('pasteBtn');
++            const saveBtn = document.getElementById('saveBtn');
++            const copyBtn = document.getElementById('copyBtn');
++            const clearBtn = document.getElementById('clearBtn');
++            const jumpBtn = document.getElementById('jumpToInnerBtn');
++            if (loadBtn) loadBtn.addEventListener('click', loadFileModern);
++            if (pasteBtn) pasteBtn.addEventListener('click', pasteFromClip);
++            if (saveBtn) saveBtn.addEventListener('click', saveToFile);
++            if (copyBtn) copyBtn.addEventListener('click', copyEditorText);
++            if (clearBtn) clearBtn.addEventListener('click', clearAll);
++            if (jumpBtn) jumpBtn.addEventListener('click', jumpToInnermostError);
++            modeSelect.addEventListener('change', onModeChange);
++        }
+         
+-        // ----- Initial demo content -----
+-        editor.value = `<div>
++        // ----- Initial load -----
++        const initialContent = `<div>
+   <h1>Title missing closing tag</h1>
+   <p>Unclosed paragraph</p>
+   <img src="photo.jpg" alt="demo" > 
+@@ -660,10 +728,8 @@
+     <b>Bold deep inside</b>
+   </span>
+ </div>`;
+-        loadedFileName = null;
+-        updateFileStatus();
+-        fullSync();
+-        scheduleValidation();
++        initEditor(initialContent);
++        bindGlobalButtons();
+     })();
+ </script>
+ </body>

@@ -1,0 +1,1039 @@
+--- MarkupLinter_v1_18_0.html	2026-06-09 20:52:00.834240127 +0300
++++ MarkupLinter_v1_20_0.html	2026-06-09 21:13:53.485959088 +0300
+@@ -2,11 +2,9 @@
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+-    <!-- PRESERVE_BINARY_START -->
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%231E3A8A%22%20%2F%3E%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%2234%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%225%22%20%2F%3E%20%20%3Cline%20x1%3D%2276%22%20y1%3D%2274%22%20x2%3D%2290%22%20y2%3D%2288%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%20%3Ctext%20x%3D%2250%22%20y%3D%2257%22%20font-family%3D%22monospace%22%20font-size%3D%2230%22%20font-weight%3D%22bold%22%20fill%3D%22%23FFFFFF%22%20text-anchor%3D%22middle%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" />
+-    <!-- PRESERVE_BINARY_END -->
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+-    <title>Markup Linter · HTML / XML / SVG validator · Innermost error highlight</title>
++    <title>Markup Linter · Smart validator · Modern file picker</title>
+     <style>
+         body {
+             margin: 0;
+@@ -14,12 +12,8 @@
+             line-height: 1.4;
+             transition: background-color 0.3s ease, color 0.2s ease;
+         }
+-        body:not(.theme-dark) {
+-            background: #f4f6fa;
+-        }
+-        body.theme-dark {
+-            background: #121826;
+-        }
++        body:not(.theme-dark) { background: #f4f6fa; }
++        body.theme-dark { background: #121826; }
+     </style>
+ </head>
+ <body>
+@@ -54,7 +48,8 @@
+             --app-select-bg: #f0f2f5;
+             --app-select-border: #dce3ec;
+             --app-highlight-bg: #fff3cd;
+-            --app-highlight-border: #ffeaa7;
++            --app-line-number-bg: #f8f9fc;
++            --app-line-number-color: #8b9ab0;
+ 
+             max-width: 1400px;
+             margin: 0 auto;
+@@ -95,57 +90,19 @@
+             --app-select-bg: #2a3245;
+             --app-select-border: #3a4358;
+             --app-highlight-bg: #3a2e1a;
+-            --app-highlight-border: #5c4a2a;
++            --app-line-number-bg: #151e2c;
++            --app-line-number-color: #6c7e97;
+         }
+-        #markup-validator-app,
+-        #markup-validator-app * {
++        #markup-validator-app, #markup-validator-app * {
+             color: var(--app-text-primary);
+             transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+         }
+-        #markup-validator-app .app-header {
+-            padding: 1.2rem 2rem;
+-            border-bottom: 2px solid var(--app-header-border);
+-        }
+-        #markup-validator-app h1 {
+-            font-weight: 600;
+-            font-size: 1.6rem;
+-            margin: 0 0 0.2rem;
+-            letter-spacing: -0.2px;
+-            display: flex;
+-            align-items: center;
+-            gap: 8px;
+-            color: var(--app-text-primary);
+-        }
+-        #markup-validator-app .subhead {
+-            font-size: 0.85rem;
+-            color: var(--app-text-secondary);
+-            padding-left: 0.25rem;
+-            border-left: 3px solid #2563eb;
+-            margin-top: 6px;
+-        }
+-        #markup-validator-app .toolbar {
+-            display: flex;
+-            flex-wrap: wrap;
+-            justify-content: space-between;
+-            align-items: center;
+-            gap: 12px;
+-            margin: 1.2rem 0 1rem;
+-            padding-bottom: 0.75rem;
+-            border-bottom: 1px solid var(--app-header-border);
+-        }
+-        .toolbar-left {
+-            display: flex;
+-            gap: 6px;
+-            align-items: center;
+-            flex-wrap: wrap;
+-        }
+-        .toolbar-right {
+-            display: flex;
+-            gap: 12px;
+-            align-items: center;
+-            flex-wrap: wrap;
+-        }
+-        #markup-validator-app .icon-btn {
++        .app-header { padding: 1.2rem 2rem; border-bottom: 2px solid var(--app-header-border); }
++        h1 { font-weight: 600; font-size: 1.6rem; margin: 0 0 0.2rem; display: flex; align-items: center; gap: 8px; }
++        .subhead { font-size: 0.85rem; color: var(--app-text-secondary); padding-left: 0.25rem; border-left: 3px solid #2563eb; margin-top: 6px; }
++        .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin: 1.2rem 0 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--app-header-border); }
++        .toolbar-left, .toolbar-right { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
++        .icon-btn, .theme-toggle {
+             background: var(--app-btn-bg);
+             border: 1px solid var(--app-btn-border);
+             padding: 0.4rem;
+@@ -160,11 +117,8 @@
+             transition: 0.08s linear;
+             font-family: inherit;
+         }
+-        #markup-validator-app .icon-btn:hover {
+-            background: var(--app-btn-hover);
+-            transform: translateY(-1px);
+-        }
+-        #markup-validator-app .mode-select {
++        .icon-btn:hover, .theme-toggle:hover { background: var(--app-btn-hover); transform: translateY(-1px); }
++        .mode-select {
+             background: var(--app-select-bg);
+             border: 1px solid var(--app-select-border);
+             border-radius: 2rem;
+@@ -172,40 +126,10 @@
+             font-size: 0.8rem;
+             font-family: inherit;
+             cursor: pointer;
+-            color: var(--app-text-primary);
+         }
+-        #markup-validator-app .theme-toggle {
+-            background: var(--app-btn-bg);
+-            border: 1px solid var(--app-btn-border);
+-            border-radius: 2rem;
+-            padding: 0.4rem;
+-            width: 2rem;
+-            height: 2rem;
+-            font-size: 1rem;
+-            line-height: 1;
+-            cursor: pointer;
+-            transition: 0.08s linear;
+-            display: inline-flex;
+-            align-items: center;
+-            justify-content: center;
+-        }
+-        #markup-validator-app .theme-toggle:hover {
+-            background: var(--app-btn-hover);
+-            transform: translateY(-1px);
+-        }
+-        #markup-validator-app .file-status {
+-            font-size: 0.7rem;
+-            background: var(--app-file-status-bg);
+-            padding: 0.2rem 0.8rem;
+-            border-radius: 20px;
+-            color: var(--app-text-secondary);
+-            transition: background 0.2s;
+-        }
+-        #markup-validator-app .editor-area {
+-            padding: 0 2rem 2rem 2rem;
+-            position: relative;
+-        }
+-        #markup-validator-app .validation-summary {
++        .file-status { font-size: 0.7rem; background: var(--app-file-status-bg); padding: 0.2rem 0.8rem; border-radius: 20px; color: var(--app-text-secondary); }
++        .editor-area { padding: 0 2rem 2rem 2rem; }
++        .validation-summary {
+             margin-bottom: 0.75rem;
+             font-size: 0.85rem;
+             font-weight: 500;
+@@ -213,14 +137,25 @@
+             padding: 0.4rem 1rem;
+             border-radius: 2rem;
+             display: inline-block;
+-            color: var(--app-summary-text);
+             border: 1px solid var(--app-btn-border);
+         }
+-        #markup-validator-app .editor-wrapper {
+-            position: relative;
+-            width: 100%;
++        .editor-with-lines { display: flex; border: 1px solid var(--app-textarea-border); border-radius: 1.5rem; background: var(--app-textarea-bg); overflow: hidden; }
++        .line-numbers {
++            background: var(--app-line-number-bg);
++            padding: 1rem 0.5rem 1rem 1rem;
++            font-family: 'SF Mono', 'Fira Code', monospace;
++            font-size: 13px;
++            line-height: 1.5;
++            text-align: right;
++            color: var(--app-line-number-color);
++            user-select: none;
++            white-space: pre;
++            overflow-y: hidden;
++            border-right: 1px solid var(--app-textarea-border);
++            flex-shrink: 0;
+         }
+-        #markup-validator-app .backdrop {
++        .editor-wrapper { position: relative; flex: 1; }
++        .backdrop {
+             position: absolute;
+             top: 0;
+             left: 0;
+@@ -228,168 +163,71 @@
+             height: 100%;
+             overflow: auto;
+             background-color: var(--app-textarea-bg);
+-            border: 1px solid var(--app-textarea-border);
+-            border-radius: 1.5rem;
+             pointer-events: none;
+             z-index: 1;
+             box-sizing: border-box;
+-            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
++            font-family: 'SF Mono', 'Fira Code', monospace;
+             font-size: 13px;
+             line-height: 1.5;
+             padding: 1rem;
+         }
+-        #markup-validator-app .highlights {
+-            white-space: pre-wrap;
+-            word-wrap: break-word;
+-            color: transparent;
+-            background-color: transparent;
+-        }
+-        #markup-validator-app .highlights mark {
+-            color: transparent;
+-            background-color: var(--app-highlight-bg);
+-            display: block;
+-            margin: 0;
+-            padding: 0;
+-            width: 100%;
+-        }
+-        #markup-validator-app textarea {
++        .highlights { white-space: pre-wrap; word-wrap: break-word; color: transparent; background-color: transparent; }
++        .highlights mark { color: transparent; background-color: var(--app-highlight-bg); display: block; margin: 0; padding: 0; width: 100%; }
++        textarea {
+             position: relative;
+             z-index: 2;
+             width: 100%;
+             height: 380px;
+-            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
++            font-family: 'SF Mono', 'Fira Code', monospace;
+             font-size: 13px;
+             line-height: 1.5;
+             background: transparent;
+-            border: 1px solid var(--app-textarea-border);
+-            border-radius: 1.5rem;
++            border: none;
+             padding: 1rem;
+             resize: vertical;
+             tab-size: 2;
+             color: var(--app-text-primary);
+             caret-color: var(--app-text-primary);
+             overflow: auto;
+-        }
+-        #markup-validator-app textarea:focus {
+             outline: none;
+-            border-color: #2563eb;
+-            box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+-        }
+-        #markup-validator-app .backdrop,
+-        #markup-validator-app textarea {
+-            scrollbar-width: thin;
+-        }
+-        #markup-validator-app .error-panel {
+-            margin-top: 1.5rem;
+-            border-radius: 1.25rem;
+-            background: var(--app-error-panel-bg);
+-            border: 1px solid var(--app-error-panel-border);
+-        }
+-        #markup-validator-app .error-panel-header {
+-            padding: 0.8rem 1.5rem;
+-            background: var(--app-error-header-bg);
+-            border-bottom: 1px solid var(--app-error-header-border);
+-            font-weight: 600;
+-            display: flex;
+-            justify-content: space-between;
+-            flex-wrap: wrap;
+-        }
+-        #markup-validator-app .error-list {
+-            max-height: 260px;
+-            overflow-y: auto;
+-        }
+-        #markup-validator-app .error-line {
+-            padding: 0.6rem 1.5rem;
+-            border-bottom: 1px solid var(--app-error-panel-border);
+-            display: flex;
+-            gap: 14px;
+-            font-family: monospace;
+-            font-size: 0.8rem;
+-            cursor: pointer;
+-        }
+-        #markup-validator-app .error-line:hover {
+-            background: var(--app-error-line-hover);
+-        }
+-        #markup-validator-app .line-badge {
+-            background: var(--app-line-badge-bg);
+-            border-radius: 30px;
+-            padding: 0.1rem 0.7rem;
+-            font-weight: 700;
+-            color: #b45309;
+-            min-width: 65px;
+-            text-align: center;
+-        }
+-        #markup-validator-app .error-message {
+-            color: #a44100;
+-            word-break: break-word;
+-            flex: 1;
+-        }
+-        #markup-validator-app .success-chip {
+-            background: var(--app-success-bg);
+-            padding: 0.5rem 1rem;
+-            border-radius: 2rem;
+-            font-size: 0.85rem;
+-            font-weight: 500;
+-            color: #0e6b3e;
+-            display: inline-block;
+-        }
+-        #markup-validator-app .line-hint {
+-            font-size: 0.7rem;
+-            background: var(--app-btn-bg);
+-            padding: 0.2rem 0.7rem;
+-            border-radius: 30px;
+-        }
+-        #markup-validator-app footer {
+-            text-align: center;
+-            font-size: 0.7rem;
+-            border-top: 1px solid var(--app-footer-border);
+-            padding: 1rem;
+-            color: var(--app-footer-color);
+-            display: flex;
+-            justify-content: space-between;
+-            align-items: center;
+-            flex-wrap: wrap;
+-        }
+-        #markup-validator-app .version {
+-            font-family: monospace;
+-            background: var(--app-btn-bg);
+-            padding: 0.2rem 0.6rem;
+-            border-radius: 20px;
+-            font-size: 0.7rem;
+         }
++        textarea:focus { outline: none; }
++        .backdrop, textarea { scrollbar-width: thin; }
++        .error-panel { margin-top: 1.5rem; border-radius: 1.25rem; background: var(--app-error-panel-bg); border: 1px solid var(--app-error-panel-border); }
++        .error-panel-header { padding: 0.8rem 1.5rem; background: var(--app-error-header-bg); border-bottom: 1px solid var(--app-error-header-border); font-weight: 600; display: flex; justify-content: space-between; flex-wrap: wrap; }
++        .error-list { max-height: 260px; overflow-y: auto; }
++        .error-line { padding: 0.6rem 1.5rem; border-bottom: 1px solid var(--app-error-panel-border); display: flex; gap: 14px; font-family: monospace; font-size: 0.8rem; cursor: pointer; }
++        .error-line:hover { background: var(--app-error-line-hover); }
++        .line-badge { background: var(--app-line-badge-bg); border-radius: 30px; padding: 0.1rem 0.7rem; font-weight: 700; color: #b45309; min-width: 65px; text-align: center; }
++        .error-message { color: #a44100; word-break: break-word; flex: 1; }
++        .line-hint { font-size: 0.7rem; background: var(--app-btn-bg); padding: 0.2rem 0.7rem; border-radius: 30px; }
++        footer { text-align: center; font-size: 0.7rem; border-top: 1px solid var(--app-footer-border); padding: 1rem; color: var(--app-footer-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
++        .version { font-family: monospace; background: var(--app-btn-bg); padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.7rem; }
+         @media (max-width: 680px) {
+-            #markup-validator-app .toolbar {
+-                flex-direction: column;
+-                align-items: stretch;
+-            }
+-            .toolbar-left, .toolbar-right {
+-                justify-content: center;
+-            }
+-            #markup-validator-app footer {
+-                flex-direction: column;
+-                gap: 8px;
+-            }
++            .toolbar { flex-direction: column; align-items: stretch; }
++            .toolbar-left, .toolbar-right { justify-content: center; }
++            footer { flex-direction: column; gap: 8px; }
+         }
+     </style>
+ 
+     <div class="app-header">
+         <h1>🔍 Markup Validator</h1>
+-        <div class="subhead">HTML tag balance / well‑formed XML & SVG · live validation · <strong>innermost error auto‑highlight</strong></div>
++        <div class="subhead">HTML/XML/SVG · line numbers · smart error highlighting · modern file picker</div>
+         <div class="toolbar">
+             <div class="toolbar-left">
+-                <button id="loadBtn" class="icon-btn" aria-label="Load file">📂</button>
+-                <button id="pasteBtn" class="icon-btn" aria-label="Paste from clipboard">📋</button>
+-                <button id="saveBtn" class="icon-btn" aria-label="Save to file">💾</button>
+-                <button id="copyBtn" class="icon-btn" aria-label="Copy editor content">📄</button>
+-                <button id="clearBtn" class="icon-btn" aria-label="Clear all">🗑</button>
+-                <button id="themeToggleBtn" class="theme-toggle" aria-label="Switch theme">🌓</button>
+-                <button id="jumpToInnerBtn" class="icon-btn" title="Jump to innermost error (deepest nesting)">🎯</button>
++                <button id="loadBtn" class="icon-btn" title="Load file (modern picker)">📂</button>
++                <button id="pasteBtn" class="icon-btn" title="Paste from clipboard">📋</button>
++                <button id="saveBtn" class="icon-btn" title="Save to file">💾</button>
++                <button id="copyBtn" class="icon-btn" title="Copy editor content">📄</button>
++                <button id="clearBtn" class="icon-btn" title="Clear all">🗑</button>
++                <button id="themeToggleBtn" class="theme-toggle" title="Switch theme">🌓</button>
++                <button id="jumpToInnerBtn" class="icon-btn" title="Jump to innermost error">🎯</button>
+             </div>
+             <div class="toolbar-right">
+-                <select id="modeSelect" class="mode-select" aria-label="Validation mode">
++                <select id="modeSelect" class="mode-select">
+                     <option value="auto">🔄 Auto</option>
+                     <option value="html">🌐 HTML</option>
+-                    <option value="xml">📄 XML / SVG</option>
++                    <option value="xml">📄 XML / SVG (strict)</option>
+                 </select>
+                 <span id="fileStatusBadge" class="file-status">📄 no file loaded</span>
+             </div>
+@@ -397,73 +235,55 @@
+     </div>
+     <div class="editor-area">
+         <div id="summaryLabel" class="validation-summary">⚙️ Ready</div>
+-        <div class="editor-wrapper">
+-            <div class="backdrop" id="backdrop">
+-                <div class="highlights" id="highlights"></div>
++        <div class="editor-with-lines">
++            <div id="lineNumbers" class="line-numbers">1</div>
++            <div class="editor-wrapper">
++                <div class="backdrop" id="backdrop">
++                    <div class="highlights" id="highlights"></div>
++                </div>
++                <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example with mismatch:&#10;&lt;div&gt;&#10;  &lt;img src=&quot;x.jpg&quot; alt=&quot;test&quot;&gt;&#10;&lt;/div&gt;"></textarea>
+             </div>
+-            <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example:&#10;&lt;html&gt;&#10;  &lt;body&gt;&lt;h1&gt;Hello world&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea>
+         </div>
+         <div id="resultContainer"></div>
+     </div>
+     <footer>
+-        <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance + <strong>innermost error detection</strong></span>
+-        <span class="version">version 1.18.0 · inner error highlight</span>
++        <span>✔ XML strict mode · smart line detection for mismatches · persistent highlight</span>
++        <span class="version">v1.20.0 · modern file picker + artefact fix</span>
+     </footer>
+ </div>
+ 
+ <script>
+     (function(){
+-        // ----- THEME TOGGLE (cycle: auto, light, dark) -----
++        // ----- THEME TOGGLE (unchanged, works) -----
+         const appContainer = document.getElementById('markup-validator-app');
+         const bodyEl = document.body;
+         const themeToggleBtn = document.getElementById('themeToggleBtn');
+         let currentMode = 'auto';
+         let systemListenerActive = false;
+         let mediaQueryListener = null;
+-        
+         const themeIcons = { auto: '🌓', light: '☀️', dark: '🌙' };
+         const themeOrder = ['auto', 'light', 'dark'];
+         
+         function applyTheme(themeMode) {
+-            if (themeMode === 'dark') {
+-                bodyEl.classList.add('theme-dark');
+-                appContainer.classList.add('theme-dark');
+-            } else {
+-                bodyEl.classList.remove('theme-dark');
+-                appContainer.classList.remove('theme-dark');
+-            }
++            if (themeMode === 'dark') { bodyEl.classList.add('theme-dark'); appContainer.classList.add('theme-dark'); }
++            else { bodyEl.classList.remove('theme-dark'); appContainer.classList.remove('theme-dark'); }
+         }
+-        
+-        function getSystemPreference() {
+-            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+-        }
+-        
++        function getSystemPreference() { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+         function updateThemeFromMode(mode) {
+-            if (mode === 'auto') {
+-                applyTheme(getSystemPreference());
+-                activateSystemListener();
+-            } else if (mode === 'dark') {
+-                deactivateSystemListener();
+-                applyTheme('dark');
+-            } else if (mode === 'light') {
+-                deactivateSystemListener();
+-                applyTheme('light');
+-            }
++            if (mode === 'auto') { applyTheme(getSystemPreference()); activateSystemListener(); }
++            else if (mode === 'dark') { deactivateSystemListener(); applyTheme('dark'); }
++            else { deactivateSystemListener(); applyTheme('light'); }
+             if (themeToggleBtn) themeToggleBtn.textContent = themeIcons[mode] || '🌓';
+         }
+-        
+         function activateSystemListener() {
+             if (systemListenerActive) return;
+             const darkModeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+-            const handler = (e) => {
+-                if (currentMode === 'auto') applyTheme(e.matches ? 'dark' : 'light');
+-            };
++            const handler = (e) => { if (currentMode === 'auto') applyTheme(e.matches ? 'dark' : 'light'); };
+             if (darkModeMedia.addEventListener) darkModeMedia.addEventListener('change', handler);
+             else if (darkModeMedia.addListener) darkModeMedia.addListener(handler);
+             mediaQueryListener = { media: darkModeMedia, handler };
+             systemListenerActive = true;
+         }
+-        
+         function deactivateSystemListener() {
+             if (!systemListenerActive || !mediaQueryListener) return;
+             const { media, handler } = mediaQueryListener;
+@@ -472,26 +292,16 @@
+             systemListenerActive = false;
+             mediaQueryListener = null;
+         }
+-        
+-        function setThemeMode(mode) {
+-            currentMode = mode;
+-            updateThemeFromMode(mode);
+-            try { localStorage.setItem('markup_validator_theme', mode); } catch(e) {}
+-        }
+-        
+-        function cycleTheme() {
+-            let idx = themeOrder.indexOf(currentMode);
+-            let next = themeOrder[(idx + 1) % themeOrder.length];
+-            setThemeMode(next);
+-        }
+-        
++        function setThemeMode(mode) { currentMode = mode; updateThemeFromMode(mode); try { localStorage.setItem('markup_validator_theme', mode); } catch(e) {} }
++        function cycleTheme() { let idx = themeOrder.indexOf(currentMode); let next = themeOrder[(idx + 1) % themeOrder.length]; setThemeMode(next); }
+         let savedMode = 'auto';
+         try { const stored = localStorage.getItem('markup_validator_theme'); if (stored === 'light' || stored === 'dark' || stored === 'auto') savedMode = stored; } catch(e) {}
+         setThemeMode(savedMode);
+         if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+         
+-        // ----- VALIDATOR CORE with depth tracking for innermost error -----
++        // ----- DOM elements -----
+         const editor = document.getElementById('codeEditor');
++        const lineNumbersDiv = document.getElementById('lineNumbers');
+         const loadBtn = document.getElementById('loadBtn');
+         const pasteBtn = document.getElementById('pasteBtn');
+         const saveBtn = document.getElementById('saveBtn');
+@@ -502,8 +312,6 @@
+         const fileStatusBadge = document.getElementById('fileStatusBadge');
+         const summaryLabel = document.getElementById('summaryLabel');
+         const modeSelect = document.getElementById('modeSelect');
+-        
+-        // Overlay elements
+         const backdrop = document.getElementById('backdrop');
+         const highlightsDiv = document.getElementById('highlights');
+         
+@@ -512,44 +320,33 @@
+         let validationTimeout = null;
+         let currentHighlightedLine = null;
+         
++        function escapeHtml(str) { return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
++        
+         function syncScroll() {
+-            if (backdrop && editor) {
+-                backdrop.scrollTop = editor.scrollTop;
+-                backdrop.scrollLeft = editor.scrollLeft;
+-            }
++            if (backdrop && editor) { backdrop.scrollTop = editor.scrollTop; backdrop.scrollLeft = editor.scrollLeft; }
++            if (lineNumbersDiv && editor) lineNumbersDiv.scrollTop = editor.scrollTop;
++        }
++        
++        function updateLineNumbers() {
++            const lines = editor.value.split('\n');
++            let numbersHtml = '';
++            for (let i = 1; i <= lines.length; i++) numbersHtml += i + '\n';
++            lineNumbersDiv.innerText = numbersHtml;
+         }
+         
+         function updateOverlay() {
+-            const text = editor.value;
+-            const lines = text.split('\n');
++            const lines = editor.value.split('\n');
+             let html = '';
+             for (let i = 0; i < lines.length; i++) {
+-                const lineNumber = i + 1;
++                const lineNum = i + 1;
+                 const lineContent = escapeHtml(lines[i]) || ' ';
+-                if (currentHighlightedLine === lineNumber) {
+-                    html += `<mark>${lineContent}</mark>\n`;
+-                } else {
+-                    html += `${lineContent}\n`;
+-                }
++                if (currentHighlightedLine === lineNum) html += `<mark>${lineContent}</mark>\n`;
++                else html += `${lineContent}\n`;
+             }
+             highlightsDiv.innerHTML = html;
+         }
+         
+-        function escapeHtml(str) {
+-            return str.replace(/[&<>]/g, function(m) {
+-                if (m === '&') return '&amp;';
+-                if (m === '<') return '&lt;';
+-                if (m === '>') return '&gt;';
+-                return m;
+-            });
+-        }
+-        
+-        function clearHighlight() {
+-            if (currentHighlightedLine !== null) {
+-                currentHighlightedLine = null;
+-                updateOverlay();
+-            }
+-        }
++        function clearHighlight() { if (currentHighlightedLine !== null) { currentHighlightedLine = null; updateOverlay(); } }
+         
+         function updateSummary() {
+             if (currentErrors.length === 0) {
+@@ -564,10 +361,7 @@
+         }
+         
+         function renderFullErrorPanel() {
+-            if (!currentErrors.length) {
+-                resultContainer.innerHTML = '';
+-                return;
+-            }
++            if (!currentErrors.length) { resultContainer.innerHTML = ''; return; }
+             const panel = document.createElement('div');
+             panel.className = 'error-panel';
+             panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to highlight line</span></div><div class="error-list" id="errorList"></div>`;
+@@ -578,12 +372,9 @@
+                 const row = document.createElement('div');
+                 row.className = 'error-line';
+                 row.setAttribute('data-line', err.line);
+-                // Show depth info in tooltip for debugging
+-                row.title = `nesting depth: ${err.depth ?? '?'}`;
++                row.title = `error line ${err.line}`;
+                 row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
+-                row.addEventListener('click', () => {
+-                    highlightLineInTextarea(err.line);
+-                });
++                row.addEventListener('click', () => highlightLineInTextarea(err.line));
+                 listContainer.appendChild(row);
+             }
+         }
+@@ -591,40 +382,59 @@
+         function highlightLineInTextarea(lineNum) {
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
+-            
+             currentHighlightedLine = lineNum;
+             updateOverlay();
+-            
+             const lineHeight = parseInt(getComputedStyle(editor).lineHeight);
+             const approxY = (lineNum - 1) * lineHeight;
+             editor.scrollTop = Math.max(0, approxY - editor.clientHeight / 3);
+             syncScroll();
+         }
+         
+-        // ----- HTML validator with depth tracking -----
++        // ----- Enhanced XML/SVG validator: extract correct line for mismatches
++        function validateXmlSvg(content) {
++            const errors = [];
++            const parser = new DOMParser();
++            const doc = parser.parseFromString(content, "text/xml");
++            const parseError = doc.querySelector('parsererror');
++            if (parseError) {
++                const rawErrorMsg = parseError.textContent || '';
++                const mismatchMatch = rawErrorMsg.match(/Opening and ending tag mismatch:\s*(\w+)\s+line\s+(\d+)\s+and\s+(\w+)/i);
++                if (mismatchMatch) {
++                    let line = parseInt(mismatchMatch[2], 10);
++                    let openingTag = mismatchMatch[1];
++                    let closingTag = mismatchMatch[3];
++                    errors.push({ line: line, message: `Mismatched tags: <${openingTag}> opened at line ${line} but got </${closingTag}> later.`, depth: 1 });
++                    return errors;
++                }
++                let lineMatch = rawErrorMsg.match(/line\s+(\d+)/i);
++                let line = lineMatch ? parseInt(lineMatch[1], 10) : 1;
++                if (isNaN(line)) line = 1;
++                let cleanedMsg = rawErrorMsg.replace(/\s+/g, ' ').trim();
++                if (cleanedMsg.length > 160) cleanedMsg = cleanedMsg.slice(0, 150) + '…';
++                errors.push({ line: line, message: `XML/SVG parse: ${cleanedMsg}`, depth: 1 });
++            }
++            return errors;
++        }
++        
+         function validateHtmlRobust(content) {
+             const errors = [];
+             const lines = content.split('\n');
+-            const tagStack = [];    // each: { tagName, line, depth }
++            const tagStack = [];
+             let currentDepth = 0;
+-        
+             for (let i = 0; i < lines.length; i++) {
+                 const line = lines[i];
+                 let inDoubleQuote = false, inSingleQuote = false;
+-                for (let idx = 0; idx < line.length; idx++) {
+-                    const ch = line[idx];
++                for (let ch of line) {
+                     if (ch === '"' && !inSingleQuote) inDoubleQuote = !inDoubleQuote;
+                     else if (ch === "'" && !inDoubleQuote) inSingleQuote = !inSingleQuote;
+                 }
+-                if (inDoubleQuote) errors.push({ line: i+1, message: `Unclosed double quote (") in line — attribute value likely unterminated.`, depth: currentDepth });
+-                if (inSingleQuote) errors.push({ line: i+1, message: `Unclosed single quote (') in line — attribute value likely unterminated.`, depth: currentDepth });
++                if (inDoubleQuote) errors.push({ line: i+1, message: `Unclosed double quote (") in line`, depth: currentDepth });
++                if (inSingleQuote) errors.push({ line: i+1, message: `Unclosed single quote (') in line`, depth: currentDepth });
+                 
+                 let processedLine = line.replace(/="[^"]*"/g, '=""').replace(/='[^']*'/g, "=''");
+                 const openAngles = (processedLine.match(/</g) || []).length;
+                 const closeAngles = (processedLine.match(/>/g) || []).length;
+-                if (openAngles !== closeAngles) {
+-                    errors.push({ line: i+1, message: `Mismatched angle brackets: ${openAngles} opening '<' vs ${closeAngles} closing '>'`, depth: currentDepth });
+-                }
++                if (openAngles !== closeAngles) errors.push({ line: i+1, message: `Mismatched angle brackets: ${openAngles} opening '<' vs ${closeAngles} closing '>'`, depth: currentDepth });
+                 
+                 const tagRegex = /<(\/?)([\w:-]+)(\s+[^>]*?)?(\/)?>/g;
+                 let match;
+@@ -636,62 +446,29 @@
+                     const isSelfClosing = selfClosingSlash || full.endsWith('/>');
+                     const voidTags = ['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'];
+                     const isVoid = voidTags.includes(tagName);
+-                    
+                     if (!isClosing && !isSelfClosing && !isVoid) {
+-                        // Opening tag
+                         currentDepth++;
+                         tagStack.push({ tagName, line: i+1, depth: currentDepth });
+                     } else if (isClosing) {
+-                        if (tagStack.length === 0) {
+-                            errors.push({ line: i+1, message: `Unexpected closing tag </${tagName}> — no matching open tag.`, depth: currentDepth });
+-                        } else {
++                        if (tagStack.length === 0) errors.push({ line: i+1, message: `Unexpected closing tag </${tagName}> — no matching open tag.`, depth: currentDepth });
++                        else {
+                             const last = tagStack.pop();
+                             if (last.tagName !== tagName) {
+                                 errors.push({ line: i+1, message: `Mismatched closing: expected </${last.tagName}>, got </${tagName}>.`, depth: last.depth });
+-                                // push back to keep stack consistent for outer errors
+                                 tagStack.push(last);
+-                            } else {
+-                                // proper close: decrease depth
+-                                currentDepth--;
+-                            }
++                            } else { currentDepth--; }
+                         }
+                     }
+                 }
+             }
+-            // Unclosed tags remaining
+-            for (const leftover of tagStack) {
+-                errors.push({ line: leftover.line, message: `Unclosed tag <${leftover.tagName}> — missing corresponding closing tag.`, depth: leftover.depth });
+-            }
+-            
+-            // Deduplicate
++            for (const leftover of tagStack) errors.push({ line: leftover.line, message: `Unclosed tag <${leftover.tagName}> — missing closing tag.`, depth: leftover.depth });
+             const unique = new Map();
+-            for (const e of errors) {
+-                const key = `${e.line}|${e.message.substring(0,70)}`;
+-                if (!unique.has(key)) unique.set(key, e);
+-            }
++            for (const e of errors) { const key = `${e.line}|${e.message.substring(0,70)}`; if (!unique.has(key)) unique.set(key, e); }
+             return Array.from(unique.values());
+         }
+         
+-        function validateXmlSvg(content) {
+-            const errors = [];
+-            const parser = new DOMParser();
+-            const doc = parser.parseFromString(content, "text/xml");
+-            const parseError = doc.querySelector('parsererror');
+-            if (parseError) {
+-                const rawErrorMsg = parseError.textContent || '';
+-                let lineMatch = rawErrorMsg.match(/line\s+(\d+)/i);
+-                let line = lineMatch ? parseInt(lineMatch[1], 10) : 1;
+-                if (isNaN(line)) line = 1;
+-                let cleanedMsg = rawErrorMsg.replace(/\s+/g, ' ').trim();
+-                if (cleanedMsg.length > 160) cleanedMsg = cleanedMsg.slice(0, 150) + '…';
+-                errors.push({ line: line, message: `XML/SVG parse: ${cleanedMsg}`, depth: 1 });
+-            }
+-            return errors;
+-        }
+-        
+         function getInnermostError(errors) {
+             if (!errors.length) return null;
+-            // Higher depth = more inner; if tie, smaller line number (earliest inside that depth)
+             return errors.reduce((best, curr) => {
+                 const currDepth = curr.depth ?? 0;
+                 const bestDepth = best.depth ?? 0;
+@@ -707,109 +484,81 @@
+                 currentErrors = [];
+                 updateSummary();
+                 renderFullErrorPanel();
+-                clearHighlight(); // no errors => clear highlight
++                clearHighlight();
++                updateLineNumbers();
+                 return;
+             }
+             let mode = modeSelect.value;
+             if (mode === 'auto') {
+                 const trimmed = rawCode.trim();
+-                if (trimmed.startsWith('<?xml') || /^\s*<svg\b/i.test(trimmed) || /^\s*<\?xml/.test(trimmed) || (trimmed.includes('xmlns') && !/<html\b/i.test(trimmed))) {
+-                    mode = 'xml';
+-                } else {
+-                    mode = 'html';
+-                }
++                if (trimmed.startsWith('<?xml') || /^\s*<svg\b/i.test(trimmed) || /^\s*<\?xml/.test(trimmed) || (trimmed.includes('xmlns') && !/<html\b/i.test(trimmed))) mode = 'xml';
++                else mode = 'html';
+             }
+-            let errors = [];
+-            if (mode === 'xml') errors = validateXmlSvg(rawCode);
+-            else errors = validateHtmlRobust(rawCode);
++            let errors = (mode === 'xml') ? validateXmlSvg(rawCode) : validateHtmlRobust(rawCode);
+             const totalLines = rawCode.split('\n').length;
+             errors = errors.filter(e => e.line >= 1 && e.line <= totalLines);
+             currentErrors = errors;
+             updateSummary();
+             renderFullErrorPanel();
+-            
+-            // Automatically highlight innermost error
+             const innermost = getInnermostError(currentErrors);
+-            if (innermost) {
+-                highlightLineInTextarea(innermost.line);
+-            } else {
+-                clearHighlight();
+-            }
++            if (innermost) highlightLineInTextarea(innermost.line);
++            else clearHighlight();
++            updateLineNumbers();
+         }
+         
+-        function scheduleValidation() {
+-            if (validationTimeout) clearTimeout(validationTimeout);
+-            validationTimeout = setTimeout(runValidation, 300);
+-        }
++        function scheduleValidation() { if (validationTimeout) clearTimeout(validationTimeout); validationTimeout = setTimeout(runValidation, 300); }
+         
+-        // ----- Manual jump to innermost error -----
+         function jumpToInnermostError() {
+-            if (!currentErrors.length) {
+-                // optional feedback
+-                const orig = jumpToInnerBtn.textContent;
+-                jumpToInnerBtn.textContent = '❌';
+-                setTimeout(() => jumpToInnerBtn.textContent = '🎯', 800);
+-                return;
+-            }
++            if (!currentErrors.length) { jumpToInnerBtn.textContent = '❌'; setTimeout(() => jumpToInnerBtn.textContent = '🎯', 800); return; }
+             const innermost = getInnermostError(currentErrors);
+-            if (innermost) {
+-                highlightLineInTextarea(innermost.line);
+-                // also flash the button briefly as feedback
+-                const orig = jumpToInnerBtn.textContent;
+-                jumpToInnerBtn.textContent = '✓';
+-                setTimeout(() => jumpToInnerBtn.textContent = orig, 500);
+-            } else {
+-                jumpToInnerBtn.textContent = '❌';
+-                setTimeout(() => jumpToInnerBtn.textContent = '🎯', 800);
+-            }
++            if (innermost) { highlightLineInTextarea(innermost.line); jumpToInnerBtn.textContent = '✓'; setTimeout(() => jumpToInnerBtn.textContent = '🎯', 500); }
++            else { jumpToInnerBtn.textContent = '❌'; setTimeout(() => jumpToInnerBtn.textContent = '🎯', 800); }
+         }
+         
+-        // Clear highlight when editor gets focus or user types (interaction)
+-        // editor.addEventListener('focus', clearHighlight);
+-        editor.addEventListener('input', function() {
+-            //clearHighlight();
+-            scheduleValidation();
+-            updateOverlay();
+-        });
+-        editor.addEventListener('scroll', syncScroll);
+-        
+-        modeSelect.addEventListener('change', function() {
+-            clearHighlight();
+-            scheduleValidation();
+-        });
+-        
+-        jumpToInnerBtn.addEventListener('click', jumpToInnermostError);
+-        
+-        function initialOverlaySync() {
+-            updateOverlay();
+-            syncScroll();
++        // ----- Modern file picker with fallback -----
++        async function loadFileModern() {
++            try {
++                if (!window.showOpenFilePicker) throw new Error('File System Access API not supported');
++                const [fileHandle] = await window.showOpenFilePicker({
++                    types: [{ description: 'Markup files', accept: { 'text/html': ['.html','.htm'], 'application/xml': ['.xml','.svg','.xhtml'] } }]
++                });
++                const file = await fileHandle.getFile();
++                const contents = await file.text();
++                const baseName = file.name.replace(/\.[^/.]+$/, '') || 'document';
++                loadedFileName = baseName;
++                updateFileStatus();
++                editor.value = contents;
++                resultContainer.innerHTML = '';
++                clearHighlight();
++                updateOverlay();
++                updateLineNumbers();
++                scheduleValidation();
++            } catch (err) {
++                if (err.name !== 'AbortError') {
++                    console.warn('Modern picker failed, using fallback', err);
++                    legacyFileInput();
++                }
++            }
+         }
+         
+-        // File & clipboard handlers
+-        function loadFile() {
++        function legacyFileInput() {
+             const inp = document.createElement('input');
+             inp.type = 'file';
+             inp.accept = '.html,.htm,.xml,.svg,.txt,.xhtml,.xslt';
+             inp.onchange = (event) => {
+                 const file = event.target.files[0];
+                 if (!file) return;
+-                let fullName = file.name;
+-                let baseName = fullName.replace(/\.[^/.]+$/, "");
+-                loadedFileName = baseName || "document";
++                const baseName = file.name.replace(/\.[^/.]+$/, '') || 'document';
++                loadedFileName = baseName;
+                 updateFileStatus();
+                 const reader = new FileReader();
+                 reader.onload = (e) => {
+-                    try {
+-                        editor.value = e.target.result;
+-                        resultContainer.innerHTML = '';
+-                        clearHighlight();
+-                        updateOverlay();
+-                        scheduleValidation();
+-                    } catch (err) {
+-                        alert("Failed to process file content.");
+-                        loadedFileName = null;
+-                        updateFileStatus();
+-                    }
++                    editor.value = e.target.result;
++                    resultContainer.innerHTML = '';
++                    clearHighlight();
++                    updateOverlay();
++                    updateLineNumbers();
++                    scheduleValidation();
+                 };
+                 reader.onerror = () => { alert("Unable to read file."); loadedFileName = null; updateFileStatus(); };
+                 reader.readAsText(file, "UTF-8");
+@@ -826,26 +575,25 @@
+                 resultContainer.innerHTML = '';
+                 clearHighlight();
+                 updateOverlay();
++                updateLineNumbers();
+                 scheduleValidation();
+-            } catch (err) {
+-                alert("Clipboard read failed. Grant permission or paste manually.");
+-            }
++            } catch (err) { alert("Clipboard read failed. Grant permission or paste manually."); }
+         }
+         
+         function saveToFile() {
+             const content = editor.value;
+             if (!content) return alert('No content to save.');
+-            const modeRad = modeSelect.value;
+             let ext = '.txt';
+-            if (modeRad === 'html') ext = '.html';
+-            else if (modeRad === 'xml') ext = '.xml';
++            const mode = modeSelect.value;
++            if (mode === 'html') ext = '.html';
++            else if (mode === 'xml') ext = '.xml';
+             else {
+                 if (/<html/i.test(content)) ext = '.html';
+                 else if (/<svg/i.test(content)) ext = '.svg';
+                 else ext = '.xml';
+             }
+-            let finalBase = loadedFileName ? `${loadedFileName}_validated` : 'validated_markup';
+-            let filename = finalBase + ext;
++            const finalBase = loadedFileName ? `${loadedFileName}_validated` : 'validated_markup';
++            const filename = finalBase + ext;
+             const blob = new Blob([content], {type: 'text/plain'});
+             const a = document.createElement('a');
+             const url = URL.createObjectURL(blob);
+@@ -857,62 +605,58 @@
+             URL.revokeObjectURL(url);
+         }
+         
+-        async function copyEditorText() {
+-            await navigator.clipboard.writeText(editor.value);
+-            const orig = copyBtn.textContent;
+-            copyBtn.textContent = '✓';
+-            setTimeout(() => copyBtn.textContent = '📄', 1000);
+-        }
++        async function copyEditorText() { await navigator.clipboard.writeText(editor.value); const orig = copyBtn.textContent; copyBtn.textContent = '✓'; setTimeout(() => copyBtn.textContent = '📄', 1000); }
+         
+-        function clearAll() {
+-            editor.value = '';
+-            loadedFileName = null;
+-            updateFileStatus();
+-            resultContainer.innerHTML = '';
+-            clearHighlight();
+-            updateOverlay();
+-            scheduleValidation();
+-        }
++        function clearAll() { editor.value = ''; loadedFileName = null; updateFileStatus(); resultContainer.innerHTML = ''; clearHighlight(); updateOverlay(); updateLineNumbers(); scheduleValidation(); }
+         
+         function updateFileStatus() {
+-            if (loadedFileName) {
+-                fileStatusBadge.innerHTML = `📄 ${loadedFileName}`;
+-                fileStatusBadge.style.background = "var(--app-file-status-active)";
+-            } else {
+-                fileStatusBadge.innerHTML = `📄 no file loaded`;
+-                fileStatusBadge.style.background = "var(--app-file-status-bg)";
+-            }
++            if (loadedFileName) { fileStatusBadge.innerHTML = `📄 ${loadedFileName}`; fileStatusBadge.style.background = "var(--app-file-status-active)"; }
++            else { fileStatusBadge.innerHTML = `📄 no file loaded`; fileStatusBadge.style.background = "var(--app-file-status-bg)"; }
+         }
+         
+-        loadBtn.addEventListener('click', loadFile);
++        // ----- Event listeners -----
++        editor.addEventListener('input', function() { scheduleValidation(); updateOverlay(); updateLineNumbers(); });
++        editor.addEventListener('scroll', syncScroll);
++        // No clear on focus – persistent highlight
++        
++        // Fix artefact on mode change: reset everything and re-validate
++        modeSelect.addEventListener('change', function() {
++            clearHighlight();
++            // Force full UI refresh: re-render error panel, re-sync overlay
++            runValidation(); // immediate re-run
++            // Also ensure backdrop dimensions match
++            setTimeout(() => { if (backdrop && editor) backdrop.style.height = editor.clientHeight + 'px'; syncScroll(); }, 10);
++        });
++        
++        jumpToInnerBtn.addEventListener('click', jumpToInnermostError);
++        loadBtn.addEventListener('click', loadFileModern);
+         pasteBtn.addEventListener('click', pasteFromClip);
+         saveBtn.addEventListener('click', saveToFile);
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
+         
+-        // Initial demo content (has nested errors)
++        // ----- Initial demo content -----
+         editor.value = `<div>
+-  <h1>Title missing closing tag
+-  <p>Unclosed paragraph
+-  <img src="photo.jpg" alt="demo">
++  <h1>Title missing closing tag</h1>
++  <p>Unclosed paragraph</p>
++  <img src="photo.jpg" alt="demo" > 
+   <span class="test">Text
+-    <b>Bold deep inside
++    <b>Bold deep inside</b>
+   </span>
+ </div>`;
+         loadedFileName = null;
+         updateFileStatus();
+-        initialOverlaySync();
++        updateLineNumbers();
++        updateOverlay();
+         scheduleValidation();
+         
+-        // Resize observer to keep overlay dimensions in sync
+         const resizeObserver = new ResizeObserver(() => {
+-            if (backdrop && editor) {
+-                backdrop.style.height = editor.clientHeight + 'px';
+-                syncScroll();
+-            }
++            if (backdrop && editor) { backdrop.style.height = editor.clientHeight + 'px'; syncScroll(); }
++            updateLineNumbers();
+         });
+         resizeObserver.observe(editor);
++        syncScroll();
+     })();
+ </script>
+ </body>
+-</html>
++</html>
+\ No newline at end of file

@@ -1,0 +1,42 @@
+--- MarkupLinter_v1_20_0.html	2026-06-09 21:13:53.485959088 +0300
++++ MarkupLinter_v1_20_1.html	2026-06-09 21:31:17.195349524 +0300
+@@ -620,12 +620,27 @@
+         // No clear on focus – persistent highlight
+         
+         // Fix artefact on mode change: reset everything and re-validate
+-        modeSelect.addEventListener('change', function() {
++	modeSelect.addEventListener('change', function() {
++            // 1. Clear any existing highlight and error panel
+             clearHighlight();
+-            // Force full UI refresh: re-render error panel, re-sync overlay
+-            runValidation(); // immediate re-run
+-            // Also ensure backdrop dimensions match
+-            setTimeout(() => { if (backdrop && editor) backdrop.style.height = editor.clientHeight + 'px'; syncScroll(); }, 10);
++            resultContainer.innerHTML = '';   // force remove old error panel
++            currentErrors = [];
++    
++            // 2. Force re-validation (will repopulate errors and highlights)
++            runValidation();
++    
++            // 3. Critical: force backdrop height to match textarea after the new validation renders
++            //    Also force line numbers and overlay to re-sync
++            setTimeout(() => {
++                if (backdrop && editor) {
++                    backdrop.style.height = editor.clientHeight + 'px';
++                    // Re-sync scroll positions
++                    syncScroll();
++                    // Force a full overlay rebuild (clears any stale highlight fragments)
++                    updateOverlay();
++                    updateLineNumbers();
++                }
++            }, 20); // small delay to allow DOM to settle
+         });
+         
+         jumpToInnerBtn.addEventListener('click', jumpToInnermostError);
+@@ -659,4 +674,4 @@
+     })();
+ </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>

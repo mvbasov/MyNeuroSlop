@@ -1,0 +1,211 @@
+--- MarkupLinter_v1_22_0.html	2026-06-09 21:49:42.919269053 +0300
++++ MarkupLinter_v1_23_0.html	2026-06-09 21:49:31.615141465 +0300
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8">
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%231E3A8A%22%20%2F%3E%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%2234%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%225%22%20%2F%3E%20%20%3Cline%20x1%3D%2276%22%20y1%3D%2274%22%20x2%3D%2290%22%20y2%3D%2288%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%20%3Ctext%20x%3D%2250%22%20y%3D%2257%22%20font-family%3D%22monospace%22%20font-size%3D%2230%22%20font-weight%3D%22bold%22%20fill%3D%22%23FFFFFF%22%20text-anchor%3D%22middle%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+-    <title>Markup Linter · Final artifact fix</title>
++    <title>Markup Linter · Robust sync · No artifact</title>
+     <style>
+         body {
+             margin: 0;
+@@ -218,7 +218,7 @@
+ 
+     <div class="app-header">
+         <h1>🔍 Markup Validator</h1>
+-        <div class="subhead">HTML/XML/SVG · persistent highlight · strict mode artifact fixed</div>
++        <div class="subhead">HTML/XML/SVG · persistent highlight · strict mode sync fixed</div>
+         <div class="toolbar">
+             <div class="toolbar-left">
+                 <button id="loadBtn" class="icon-btn" title="Load file">📂</button>
+@@ -253,8 +253,8 @@
+         <div id="resultContainer"></div>
+     </div>
+     <footer>
+-        <span>✔ Strict XML mode: smart line detection · no overlay artifacts</span>
+-        <span class="version">v1.22.0 · final sync fix</span>
++        <span>✔ Strict XML: correct error line · no overlay artifacts</span>
++        <span class="version">v1.23.0 · ResizeObserver sync</span>
+     </footer>
+ </div>
+ 
+@@ -352,6 +352,15 @@
+             highlightsDiv.innerHTML = html;
+         }
+         
++        // Full sync: adjust backdrop height, rebuild overlay, sync scroll, update line numbers
++        function fullSync() {
++            if (!backdrop || !editor) return;
++            backdrop.style.height = editor.clientHeight + 'px';
++            updateOverlay();   // rebuild highlights (preserves currentHighlightedLine)
++            syncScroll();
++            updateLineNumbers();
++        }
++        
+         function clearHighlight() { if (currentHighlightedLine !== null) { currentHighlightedLine = null; updateOverlay(); } }
+         
+         function updateSummary() {
+@@ -491,7 +500,7 @@
+                 updateSummary();
+                 renderFullErrorPanel();
+                 clearHighlight();
+-                updateLineNumbers();
++                fullSync();
+                 return;
+             }
+             let mode = modeSelect.value;
+@@ -509,7 +518,7 @@
+             const innermost = getInnermostError(currentErrors);
+             if (innermost) highlightLineInTextarea(innermost.line);
+             else clearHighlight();
+-            updateLineNumbers();
++            fullSync();  // ensure all overlays and line numbers are up-to-date after error panel changes
+         }
+         
+         function scheduleValidation() { if (validationTimeout) clearTimeout(validationTimeout); validationTimeout = setTimeout(runValidation, 300); }
+@@ -521,7 +530,7 @@
+             else { jumpToInnerBtn.textContent = '❌'; setTimeout(() => jumpToInnerBtn.textContent = '🎯', 800); }
+         }
+         
+-        // ----- Modern file picker with fallback -----
++        // ----- File handlers (modern + fallback) -----
+         async function loadFileModern() {
+             try {
+                 if (!window.showOpenFilePicker) throw new Error('File System Access API not supported');
+@@ -536,13 +545,10 @@
+                 editor.value = contents;
+                 resultContainer.innerHTML = '';
+                 clearHighlight();
+-                updateOverlay();
+-                updateLineNumbers();
++                fullSync();
+                 scheduleValidation();
+             } catch (err) {
+-                if (err.name !== 'AbortError') {
+-                    legacyFileInput();
+-                }
++                if (err.name !== 'AbortError') legacyFileInput();
+             }
+         }
+         
+@@ -561,8 +567,7 @@
+                     editor.value = e.target.result;
+                     resultContainer.innerHTML = '';
+                     clearHighlight();
+-                    updateOverlay();
+-                    updateLineNumbers();
++                    fullSync();
+                     scheduleValidation();
+                 };
+                 reader.onerror = () => { alert("Unable to read file."); loadedFileName = null; updateFileStatus(); };
+@@ -579,8 +584,7 @@
+                 updateFileStatus();
+                 resultContainer.innerHTML = '';
+                 clearHighlight();
+-                updateOverlay();
+-                updateLineNumbers();
++                fullSync();
+                 scheduleValidation();
+             } catch (err) { alert("Clipboard read failed."); }
+         }
+@@ -612,7 +616,7 @@
+         
+         async function copyEditorText() { await navigator.clipboard.writeText(editor.value); const orig = copyBtn.textContent; copyBtn.textContent = '✓'; setTimeout(() => copyBtn.textContent = '📄', 1000); }
+         
+-        function clearAll() { editor.value = ''; loadedFileName = null; updateFileStatus(); resultContainer.innerHTML = ''; clearHighlight(); updateOverlay(); updateLineNumbers(); scheduleValidation(); }
++        function clearAll() { editor.value = ''; loadedFileName = null; updateFileStatus(); resultContainer.innerHTML = ''; clearHighlight(); fullSync(); scheduleValidation(); }
+         
+         function updateFileStatus() {
+             if (loadedFileName) { fileStatusBadge.innerHTML = `📄 ${loadedFileName}`; fileStatusBadge.style.background = "var(--app-file-status-active)"; }
+@@ -623,50 +627,14 @@
+         editor.addEventListener('input', function() { scheduleValidation(); updateOverlay(); updateLineNumbers(); });
+         editor.addEventListener('scroll', syncScroll);
+         
+-        // ----- FINAL, FOOLPROOF MODE CHANGE HANDLER -----
++        // Mode change: force validation and full sync after layout settles
+         modeSelect.addEventListener('change', function() {
+-            // 1. Clear all UI state
+             clearHighlight();
+             resultContainer.innerHTML = '';
+             currentErrors = [];
+-            
+-            // 2. Force re-validation
+-            runValidation();
+-            
+-            // 3. Aggressive sync: hide backdrop, force reflow, rebuild, show
+-            function hardSync() {
+-                if (!backdrop || !editor) return;
+-                // Temporarily hide to break any stale rendering
+-                backdrop.style.display = 'none';
+-                // Force a reflow by reading offsetHeight
+-                void backdrop.offsetHeight;
+-                // Rebuild overlay content from scratch
+-                const text = editor.value;
+-                const lines = text.split('\n');
+-                let html = '';
+-                for (let i = 0; i < lines.length; i++) {
+-                    const lineNum = i + 1;
+-                    const lineContent = escapeHtml(lines[i]) || ' ';
+-                    if (currentHighlightedLine === lineNum) {
+-                        html += `<mark>${lineContent}</mark>\n`;
+-                    } else {
+-                        html += `${lineContent}\n`;
+-                    }
+-                }
+-                highlightsDiv.innerHTML = html;
+-                // Set exact height
+-                backdrop.style.height = editor.clientHeight + 'px';
+-                // Show again
+-                backdrop.style.display = 'block';
+-                syncScroll();
+-                updateLineNumbers();
+-            }
+-            
+-            // Execute multiple times to catch any delayed layout changes
+-            hardSync();
+-            requestAnimationFrame(() => { hardSync(); });
+-            setTimeout(() => { hardSync(); }, 20);
+-            setTimeout(() => { hardSync(); }, 100);
++            runValidation();  // this already calls fullSync() at the end
++            // Extra safety: observe that the error panel might have changed height
++            setTimeout(fullSync, 20);
+         });
+         
+         jumpToInnerBtn.addEventListener('click', jumpToInnermostError);
+@@ -676,7 +644,14 @@
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
+         
+-        // ----- Initial demo content (the exact problematic markup) -----
++        // ----- ResizeObserver: sync whenever textarea size changes (including when error panel appears/disappears) -----
++        const resizeObserver = new ResizeObserver(() => { fullSync(); });
++        resizeObserver.observe(editor);
++        // Also observe the parent container of the error panel (the editor-area) to catch any layout shift
++        const editorArea = document.querySelector('.editor-area');
++        if (editorArea) resizeObserver.observe(editorArea);
++        
++        // ----- Initial demo content -----
+         editor.value = `<div>
+   <h1>Title missing closing tag</h1>
+   <p>Unclosed paragraph</p>
+@@ -687,19 +662,8 @@
+ </div>`;
+         loadedFileName = null;
+         updateFileStatus();
+-        updateLineNumbers();
+-        updateOverlay();
++        fullSync();
+         scheduleValidation();
+-        
+-        const resizeObserver = new ResizeObserver(() => {
+-            if (backdrop && editor) {
+-                backdrop.style.height = editor.clientHeight + 'px';
+-                syncScroll();
+-            }
+-            updateLineNumbers();
+-        });
+-        resizeObserver.observe(editor);
+-        syncScroll();
+     })();
+ </script>
+ </body>

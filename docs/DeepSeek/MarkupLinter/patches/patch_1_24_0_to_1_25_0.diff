@@ -1,0 +1,198 @@
+--- MarkupLinter_v1_24_0.html	2026-06-09 21:54:33.957822035 +0300
++++ MarkupLinter_v1_25_0.html	2026-06-09 21:58:31.727162384 +0300
+@@ -4,7 +4,7 @@
+     <meta charset="UTF-8">
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%231E3A8A%22%20%2F%3E%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%2234%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%225%22%20%2F%3E%20%20%3Cline%20x1%3D%2276%22%20y1%3D%2274%22%20x2%3D%2290%22%20y2%3D%2288%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%20%3Ctext%20x%3D%2250%22%20y%3D%2257%22%20font-family%3D%22monospace%22%20font-size%3D%2230%22%20font-weight%3D%22bold%22%20fill%3D%22%23FFFFFF%22%20text-anchor%3D%22middle%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+-    <title>Markup Linter · Rebuild on mode switch · No artifacts</title>
++    <title>Markup Linter · XML mode: no overlay (no artifacts)</title>
+     <style>
+         body {
+             margin: 0;
+@@ -218,7 +218,7 @@
+ 
+     <div class="app-header">
+         <h1>🔍 Markup Validator</h1>
+-        <div class="subhead">HTML/XML/SVG · persistent highlight · mode switch rebuilds editor (no artifacts)</div>
++        <div class="subhead">HTML/XML/SVG · XML mode: no overlay (zero artifacts) · click errors to jump</div>
+         <div class="toolbar">
+             <div class="toolbar-left">
+                 <button id="loadBtn" class="icon-btn" title="Load file">📂</button>
+@@ -232,8 +232,8 @@
+             <div class="toolbar-right">
+                 <select id="modeSelect" class="mode-select">
+                     <option value="auto">🔄 Auto</option>
+-                    <option value="html">🌐 HTML</option>
+-                    <option value="xml">📄 XML / SVG (strict)</option>
++                    <option value="html">🌐 HTML (overlay)</option>
++                    <option value="xml">📄 XML / SVG (no overlay)</option>
+                 </select>
+                 <span id="fileStatusBadge" class="file-status">📄 no file loaded</span>
+             </div>
+@@ -245,8 +245,8 @@
+         <div id="resultContainer"></div>
+     </div>
+     <footer>
+-        <span>✔ Strict XML: correct error line · editor rebuild on mode switch eliminates artifacts</span>
+-        <span class="version">v1.24.0 · rebuild on mode change</span>
++        <span>✔ XML mode: overlay disabled → no redundant lines, no artifacts. Click error to jump to line.</span>
++        <span class="version">v1.25.0 · XML overlay off</span>
+     </footer>
+ </div>
+ 
+@@ -325,6 +325,15 @@
+         
+         function updateOverlay() {
+             if (!editor || !highlightsDiv) return;
++            // If in XML mode, hide overlay completely
++            const mode = modeSelect.value;
++            const isXmlMode = (mode === 'xml') || (mode === 'auto' && editor.value.trim().startsWith('<?xml'));
++            if (isXmlMode) {
++                if (backdrop) backdrop.style.display = 'none';
++                return;
++            } else {
++                if (backdrop) backdrop.style.display = 'block';
++            }
+             const lines = editor.value.split('\n');
+             let html = '';
+             for (let i = 0; i < lines.length; i++) {
+@@ -347,7 +356,7 @@
+         function fullSync() {
+             if (!backdrop || !editor) return;
+             backdrop.style.height = editor.clientHeight + 'px';
+-            updateOverlay();
++            updateOverlay();  // this will also hide backdrop if XML mode
+             syncScroll();
+             updateLineNumbers();
+         }
+@@ -370,7 +379,7 @@
+             if (!currentErrors.length) { resultContainer.innerHTML = ''; return; }
+             const panel = document.createElement('div');
+             panel.className = 'error-panel';
+-            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to highlight line</span></div><div class="error-list" id="errorList"></div>`;
++            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to jump to line</span></div><div class="error-list" id="errorList"></div>`;
+             resultContainer.innerHTML = '';
+             resultContainer.appendChild(panel);
+             const listContainer = panel.querySelector('#errorList');
+@@ -380,12 +389,12 @@
+                 row.setAttribute('data-line', err.line);
+                 row.title = `error line ${err.line}`;
+                 row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
+-                row.addEventListener('click', () => highlightLineInTextarea(err.line));
++                row.addEventListener('click', () => jumpToLine(err.line));
+                 listContainer.appendChild(row);
+             }
+         }
+         
+-        function highlightLineInTextarea(lineNum) {
++        function jumpToLine(lineNum) {
+             if (!editor) return;
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
+@@ -397,7 +406,7 @@
+             syncScroll();
+         }
+         
+-        // ----- Validators (unchanged) -----
++        // ----- Validators -----
+         function validateXmlSvg(content) {
+             const errors = [];
+             const parser = new DOMParser();
+@@ -509,7 +518,7 @@
+             updateSummary();
+             renderFullErrorPanel();
+             const innermost = getInnermostError(currentErrors);
+-            if (innermost) highlightLineInTextarea(innermost.line);
++            if (innermost) jumpToLine(innermost.line);
+             else clearHighlight();
+             fullSync();
+         }
+@@ -520,12 +529,12 @@
+             const btn = document.getElementById('jumpToInnerBtn');
+             if (!currentErrors.length) { if(btn) btn.textContent = '❌'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 800); return; }
+             const innermost = getInnermostError(currentErrors);
+-            if (innermost) { highlightLineInTextarea(innermost.line); if(btn) btn.textContent = '✓'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 500); }
++            if (innermost) { jumpToLine(innermost.line); if(btn) btn.textContent = '✓'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 500); }
+             else { if(btn) btn.textContent = '❌'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 800); }
+         }
+         
+-        // ----- Build the editor DOM (fresh, no stale state) -----
+-        function buildEditorDOM(content) {
++        // ----- Build editor DOM (with backdrop but will be hidden in XML mode) -----
++        function buildEditorDOM() {
+             const wrapper = document.createElement('div');
+             wrapper.className = 'editor-with-lines';
+             wrapper.innerHTML = `
+@@ -541,38 +550,28 @@
+         }
+         
+         function initEditor(content = '') {
+-            // Remove old editor container content
+             editorContainer.innerHTML = '';
+             const newEditorDOM = buildEditorDOM();
+             editorContainer.appendChild(newEditorDOM);
+             
+-            // Re-assign global references
+             editor = document.getElementById('codeEditor');
+             lineNumbersDiv = document.getElementById('lineNumbers');
+             backdrop = document.getElementById('backdrop');
+             highlightsDiv = document.getElementById('highlights');
+             
+             if (!editor) return;
+-            
+             editor.value = content;
+             
+-            // Attach event listeners
+             editor.addEventListener('input', function() { scheduleValidation(); updateOverlay(); updateLineNumbers(); });
+             editor.addEventListener('scroll', syncScroll);
+-            editor.addEventListener('focus', function() { /* no clear highlight */ });
+             
+-            // Initial sync
+             fullSync();
+             
+-            // ResizeObserver for the editor
+             const resizeObs = new ResizeObserver(() => { fullSync(); });
+             resizeObs.observe(editor);
+-            
+-            // Also observe the editor-area root to catch any layout shifts
+             const editorAreaRoot = document.getElementById('editorAreaRoot');
+             if (editorAreaRoot) resizeObs.observe(editorAreaRoot);
+             
+-            // Run validation after a tiny delay to let DOM settle
+             setTimeout(() => { runValidation(); }, 10);
+         }
+         
+@@ -683,7 +682,7 @@
+             else { fileStatusBadge.innerHTML = `📄 no file loaded`; fileStatusBadge.style.background = "var(--app-file-status-bg)"; }
+         }
+         
+-        // ----- Mode change: rebuild editor from scratch to kill artifacts -----
++        // ----- Mode change: rebuild editor and respect overlay visibility -----
+         function onModeChange() {
+             const currentContent = editor ? editor.value : `<div>
+   <h1>Title missing closing tag</h1>
+@@ -693,16 +692,13 @@
+     <b>Bold deep inside</b>
+   </span>
+ </div>`;
+-            // Clear error panel and state
+             resultContainer.innerHTML = '';
+             currentErrors = [];
+             currentHighlightedLine = null;
+             updateSummary();
+-            // Rebuild the entire editor DOM
+             initEditor(currentContent);
+         }
+         
+-        // ----- Attach global button listeners -----
+         function bindGlobalButtons() {
+             const loadBtn = document.getElementById('loadBtn');
+             const pasteBtn = document.getElementById('pasteBtn');
+@@ -719,7 +715,6 @@
+             modeSelect.addEventListener('change', onModeChange);
+         }
+         
+-        // ----- Initial load -----
+         const initialContent = `<div>
+   <h1>Title missing closing tag</h1>
+   <p>Unclosed paragraph</p>
