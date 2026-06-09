@@ -1,0 +1,236 @@
+--- MarkupLinter_v1_6_0.html	2026-06-09 15:50:55.662138468 +0300
++++ MarkupLinter_v1_7_0.html	2026-06-09 15:55:07.306341157 +0300
+@@ -4,7 +4,6 @@
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+     <title>Markup Linter · HTML / XML / SVG validator</title>
+-    <!-- base styles for standalone page (minimal, not scoped) -->
+     <style>
+         /* global body transition for theme */
+         body {
+@@ -13,7 +12,6 @@
+             line-height: 1.4;
+             transition: background-color 0.3s ease, color 0.2s ease;
+         }
+-        /* body theme classes (affects background when standalone) */
+         body:not(.theme-dark) {
+             background: #f4f6fa;
+         }
+@@ -23,13 +21,10 @@
+     </style>
+ </head>
+ <body>
+-<!-- APPLICATION ROOT – EMBEDDABLE CONTAINER -->
+ <div id="markup-validator-app">
+-    <!-- scoped styles with CSS variables and dark theme overrides -->
+     <style>
+         /* ----- CSS variables (light default) ----- */
+         #markup-validator-app {
+-            /* Light theme variables */
+             --app-bg: #ffffff;
+             --app-border: #e9edf2;
+             --app-text-primary: #1a2634;
+@@ -53,6 +48,8 @@
+             --app-footer-color: #6c7e97;
+             --app-file-status-bg: #f0f2f5;
+             --app-file-status-active: #e6f0ff;
++            --app-select-bg: #f0f2f5;
++            --app-select-border: #dce3ec;
+ 
+             max-width: 1400px;
+             margin: 0 auto;
+@@ -64,7 +61,6 @@
+             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', monospace;
+             transition: background-color 0.3s ease, border-color 0.2s ease;
+         }
+-        /* Dark theme overrides */
+         #markup-validator-app.theme-dark {
+             --app-bg: #1e2432;
+             --app-border: #2d3548;
+@@ -89,15 +85,14 @@
+             --app-footer-color: #8b9ab0;
+             --app-file-status-bg: #2a3245;
+             --app-file-status-active: #1e3a5f;
++            --app-select-bg: #2a3245;
++            --app-select-border: #3a4358;
+         }
+-
+-        /* apply text color to container */
+         #markup-validator-app,
+         #markup-validator-app * {
+             color: var(--app-text-primary);
+             transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+         }
+-
+         #markup-validator-app .app-header {
+             padding: 1.2rem 2rem;
+             border-bottom: 2px solid var(--app-header-border);
+@@ -176,6 +171,16 @@
+             accent-color: #2563eb;
+             margin: 0;
+         }
++        #markup-validator-app .theme-select {
++            background: var(--app-select-bg);
++            border: 1px solid var(--app-select-border);
++            border-radius: 2rem;
++            padding: 0.4rem 0.8rem;
++            font-size: 0.8rem;
++            font-family: inherit;
++            cursor: pointer;
++            color: var(--app-text-primary);
++        }
+         #markup-validator-app .file-status {
+             font-size: 0.7rem;
+             background: var(--app-file-status-bg);
+@@ -312,11 +317,16 @@
+                 <button id="copyBtn">📄 Copy editor</button>
+                 <button id="clearBtn">🗑 Clear</button>
+             </div>
+-            <div class="mode-tabs" id="modeGroup">
++            <div class="mode-tabs">
+                 <label><input type="radio" name="validMode" value="auto" checked> 🔄 Auto</label>
+                 <label><input type="radio" name="validMode" value="html"> 🌐 HTML</label>
+                 <label><input type="radio" name="validMode" value="xml"> 📄 XML / SVG (strict)</label>
+             </div>
++            <select id="themeToggle" class="theme-select" aria-label="Theme selector">
++                <option value="auto">🌓 Auto</option>
++                <option value="light">☀️ Light</option>
++                <option value="dark">🌙 Dark</option>
++            </select>
+             <span id="fileStatusBadge" class="file-status">📄 no file loaded</span>
+         </div>
+     </div>
+@@ -326,18 +336,20 @@
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.6.0</span>
++        <span class="version">version 1.7.0</span>
+     </footer>
+ </div>
+ 
+ <script>
+     (function(){
+-        // ----- LIGHT / DARK THEME CONTROLLER (IIFE) -----
+-        // Configurable constant: 'auto', 'dark', 'light'
+-        const APP_THEME = 'auto';  // <-- change to 'light' or 'dark' to force a mode
+-        
++        // ----- DYNAMIC THEME CONTROLLER (with localStorage and system listener) -----
+         const appContainer = document.getElementById('markup-validator-app');
+         const bodyEl = document.body;
++        const themeSelect = document.getElementById('themeToggle');
++        
++        let currentMode = 'auto';      // 'auto', 'light', 'dark'
++        let systemListenerActive = false;
++        let mediaQueryListener = null;
+         
+         function applyTheme(themeMode) {
+             // themeMode: 'dark' or 'light'
+@@ -350,39 +362,85 @@
+             }
+         }
+         
+-        function setThemeBasedOnPreference() {
+-            if (APP_THEME === 'auto') {
+-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+-                applyTheme(prefersDark ? 'dark' : 'light');
+-            } else if (APP_THEME === 'dark') {
++        function getSystemPreference() {
++            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
++        }
++        
++        function updateFromMode(mode) {
++            if (mode === 'auto') {
++                const systemTheme = getSystemPreference();
++                applyTheme(systemTheme);
++                // ensure system listener is active
++                activateSystemListener();
++            } else if (mode === 'dark') {
++                deactivateSystemListener();
+                 applyTheme('dark');
+-            } else if (APP_THEME === 'light') {
+-                applyTheme('light');
+-            } else {
+-                // fallback to light
++            } else if (mode === 'light') {
++                deactivateSystemListener();
+                 applyTheme('light');
+             }
+         }
+         
+-        // initial application
+-        setThemeBasedOnPreference();
+-        
+-        // listen for system changes if auto
+-        if (APP_THEME === 'auto') {
++        function activateSystemListener() {
++            if (systemListenerActive) return;
+             const darkModeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+-            if (darkModeMedia.addEventListener) {
+-                darkModeMedia.addEventListener('change', (e) => {
++            const handler = (e) => {
++                if (currentMode === 'auto') {
+                     applyTheme(e.matches ? 'dark' : 'light');
+-                });
++                }
++            };
++            if (darkModeMedia.addEventListener) {
++                darkModeMedia.addEventListener('change', handler);
+             } else if (darkModeMedia.addListener) {
+-                // fallback for older Safari
+-                darkModeMedia.addListener((e) => {
+-                    applyTheme(e.matches ? 'dark' : 'light');
+-                });
++                darkModeMedia.addListener(handler);
++            }
++            mediaQueryListener = { media: darkModeMedia, handler };
++            systemListenerActive = true;
++        }
++        
++        function deactivateSystemListener() {
++            if (!systemListenerActive || !mediaQueryListener) return;
++            const { media, handler } = mediaQueryListener;
++            if (media.removeEventListener) {
++                media.removeEventListener('change', handler);
++            } else if (media.removeListener) {
++                media.removeListener(handler);
+             }
++            systemListenerActive = false;
++            mediaQueryListener = null;
++        }
++        
++        function setThemeMode(mode) {
++            currentMode = mode;
++            updateFromMode(mode);
++            // save to localStorage for persistence
++            try {
++                localStorage.setItem('markup_validator_theme', mode);
++            } catch(e) {}
++            // update select dropdown without triggering event loop
++            if (themeSelect && themeSelect.value !== mode) {
++                themeSelect.value = mode;
++            }
++        }
++        
++        // load saved preference or default to 'auto'
++        let savedMode = 'auto';
++        try {
++            const stored = localStorage.getItem('markup_validator_theme');
++            if (stored === 'light' || stored === 'dark' || stored === 'auto') {
++                savedMode = stored;
++            }
++        } catch(e) {}
++        setThemeMode(savedMode);
++        
++        // listen to select changes
++        if (themeSelect) {
++            themeSelect.addEventListener('change', (e) => {
++                setThemeMode(e.target.value);
++            });
+         }
+         
+-        // ----- REST OF THE VALIDATOR LOGIC (unchanged, but scoped) -----
++        // ----- REST OF THE VALIDATOR LOGIC (unchanged) -----
+         const editor = appContainer.querySelector('#codeEditor');
+         const validateBtn = appContainer.querySelector('#validateBtn');
+         const loadBtn = appContainer.querySelector('#loadBtn');

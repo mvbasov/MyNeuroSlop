@@ -1,0 +1,193 @@
+--- MarkupLinter_v1_10_0.html	2026-06-09 17:09:30.205729446 +0300
++++ MarkupLinter_v1_11_0.html	2026-06-09 17:12:29.825962077 +0300
+@@ -122,32 +122,34 @@
+             padding-bottom: 0.75rem;
+             border-bottom: 1px solid var(--app-header-border);
+         }
+-        #markup-validator-app .btn-group {
++        .toolbar-left {
+             display: flex;
+-            gap: 8px;
++            gap: 6px;
++            align-items: center;
++            flex-wrap: wrap;
++        }
++        .toolbar-right {
++            display: flex;
++            gap: 12px;
++            align-items: center;
+             flex-wrap: wrap;
+         }
+-        #markup-validator-app button {
++        #markup-validator-app .icon-btn {
+             background: var(--app-btn-bg);
+             border: 1px solid var(--app-btn-border);
+-            padding: 0.45rem 1rem;
++            padding: 0.4rem;
+             border-radius: 2rem;
+-            font-size: 0.8rem;
+-            font-weight: 500;
++            font-size: 1rem;
++            width: 2rem;
++            height: 2rem;
++            display: inline-flex;
++            align-items: center;
++            justify-content: center;
+             cursor: pointer;
+             transition: 0.08s linear;
+             font-family: inherit;
+-            color: var(--app-text-primary);
+-        }
+-        #markup-validator-app button.primary {
+-            background: var(--app-btn-primary-bg);
+-            border-color: var(--app-btn-primary-bg);
+-            color: white;
+-        }
+-        #markup-validator-app button.primary:hover {
+-            background: var(--app-btn-primary-hover);
+         }
+-        #markup-validator-app button:hover {
++        #markup-validator-app .icon-btn:hover {
+             background: var(--app-btn-hover);
+             transform: translateY(-1px);
+         }
+@@ -169,17 +171,20 @@
+             accent-color: #2563eb;
+             margin: 0;
+         }
+-        /* theme toggle button (icon) */
+         #markup-validator-app .theme-toggle {
+             background: var(--app-btn-bg);
+             border: 1px solid var(--app-btn-border);
+             border-radius: 2rem;
+-            padding: 0.45rem 0.9rem;
+-            font-size: 1.1rem;
++            padding: 0.4rem;
++            width: 2rem;
++            height: 2rem;
++            font-size: 1rem;
+             line-height: 1;
+             cursor: pointer;
+             transition: 0.08s linear;
+-            font-family: inherit;
++            display: inline-flex;
++            align-items: center;
++            justify-content: center;
+         }
+         #markup-validator-app .theme-toggle:hover {
+             background: var(--app-btn-hover);
+@@ -191,7 +196,6 @@
+             padding: 0.2rem 0.8rem;
+             border-radius: 20px;
+             color: var(--app-text-secondary);
+-            margin-left: 0.5rem;
+             transition: background 0.2s;
+         }
+         #markup-validator-app .editor-area {
+@@ -310,6 +314,9 @@
+                 flex-direction: column;
+                 align-items: stretch;
+             }
++            .toolbar-left, .toolbar-right {
++                justify-content: center;
++            }
+             #markup-validator-app .mode-tabs {
+                 justify-content: center;
+             }
+@@ -324,20 +331,22 @@
+         <h1>🔍 Markup Validator</h1>
+         <div class="subhead">HTML tag balance / well‑formed XML & SVG · live validation</div>
+         <div class="toolbar">
+-            <div class="btn-group">
+-                <button id="loadBtn">📂 Load</button>
+-                <button id="pasteBtn">📋 Paste</button>
+-                <button id="saveBtn">💾 Save</button>
+-                <button id="copyBtn">📄 Copy</button>
+-                <button id="clearBtn">🗑 Clear</button>
++            <div class="toolbar-left">
++                <button id="loadBtn" class="icon-btn" aria-label="Load file">📂</button>
++                <button id="pasteBtn" class="icon-btn" aria-label="Paste from clipboard">📋</button>
++                <button id="saveBtn" class="icon-btn" aria-label="Save to file">💾</button>
++                <button id="copyBtn" class="icon-btn" aria-label="Copy editor content">📄</button>
++                <button id="clearBtn" class="icon-btn" aria-label="Clear all">🗑</button>
++                <button id="themeToggleBtn" class="theme-toggle" aria-label="Switch theme">🌓</button>
+             </div>
+-            <div class="mode-tabs">
+-                <label><input type="radio" name="validMode" value="auto" checked> 🔄 Auto</label>
+-                <label><input type="radio" name="validMode" value="html"> 🌐 HTML</label>
+-                <label><input type="radio" name="validMode" value="xml"> 📄 XML / SVG</label>
++            <div class="toolbar-right">
++                <div class="mode-tabs">
++                    <label><input type="radio" name="validMode" value="auto" checked> 🔄 Auto</label>
++                    <label><input type="radio" name="validMode" value="html"> 🌐 HTML</label>
++                    <label><input type="radio" name="validMode" value="xml"> 📄 XML / SVG</label>
++                </div>
++                <span id="fileStatusBadge" class="file-status">📄 no file loaded</span>
+             </div>
+-            <button id="themeToggleBtn" class="theme-toggle" title="Switch theme">🌓</button>
+-            <span id="fileStatusBadge" class="file-status">📄 no file loaded</span>
+         </div>
+     </div>
+     <div class="editor-area">
+@@ -347,7 +356,7 @@
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.10.0</span>
++        <span class="version">version 1.11.0</span>
+     </footer>
+ </div>
+ 
+@@ -357,7 +366,7 @@
+         const appContainer = document.getElementById('markup-validator-app');
+         const bodyEl = document.body;
+         const themeToggleBtn = document.getElementById('themeToggleBtn');
+-        let currentMode = 'auto';      // 'auto', 'light', 'dark'
++        let currentMode = 'auto';
+         let systemListenerActive = false;
+         let mediaQueryListener = null;
+         
+@@ -425,13 +434,12 @@
+             setThemeMode(next);
+         }
+         
+-        // load saved preference
+         let savedMode = 'auto';
+         try { const stored = localStorage.getItem('markup_validator_theme'); if (stored === 'light' || stored === 'dark' || stored === 'auto') savedMode = stored; } catch(e) {}
+         setThemeMode(savedMode);
+         if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+         
+-        // ----- VALIDATOR CORE (live validation on input) -----
++        // ----- VALIDATOR CORE (live validation) -----
+         const editor = document.getElementById('codeEditor');
+         const loadBtn = document.getElementById('loadBtn');
+         const pasteBtn = document.getElementById('pasteBtn');
+@@ -709,9 +717,9 @@
+         
+         async function copyEditorText() {
+             await navigator.clipboard.writeText(editor.value);
+-            const orig = copyBtn.innerText;
+-            copyBtn.innerText = '✓ Copied!';
+-            setTimeout(() => copyBtn.innerText = orig, 1000);
++            const orig = copyBtn.textContent;
++            copyBtn.textContent = '✓';
++            setTimeout(() => copyBtn.textContent = '📄', 1000);
+         }
+         
+         function clearAll() {
+@@ -732,7 +740,6 @@
+             }
+         }
+         
+-        // Event listeners
+         loadBtn.addEventListener('click', loadFile);
+         pasteBtn.addEventListener('click', pasteFromClip);
+         saveBtn.addEventListener('click', saveToFile);
+@@ -741,7 +748,6 @@
+         editor.addEventListener('input', scheduleValidation);
+         document.querySelectorAll('input[name="validMode"]').forEach(radio => radio.addEventListener('change', scheduleValidation));
+         
+-        // Initial demo content and validation
+         editor.value = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph

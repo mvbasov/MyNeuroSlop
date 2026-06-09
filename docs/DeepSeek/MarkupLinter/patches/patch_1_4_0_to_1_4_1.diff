@@ -1,0 +1,111 @@
+--- MarkupLinter_v1_4_0.html	2026-06-09 12:10:38.832806006 +0300
++++ MarkupLinter_v1_4_1.html	2026-06-09 14:25:51.886355781 +0300
+@@ -243,7 +243,7 @@
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.4.0</span>
++        <span class="version">version 1.4.1</span>
+     </footer>
+ </div>
+ 
+@@ -260,7 +260,7 @@
+         const fileStatusBadge = document.getElementById('fileStatusBadge');
+ 
+         let currentErrors = [];
+-        let loadedFileName = null;      // store base name without extension (e.g., "index")
++        let loadedFileName = null;      // store base name without extension
+ 
+         function resetDisplay() {
+             resultContainer.innerHTML = '';
+@@ -277,7 +277,6 @@
+             }
+         }
+ 
+-        // Clear any previous highlight (selection, background flash residue)
+         function clearEditorHighlight() {
+             if (editor.selectionStart !== editor.selectionEnd) {
+                 const pos = editor.selectionStart;
+@@ -351,7 +350,6 @@
+             });
+         }
+ 
+-        // ---------- XML / SVG strict validator ----------
+         function validateXmlSvg(content) {
+             const errors = [];
+             const parser = new DOMParser();
+@@ -370,7 +368,6 @@
+             return errors;
+         }
+ 
+-        // ---------- Enhanced HTML validator ----------
+         function validateHtmlRobust(content) {
+             const errors = [];
+             const lines = content.split('\n');
+@@ -431,7 +428,6 @@
+             return Array.from(unique.values());
+         }
+ 
+-        // ----- master validation
+         function runValidation() {
+             const rawCode = editor.value;
+             if (rawCode.trim() === '') {
+@@ -466,7 +462,6 @@
+             }
+         }
+ 
+-        // ----- File load with name remembering
+         function loadFile() {
+             const inp = document.createElement('input');
+             inp.type = 'file';
+@@ -474,9 +469,8 @@
+             inp.onchange = (e) => {
+                 const file = e.target.files[0];
+                 if (!file) return;
+-                // extract base name without extension
+                 let fullName = file.name;
+-                let baseName = fullName.replace(/\.[^/.]+$/, ""); // remove last extension
++                let baseName = fullName.replace(/\.[^/.]+$/, "");
+                 loadedFileName = baseName || "document";
+                 updateFileStatus();
+                 const reader = new FileReader();
+@@ -494,7 +488,6 @@
+             try {
+                 const text = await navigator.clipboard.readText();
+                 editor.value = text;
+-                // pasted content is not associated with a file, so reset loadedFileName
+                 loadedFileName = null;
+                 updateFileStatus();
+                 resetDisplay();
+@@ -504,7 +497,6 @@
+             }
+         }
+ 
+-        // ----- Save with _validated suffix if we have loadedFileName
+         function saveToFile() {
+             const content = editor.value;
+             if (!content) return alert('No content to save.');
+@@ -517,7 +509,6 @@
+                 else if (/<svg/i.test(content)) ext = '.svg';
+                 else ext = '.xml';
+             }
+-            // build filename: if loadedFileName exists -> "basename_validated.ext", else "validated_markup.ext"
+             let finalBase = loadedFileName ? `${loadedFileName}_validated` : 'validated_markup';
+             let filename = finalBase + ext;
+             const blob = new Blob([content], {type: 'text/plain'});
+@@ -547,7 +538,6 @@
+             resultContainer.innerHTML = `<div class="success-chip" style="background:#f0f2f5;">🧹 Cleared</div>`;
+         }
+ 
+-        // events
+         validateBtn.addEventListener('click', runValidation);
+         loadBtn.addEventListener('click', loadFile);
+         pasteBtn.addEventListener('click', pasteFromClip);
+@@ -555,7 +545,6 @@
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
+ 
+-        // Demo with intentional error to showcase bottom highlight
+         const demoErrorExample = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph

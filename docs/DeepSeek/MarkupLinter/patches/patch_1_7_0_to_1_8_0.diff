@@ -1,0 +1,192 @@
+--- MarkupLinter_v1_7_0.html	2026-06-09 15:55:07.306341157 +0300
++++ MarkupLinter_v1_8_0.html	2026-06-09 16:31:24.191090792 +0300
+@@ -5,7 +5,6 @@
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+     <title>Markup Linter · HTML / XML / SVG validator</title>
+     <style>
+-        /* global body transition for theme */
+         body {
+             margin: 0;
+             font-family: system-ui, 'Segoe UI', 'Roboto', monospace;
+@@ -23,7 +22,6 @@
+ <body>
+ <div id="markup-validator-app">
+     <style>
+-        /* ----- CSS variables (light default) ----- */
+         #markup-validator-app {
+             --app-bg: #ffffff;
+             --app-border: #e9edf2;
+@@ -193,6 +191,9 @@
+         #markup-validator-app .editor-area {
+             padding: 0 2rem 2rem 2rem;
+         }
++        #markup-validator-app .validation-status {
++            margin-bottom: 1rem;
++        }
+         #markup-validator-app textarea {
+             width: 100%;
+             height: 380px;
+@@ -213,7 +214,7 @@
+             box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+         }
+         #markup-validator-app .error-panel {
+-            margin-top: 1.5rem;
++            margin-top: 0;
+             border-radius: 1.25rem;
+             background: var(--app-error-panel-bg);
+             border: 1px solid var(--app-error-panel-border);
+@@ -310,7 +311,7 @@
+         <div class="subhead">HTML tag balance / well‑formed XML & SVG · pinpoint errors, jump to line</div>
+         <div class="toolbar">
+             <div class="btn-group">
+-                <button id="validateBtn" class="primary">⚡ VALIDATE</button>
++                <button id="validateBtn" class="primary">⚡ VALIDATE NOW</button>
+                 <button id="loadBtn">📂 Load file</button>
+                 <button id="pasteBtn">📋 Paste clipboard</button>
+                 <button id="saveBtn">💾 Save to file</button>
+@@ -331,12 +332,13 @@
+         </div>
+     </div>
+     <div class="editor-area">
++        <!-- validation status moved ABOVE textarea -->
++        <div id="resultContainer" class="validation-status"></div>
+         <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example:&#10;&lt;html&gt;&#10;  &lt;body&gt;&lt;h1&gt;Hello world&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea>
+-        <div id="resultContainer" style="margin-top: 1rem;"></div>
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.7.0</span>
++        <span class="version">version 1.8.0</span>
+     </footer>
+ </div>
+ 
+@@ -347,12 +349,11 @@
+         const bodyEl = document.body;
+         const themeSelect = document.getElementById('themeToggle');
+         
+-        let currentMode = 'auto';      // 'auto', 'light', 'dark'
++        let currentMode = 'auto';
+         let systemListenerActive = false;
+         let mediaQueryListener = null;
+         
+         function applyTheme(themeMode) {
+-            // themeMode: 'dark' or 'light'
+             if (themeMode === 'dark') {
+                 bodyEl.classList.add('theme-dark');
+                 appContainer.classList.add('theme-dark');
+@@ -370,7 +371,6 @@
+             if (mode === 'auto') {
+                 const systemTheme = getSystemPreference();
+                 applyTheme(systemTheme);
+-                // ensure system listener is active
+                 activateSystemListener();
+             } else if (mode === 'dark') {
+                 deactivateSystemListener();
+@@ -413,17 +413,14 @@
+         function setThemeMode(mode) {
+             currentMode = mode;
+             updateFromMode(mode);
+-            // save to localStorage for persistence
+             try {
+                 localStorage.setItem('markup_validator_theme', mode);
+             } catch(e) {}
+-            // update select dropdown without triggering event loop
+             if (themeSelect && themeSelect.value !== mode) {
+                 themeSelect.value = mode;
+             }
+         }
+         
+-        // load saved preference or default to 'auto'
+         let savedMode = 'auto';
+         try {
+             const stored = localStorage.getItem('markup_validator_theme');
+@@ -433,14 +430,13 @@
+         } catch(e) {}
+         setThemeMode(savedMode);
+         
+-        // listen to select changes
+         if (themeSelect) {
+             themeSelect.addEventListener('change', (e) => {
+                 setThemeMode(e.target.value);
+             });
+         }
+         
+-        // ----- REST OF THE VALIDATOR LOGIC (unchanged) -----
++        // ----- VALIDATOR CORE (same as before) -----
+         const editor = appContainer.querySelector('#codeEditor');
+         const validateBtn = appContainer.querySelector('#validateBtn');
+         const loadBtn = appContainer.querySelector('#loadBtn');
+@@ -453,6 +449,7 @@
+ 
+         let currentErrors = [];
+         let loadedFileName = null;
++        let validationTimeout = null;
+ 
+         function resetDisplay() {
+             resultContainer.innerHTML = '';
+@@ -654,6 +651,15 @@
+             }
+         }
+ 
++        // Debounced validation on input
++        function scheduleValidation() {
++            if (validationTimeout) clearTimeout(validationTimeout);
++            validationTimeout = setTimeout(() => {
++                runValidation();
++            }, 300);
++        }
++
++        // ----- File operations (trigger validation after load) -----
+         function loadFile() {
+             const inp = document.createElement('input');
+             inp.type = 'file';
+@@ -672,6 +678,7 @@
+                         editor.value = content;
+                         resetDisplay();
+                         clearEditorHighlight();
++                        scheduleValidation(); // validate after load
+                     } catch (err) {
+                         console.error("File processing error:", err);
+                         alert("Failed to process file content.");
+@@ -697,6 +704,7 @@
+                 updateFileStatus();
+                 resetDisplay();
+                 clearEditorHighlight();
++                scheduleValidation(); // validate after paste
+             } catch (err) {
+                 alert("Clipboard read failed. Grant permission or paste manually (Ctrl+V).");
+             }
+@@ -743,13 +751,24 @@
+             resultContainer.innerHTML = `<div class="success-chip" style="background:var(--app-btn-bg);">🧹 Cleared</div>`;
+         }
+ 
+-        validateBtn.addEventListener('click', runValidation);
++        // Event binding
++        validateBtn.addEventListener('click', () => {
++            if (validationTimeout) clearTimeout(validationTimeout);
++            runValidation();
++        });
+         loadBtn.addEventListener('click', loadFile);
+         pasteBtn.addEventListener('click', pasteFromClip);
+         saveBtn.addEventListener('click', saveToFile);
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
++        editor.addEventListener('input', scheduleValidation);
++        // Also re-validate when mode (HTML/XML/Auto) changes
++        const modeRadios = document.querySelectorAll('input[name="validMode"]');
++        modeRadios.forEach(radio => {
++            radio.addEventListener('change', () => scheduleValidation());
++        });
+ 
++        // Initial demo content and validation
+         const demoErrorExample = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph
+@@ -761,6 +780,7 @@
+         clearEditorHighlight();
+         loadedFileName = null;
+         updateFileStatus();
++        scheduleValidation(); // run initial validation
+     })();
+ </script>
+ </body>

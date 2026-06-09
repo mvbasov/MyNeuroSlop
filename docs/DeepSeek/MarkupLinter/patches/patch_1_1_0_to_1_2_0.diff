@@ -1,0 +1,944 @@
+--- MarkupLinter_v1_1_0.html	2026-06-09 11:19:58.976562408 +0300
++++ MarkupLinter_v1_2_0.html	2026-06-09 11:18:11.364461542 +0300
+@@ -2,649 +2,503 @@
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+-    <title>Linter · HTML / XML / SVG validator</title>
++    <meta name="viewport" content="width=device-width, initial-scale=1.0">
++    <title>Markup Linter · HTML / XML / SVG validator</title>
+     <style>
+         * {
+             box-sizing: border-box;
+         }
+-
+         body {
+-            background: #f6f7f9;
+-            font-family: system-ui, 'Segoe UI', 'Roboto', 'SF Pro Text', monospace;
++            background: #f4f6fa;
++            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', monospace;
+             margin: 0;
+-            min-height: 100vh;
+             padding: 2rem 1.5rem;
+-            color: #1a1e24;
++            color: #1a2634;
+         }
+-
+-        .app-container {
+-            max-width: 1600px;
++        .app {
++            max-width: 1400px;
+             margin: 0 auto;
+             background: white;
+-            border-radius: 28px;
+-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.02);
++            border-radius: 2rem;
++            box-shadow: 0 8px 20px rgba(0,0,0,0.02), 0 2px 6px rgba(0,0,0,0.05);
++            border: 1px solid #e9edf2;
+             overflow: hidden;
+-            border: 1px solid #e6edf4;
+         }
+-
+-        .header {
+-            padding: 1.5rem 2rem;
+-            background: #ffffff;
+-            border-bottom: 2px solid #eef2f8;
++        .app-header {
++            padding: 1.2rem 2rem;
++            border-bottom: 2px solid #eff3f8;
+         }
+-
+         h1 {
+-            font-size: 1.8rem;
+             font-weight: 600;
+-            letter-spacing: -0.3px;
+-            margin: 0 0 0.3rem 0;
+-            color: #0a2540;
++            font-size: 1.6rem;
++            margin: 0 0 0.2rem;
++            letter-spacing: -0.2px;
+             display: flex;
+             align-items: center;
+-            gap: 12px;
++            gap: 8px;
+         }
+-
+-        .sub {
+-            color: #4a5b6e;
+-            font-size: 0.9rem;
++        .subhead {
++            font-size: 0.85rem;
++            color: #4a5b72;
++            padding-left: 0.25rem;
++            border-left: 3px solid #2563eb;
+             margin-top: 6px;
+-            border-left: 3px solid #1e6fdf;
+-            padding-left: 12px;
+         }
+-
+         .toolbar {
+             display: flex;
+             flex-wrap: wrap;
+-            gap: 10px;
+-            margin: 1.25rem 0 1rem 0;
++            justify-content: space-between;
+             align-items: center;
++            gap: 12px;
++            margin: 1.2rem 0 1rem;
++            padding-bottom: 0.75rem;
+             border-bottom: 1px solid #edf2f7;
+-            padding-bottom: 1rem;
+         }
+-
+         .btn-group {
+             display: flex;
+             gap: 8px;
+             flex-wrap: wrap;
+         }
+-
+         button {
+-            background: #f1f4f9;
++            background: #f0f2f5;
+             border: 1px solid #dce3ec;
+-            padding: 0.5rem 1rem;
+-            border-radius: 40px;
++            padding: 0.45rem 1rem;
++            border-radius: 2rem;
++            font-size: 0.8rem;
+             font-weight: 500;
+-            font-size: 0.85rem;
+-            font-family: inherit;
+             cursor: pointer;
+-            transition: 0.1s ease;
+-            color: #1f2a3e;
++            transition: 0.08s linear;
++            font-family: inherit;
+         }
+-
+         button.primary {
+             background: #0f2b3d;
+-            border-color: #0f2b3d;
++            border-color: #0a1c2a;
+             color: white;
+         }
+-
+         button.primary:hover {
+-            background: #1a3e55;
++            background: #1f3e55;
+         }
+-
+-        button.warning {
+-            background: #fff0e0;
+-            border-color: #ffc9a4;
+-            color: #c25b00;
+-        }
+-
+         button:hover {
+-            background: #e6ecf3;
++            background: #e6ebf2;
+             transform: translateY(-1px);
+         }
+-
+-        .mode-selector {
+-            display: flex;
+-            align-items: center;
+-            gap: 12px;
++        .mode-tabs {
+             background: #f8fafc;
+-            padding: 0.2rem 0.8rem;
+-            border-radius: 60px;
+-            margin-left: auto;
++            padding: 0.2rem 0.6rem;
++            border-radius: 3rem;
++            display: flex;
++            gap: 1rem;
+         }
+-
+-        .mode-selector label {
++        .mode-tabs label {
+             display: flex;
+             align-items: center;
+-            gap: 5px;
+-            font-size: 0.85rem;
++            gap: 6px;
++            font-size: 0.8rem;
+         }
+-
+         input[type="radio"] {
+-            accent-color: #1e6fdf;
++            accent-color: #2563eb;
+             margin: 0;
+         }
+-
+-        .editor-panel {
++        .editor-area {
+             padding: 0 2rem 2rem 2rem;
+         }
+-
+         textarea {
+             width: 100%;
+             height: 380px;
+             font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+             font-size: 13px;
+             line-height: 1.5;
+-            padding: 1rem;
+             background: #fefefe;
+-            border: 1px solid #dce3ec;
+-            border-radius: 20px;
++            border: 1px solid #dee4ec;
++            border-radius: 1.5rem;
++            padding: 1rem;
+             resize: vertical;
+-            white-space: pre-wrap;
+             tab-size: 2;
+         }
+-
+         textarea:focus {
+             outline: none;
+-            border-color: #1e6fdf;
+-            box-shadow: 0 0 0 3px rgba(30,111,223,0.1);
++            border-color: #2563eb;
++            box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+         }
+-
+         .error-panel {
+-            margin-top: 1.8rem;
+-            background: #fefaf5;
+-            border-radius: 24px;
+-            border: 1px solid #f0e5d8;
+-            overflow: hidden;
+-        }
+-
+-        .error-header {
+-            background: #fff6ed;
+-            padding: 0.9rem 1.5rem;
++            margin-top: 1.5rem;
++            border-radius: 1.25rem;
++            background: #fffaf5;
++            border: 1px solid #ffe7d6;
++        }
++        .error-panel-header {
++            padding: 0.8rem 1.5rem;
++            background: #fff5eb;
++            border-bottom: 1px solid #ffe0ca;
+             font-weight: 600;
+-            border-bottom: 1px solid #ffe2c4;
+             display: flex;
+             justify-content: space-between;
+-            align-items: baseline;
+             flex-wrap: wrap;
+         }
+-
+         .error-list {
+-            max-height: 280px;
++            max-height: 260px;
+             overflow-y: auto;
+-            padding: 0.5rem 0;
+         }
+-
+-        .error-item {
+-            padding: 0.7rem 1.5rem;
+-            border-bottom: 1px solid #f0e2d2;
+-            font-family: monospace;
+-            font-size: 0.85rem;
++        .error-line {
++            padding: 0.6rem 1.5rem;
++            border-bottom: 1px solid #f2e4d8;
+             display: flex;
+-            gap: 12px;
+-            align-items: flex-start;
++            gap: 14px;
++            font-family: monospace;
++            font-size: 0.8rem;
+             cursor: pointer;
+-            transition: background 0.1s;
+         }
+-
+-        .error-item:hover {
+-            background: #fff3e6;
++        .error-line:hover {
++            background: #fff2e8;
+         }
+-
+-        .error-line-badge {
+-            background: #ffddd3;
++        .line-badge {
++            background: #ffe1cf;
+             border-radius: 30px;
+-            padding: 0.1rem 0.6rem;
++            padding: 0.1rem 0.7rem;
+             font-weight: 700;
+-            font-size: 0.7rem;
+-            color: #b13e00;
+-            min-width: 55px;
++            color: #b45309;
++            min-width: 65px;
+             text-align: center;
+         }
+-
+-        .error-msg {
+-            color: #9b3c00;
++        .error-message {
++            color: #a44100;
+             word-break: break-word;
+             flex: 1;
+         }
+-
+-        .status-ok {
+-            color: #117f4a;
+-            background: #e3f7ef;
+-            padding: 0.5rem 1.2rem;
+-            border-radius: 40px;
+-            font-weight: 500;
++        .success-chip {
++            background: #e0f2e9;
++            padding: 0.5rem 1rem;
++            border-radius: 2rem;
+             font-size: 0.85rem;
++            font-weight: 500;
++            color: #0e6b3e;
++            display: inline-block;
+         }
+-
+-        .line-highlight-hint {
++        .line-hint {
+             font-size: 0.7rem;
+-            background: #eff3f6;
+-            border-radius: 30px;
++            background: #f0f3f8;
+             padding: 0.2rem 0.7rem;
+-            color: #3c5a7d;
++            border-radius: 30px;
+         }
+-
+         footer {
+-            font-size: 0.7rem;
+             text-align: center;
+-            padding: 1rem;
++            font-size: 0.7rem;
+             border-top: 1px solid #eef2f8;
+-            color: #6f7e91;
++            padding: 1rem;
++            color: #6c7e97;
+         }
+-
+-        @media (max-width: 700px) {
+-            body {
+-                padding: 1rem;
+-            }
+-            .toolbar {
+-                flex-direction: column;
+-                align-items: stretch;
+-            }
+-            .mode-selector {
+-                margin-left: 0;
+-                justify-content: flex-start;
+-            }
++        @media (max-width: 680px) {
++            body { padding: 1rem; }
++            .toolbar { flex-direction: column; align-items: stretch; }
++            .mode-tabs { justify-content: center; }
+         }
+     </style>
+ </head>
+ <body>
+-<div class="app-container">
+-    <div class="header">
+-        <h1>⌨️ Markup Validator</h1>
+-        <div class="sub">Check well‑formedness & syntax errors · HTML · XML · SVG (strict for XML/SVG, balanced tags for HTML)</div>
++<div class="app">
++    <div class="app-header">
++        <h1>🔍 Markup Validator</h1>
++        <div class="subhead">HTML tag balance / well‑formed XML & SVG · pinpoint errors, jump to line</div>
+         <div class="toolbar">
+             <div class="btn-group">
+-                <button id="validateBtn" class="primary">✓ VALIDATE</button>
+-                <button id="loadFileBtn">📂 Load File</button>
+-                <button id="pasteClipBtn">📋 Paste from Clipboard</button>
+-                <button id="saveFileBtn">💾 Save to File</button>
+-                <button id="copyTextBtn">📄 Copy to Clipboard</button>
++                <button id="validateBtn" class="primary">⚡ VALIDATE</button>
++                <button id="loadBtn">📂 Load file</button>
++                <button id="pasteBtn">📋 Paste clipboard</button>
++                <button id="saveBtn">💾 Save to file</button>
++                <button id="copyBtn">📄 Copy editor</button>
+                 <button id="clearBtn">🗑 Clear</button>
+             </div>
+-            <div class="mode-selector" id="modeGroup">
+-                <span style="font-size:0.8rem; color:#5c6f87;">Format:</span>
+-                <label><input type="radio" name="validationMode" value="auto" checked> 🔄 Auto</label>
+-                <label><input type="radio" name="validationMode" value="html"> 🌐 HTML (tag balance)</label>
+-                <label><input type="radio" name="validationMode" value="xml"> 📄 XML / SVG (strict)</label>
++            <div class="mode-tabs" id="modeGroup">
++                <label><input type="radio" name="validMode" value="auto" checked> 🔄 Auto</label>
++                <label><input type="radio" name="validMode" value="html"> 🌐 HTML</label>
++                <label><input type="radio" name="validMode" value="xml"> 📄 XML / SVG (strict)</label>
+             </div>
+         </div>
+     </div>
+-    <div class="editor-panel">
+-        <textarea id="sourceEditor" placeholder="Paste or type HTML, XML or SVG markup here...&#10;&#10;Example:&#10;&lt;html&gt;&#10;  &lt;head&gt;&lt;title&gt;Demo&lt;/title&gt;&lt;/head&gt;&#10;  &lt;body&gt;&lt;h1&gt;Hello&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea>
+-        
+-        <div id="validationResults" class="error-panel" style="display: none;">
+-            <div class="error-header">
+-                <span>⚠️ Diagnostics & error lines</span>
+-                <span class="line-highlight-hint">↳ click any error → jump to line & highlight range</span>
+-            </div>
+-            <div id="errorListContainer" class="error-list"></div>
+-        </div>
+-        <div id="validMessage" style="margin-top: 1rem; display: none;"></div>
++    <div class="editor-area">
++        <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example:&#10;&lt;html&gt;&#10;  &lt;body&gt;&lt;h1&gt;Hello world&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea>
++
++        <div id="resultContainer" style="margin-top: 1rem;"></div>
+     </div>
+-    <footer>✔ XML / SVG: full well‑formedness via DOMParser (line/col precision).<br> ✔ HTML: balanced tags, unmatched brackets, quoted attributes, self‑closing sanity — highlights line of first error.</footer>
++    <footer>✔ XML/SVG: DOMParser (strict well‑formedness) + line/col extraction. ✔ HTML: tag matching, quote balancing, unclosed brackets. Click error → jump to line.</footer>
+ </div>
+ 
+ <script>
+     (function() {
+-        // DOM elements
+-        const editor = document.getElementById('sourceEditor');
++        const editor = document.getElementById('codeEditor');
+         const validateBtn = document.getElementById('validateBtn');
+-        const loadFileBtn = document.getElementById('loadFileBtn');
+-        const pasteClipBtn = document.getElementById('pasteClipBtn');
+-        const saveFileBtn = document.getElementById('saveFileBtn');
+-        const copyTextBtn = document.getElementById('copyTextBtn');
++        const loadBtn = document.getElementById('loadBtn');
++        const pasteBtn = document.getElementById('pasteBtn');
++        const saveBtn = document.getElementById('saveBtn');
++        const copyBtn = document.getElementById('copyBtn');
+         const clearBtn = document.getElementById('clearBtn');
+-        const resultsPanel = document.getElementById('validationResults');
+-        const errorListContainer = document.getElementById('errorListContainer');
+-        const validMessageDiv = document.getElementById('validMessage');
+-
+-        // active errors store (line numbers, messages)
+-        let currentErrors = []; // { line: int, message: string }
+-
+-        // --- helper: clear previous UI state
+-        function resetUI() {
+-            resultsPanel.style.display = 'none';
+-            validMessageDiv.style.display = 'none';
+-            validMessageDiv.innerHTML = '';
+-            errorListContainer.innerHTML = '';
++        const resultContainer = document.getElementById('resultContainer');
++
++        let currentErrors = [];
++
++        function resetDisplay() {
++            resultContainer.innerHTML = '';
+             currentErrors = [];
+         }
+ 
+-        // --- jump to line in textarea and briefly highlight (visual selection)
+-        function jumpToLine(lineNumber) {
+-            if (!editor) return;
++        function highlightLineAndJump(lineNum) {
+             const lines = editor.value.split('\n');
+-            if (lineNumber < 1 || lineNumber > lines.length) return;
+-            
+-            // compute character position of line start
++            if (lineNum < 1 || lineNum > lines.length) return;
+             let pos = 0;
+-            for (let i = 0; i < lineNumber - 1; i++) {
+-                pos += lines[i].length + 1; // +1 for newline
++            for (let i = 0; i < lineNum - 1; i++) {
++                pos += lines[i].length + 1;
+             }
+-            const lineLen = lines[lineNumber-1].length;
++            const endPos = pos + lines[lineNum-1].length;
+             editor.focus();
+-            editor.setSelectionRange(pos, pos + lineLen);
+-            // flash effect using temporary background color
+-            const originalTransition = editor.style.transition;
+-            editor.style.transition = 'background 0.15s';
+-            editor.style.backgroundColor = '#fff0cf';
++            editor.setSelectionRange(pos, endPos);
++            // visual flash
++            const originalBg = editor.style.backgroundColor;
++            editor.style.transition = 'background 0.12s';
++            editor.style.backgroundColor = '#ffefc0';
+             setTimeout(() => {
+-                editor.style.backgroundColor = '';
+-                editor.style.transition = originalTransition;
+-            }, 500);
++                editor.style.backgroundColor = originalBg;
++                editor.style.transition = '';
++            }, 400);
+         }
+ 
+-        // --- render error panel from currentErrors
+         function renderErrors() {
+             if (!currentErrors.length) {
+-                resultsPanel.style.display = 'none';
+-                validMessageDiv.style.display = 'block';
+-                validMessageDiv.innerHTML = '<div class="status-ok">✅ No syntax errors detected — markup looks valid.</div>';
++                resultContainer.innerHTML = `<div style="padding: 0.5rem 0;"><div class="success-chip">✅ No syntax errors — markup is valid.</div></div>`;
+                 return;
+             }
+-            validMessageDiv.style.display = 'none';
+-            resultsPanel.style.display = 'block';
+-            errorListContainer.innerHTML = '';
++            const panel = document.createElement('div');
++            panel.className = 'error-panel';
++            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ ${currentErrors.length} error(s) found</span><span class="line-hint">↳ click any error to highlight line</span></div><div class="error-list" id="errorList"></div>`;
++            resultContainer.innerHTML = '';
++            resultContainer.appendChild(panel);
++            const listContainer = panel.querySelector('#errorList');
+             for (const err of currentErrors) {
+-                const errDiv = document.createElement('div');
+-                errDiv.className = 'error-item';
+-                errDiv.setAttribute('data-line', err.line);
+-                const badge = document.createElement('span');
+-                badge.className = 'error-line-badge';
+-                badge.innerText = `line ${err.line}`;
+-                const msgSpan = document.createElement('span');
+-                msgSpan.className = 'error-msg';
+-                msgSpan.innerText = err.message;
+-                errDiv.appendChild(badge);
+-                errDiv.appendChild(msgSpan);
+-                errDiv.addEventListener('click', (e) => {
+-                    e.stopPropagation();
+-                    jumpToLine(err.line);
+-                });
+-                errorListContainer.appendChild(errDiv);
++                const row = document.createElement('div');
++                row.className = 'error-line';
++                row.setAttribute('data-line', err.line);
++                row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
++                row.addEventListener('click', () => highlightLineAndJump(err.line));
++                listContainer.appendChild(row);
+             }
+         }
+ 
+-        // ----- XML / SVG validator (strict well-formedness using DOMParser)
+-        function validateXMLSVG(content, modeFlag = 'xml') {
++        function escapeHtml(str) {
++            return str.replace(/[&<>]/g, function(m) {
++                if (m === '&') return '&amp;';
++                if (m === '<') return '&lt;';
++                if (m === '>') return '&gt;';
++                return m;
++            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
++                return c;
++            });
++        }
++
++        // ---------- XML / SVG strict validator with improved line/col extraction ----------
++        function validateXmlSvg(content) {
+             const errors = [];
+-            // force xml parser, even for SVG content
+             const parser = new DOMParser();
+-            let doc;
+-            try {
+-                // Use text/xml for both xml and svg
+-                doc = parser.parseFromString(content, "text/xml");
+-                const parserError = doc.querySelector('parsererror');
+-                if (parserError) {
+-                    // extract line/col details from parsererror text
+-                    const errorText = parserError.textContent || '';
+-                    // try to capture line:column pattern (common: "error on line X at column Y")
+-                    let lineMatch = errorText.match(/line\s+(\d+)/i);
+-                    let colMatch = errorText.match(/column\s+(\d+)/i);
+-                    let lineNum = lineMatch ? parseInt(lineMatch[1], 10) : 1;
+-                    if (!lineNum || isNaN(lineNum)) lineNum = 1;
+-                    let msg = errorText.replace(/\s+/g, ' ').trim();
+-                    if (msg.length > 180) msg = msg.substring(0, 170) + '…';
+-                    errors.push({ line: lineNum, message: `XML/SVG parse error: ${msg}` });
+-                    return errors;
+-                }
+-                // additionally check root element for SVG specific constraints? optional
+-                return errors; // no errors
+-            } catch (e) {
+-                // fallback for really broken input (DOMParser may throw in rare cases)
+-                let lineGuess = 1;
+-                let msg = e.message || 'Unknown XML parse failure';
+-                errors.push({ line: lineGuess, message: `Critical XML error: ${msg}` });
++            const doc = parser.parseFromString(content, "text/xml");
++            const parseError = doc.querySelector('parsererror');
++            if (parseError) {
++                const rawErrorMsg = parseError.textContent || '';
++                // Extract line:column info from typical Firefox/Chromium error message
++                let lineMatch = rawErrorMsg.match(/line\s+(\d+)/i);
++                let columnMatch = rawErrorMsg.match(/column\s+(\d+)/i);
++                let line = lineMatch ? parseInt(lineMatch[1], 10) : 1;
++                if (isNaN(line)) line = 1;
++                let cleanedMsg = rawErrorMsg.replace(/\s+/g, ' ').trim();
++                if (cleanedMsg.length > 160) cleanedMsg = cleanedMsg.slice(0, 150) + '…';
++                errors.push({ line: line, message: `XML/SVG parse: ${cleanedMsg}` });
+                 return errors;
+             }
++            // additional optional: detect if root is svg but missing namespace? not critical.
++            return errors;
+         }
+ 
+-        // ---------- HTML validator (tag balance / mismatched quotes / unmatched brackets)
+-        function validateHTML(content) {
++        // ---------- Enhanced HTML validator (handles quotes inside attributes, ignores brackets inside strings) ----------
++        function validateHtmlRobust(content) {
+             const errors = [];
+             const lines = content.split('\n');
+-            // stack for open tags: store { tagName, line }
++            // Stack for open tags: { name, line }
+             const tagStack = [];
+-            // regex to find tags (including comments, doctype, self-closing tags)
+-            // but we will skip comments and processing instructions for simplification
+-            const tagRegex = /<(\/?)([\w:.-]+)(\s+[^>]*?)?(\/)?>/g;
+-            // track line index for error reporting
+-            let match;
++            // State for scanning but we walk line by line with a smarter regex that ignores brackets inside quotes
+             for (let i = 0; i < lines.length; i++) {
+                 const line = lines[i];
+-                let lastIndex = 0;
+-                // we also need to detect unclosed quotes inside attributes? add global attribute quote checks
+-                // first detect unbalanced quotes in line
+-                const quoteOpenSingle = (line.match(/'/g) || []).length;
+-                const quoteOpenDouble = (line.match(/"/g) || []).length;
+-                if (quoteOpenSingle % 2 !== 0) {
+-                    errors.push({ line: i+1, message: `Mismatched single quote (') in line — attribute value may be unclosed.` });
++                // 1) check quote balance (simple but effective)
++                let inDoubleQuote = false;
++                let inSingleQuote = false;
++                let unbalancedQuoteAtEnd = false;
++                for (let idx = 0; idx < line.length; idx++) {
++                    const ch = line[idx];
++                    if (ch === '"' && !inSingleQuote) inDoubleQuote = !inDoubleQuote;
++                    else if (ch === "'" && !inDoubleQuote) inSingleQuote = !inSingleQuote;
+                 }
+-                if (quoteOpenDouble % 2 !== 0) {
+-                    errors.push({ line: i+1, message: `Mismatched double quote (") in line — attribute may be unterminated.` });
++                if (inDoubleQuote) errors.push({ line: i+1, message: `Unclosed double quote (") in line — attribute value likely unterminated.` });
++                if (inSingleQuote) errors.push({ line: i+1, message: `Unclosed single quote (') in line — attribute value likely unterminated.` });
++                
++                // remove content inside quoted strings to avoid false positive angle brackets
++                let processedLine = line.replace(/="[^"]*"/g, '=""').replace(/='[^']*'/g, "=''");
++                // now count angle brackets in processed version
++                const openAngles = (processedLine.match(/</g) || []).length;
++                const closeAngles = (processedLine.match(/>/g) || []).length;
++                if (openAngles !== closeAngles) {
++                    errors.push({ line: i+1, message: `Mismatched angle brackets: ${openAngles} opening '<' vs ${closeAngles} closing '>'` });
+                 }
+                 
+-                // reset regex scanning for each line to capture tags
+-                const lineTagMatches = [...line.matchAll(tagRegex)];
+-                for (const mt of lineTagMatches) {
+-                    const fullTag = mt[0];
+-                    const isClosing = mt[1] === '/';
+-                    let tagName = mt[2] ? mt[2].toLowerCase() : '';
+-                    const selfClosingAttr = mt[4] === '/';
+-                    const isSelfClosing = selfClosingAttr || fullTag.endsWith('/>');
+-                    // handle special: void elements in html5 are self-closing aware but we treat as ok if self-closing
+-                    const voidElements = ['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'];
+-                    const isVoid = voidElements.includes(tagName);
++                // tag extraction with a robust regex that ignores quoted content
++                const tagRegex = /<(\/?)([\w:-]+)(\s+[^>]*?)?(\/)?>/g;
++                let match;
++                while ((match = tagRegex.exec(line)) !== null) {
++                    const full = match[0];
++                    const isClosing = match[1] === '/';
++                    let tagName = match[2] ? match[2].toLowerCase() : '';
++                    const selfClosingSlash = match[4] === '/';
++                    const isSelfClosing = selfClosingSlash || full.endsWith('/>');
++                    const voidTags = ['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'];
++                    const isVoid = voidTags.includes(tagName);
+                     
+                     if (!isClosing && !isSelfClosing && !isVoid) {
+-                        // opening tag push
+                         tagStack.push({ tagName, line: i+1 });
+-                    } 
+-                    else if (isClosing) {
++                    } else if (isClosing) {
+                         if (tagStack.length === 0) {
+-                            errors.push({ line: i+1, message: `Unexpected closing tag </${tagName}> — no matching opening tag.` });
++                            errors.push({ line: i+1, message: `Unexpected closing tag </${tagName}> — no matching open tag.` });
+                         } else {
+-                            const lastOpen = tagStack.pop();
+-                            if (lastOpen.tagName !== tagName) {
+-                                errors.push({ line: i+1, message: `Mismatched closing tag: expected </${lastOpen.tagName}>, got </${tagName}>.` });
+-                                // re-add the unmatched one? better not pop but we keep stack consistent
+-                                tagStack.push(lastOpen);
++                            const last = tagStack.pop();
++                            if (last.tagName !== tagName) {
++                                errors.push({ line: i+1, message: `Mismatched closing: expected </${last.tagName}>, got </${tagName}>.` });
++                                tagStack.push(last);
+                             }
+                         }
+                     }
+-                    // Self-closing on non-void can be acceptable in XML but for HTML produce warning if strict
+-                    if (isSelfClosing && !isVoid && !isClosing && tagName !== '') {
+-                        // acceptable in HTML5 but sometimes error in legacy, add as warning-level? treat as info but not fatal error
+-                        // we emit gentle notice but not block validation
+-                        if (!errors.some(e => e.line === i+1 && e.message.includes('self-closing'))) {
+-                            // optional, but shows context, do not blow up
+-                            // errors.push({ line: i+1, message: `Self-closing tag <${tagName} /> — allowed in HTML5, but ensure compatibility.`});
+-                        }
+-                    }
+-                }
+-                
+-                // also detect attributes without value or weird unclosed angle brackets
+-                const openAngleCount = (line.match(/</g) || []).length;
+-                const closeAngleCount = (line.match(/>/g) || []).length;
+-                if (openAngleCount !== closeAngleCount) {
+-                    errors.push({ line: i+1, message: `Unmatched angle bracket: count of '<' (${openAngleCount}) vs '>' (${closeAngleCount}) differ.` });
+-                }
+-                
+-                // detect attributes with missing closing quote (extra heuristic)
+-                const attrMissingQuotePattern = /=[\s]*['"][^'">]*$/;
+-                if (attrMissingQuotePattern.test(line.trim())) {
+-                    errors.push({ line: i+1, message: `Attribute value may be missing closing quote before end of line.` });
+                 }
+             }
+-            
+-            // after processing lines, check remaining unclosed tags
+-            while (tagStack.length) {
+-                const unclosed = tagStack.pop();
+-                errors.push({ line: unclosed.line, message: `Unclosed tag: <${unclosed.tagName}> (no matching closing tag).` });
+-            }
+-            
+-            // deduplicate errors per line maybe too repetitive: sort by line
+-            errors.sort((a,b) => a.line - b.line);
+-            // remove extremely similar duplicates per line (message duplicate detection)
+-            const uniqueMap = new Map();
++            // leftover unclosed tags
++            for (const leftover of tagStack) {
++                errors.push({ line: leftover.line, message: `Unclosed tag <${leftover.tagName}> — missing corresponding closing tag.` });
++            }
++            // deduplicate per line
++            const unique = new Map();
+             for (const e of errors) {
+-                const key = `${e.line}|${e.message.substring(0,60)}`;
+-                if (!uniqueMap.has(key)) uniqueMap.set(key, e);
++                const key = `${e.line}|${e.message.substring(0,70)}`;
++                if (!unique.has(key)) unique.set(key, e);
+             }
+-            return Array.from(uniqueMap.values());
++            return Array.from(unique.values());
+         }
+ 
+-        // ----- master validation dispatcher
+-        function performValidation() {
+-            const source = editor.value;
+-            if (!source.trim()) {
+-                resetUI();
+-                validMessageDiv.style.display = 'block';
+-                validMessageDiv.innerHTML = '<div class="status-ok" style="background:#f0f2f5; color:#4a627a;">📝 Empty editor — nothing to validate.</div>';
++        // ----- master validation
++        function runValidation() {
++            const rawCode = editor.value;
++            if (rawCode.trim() === '') {
++                resultContainer.innerHTML = `<div class="success-chip" style="background:#f0f2f5; color:#4a627a;">📄 Editor is empty — nothing to validate.</div>`;
++                currentErrors = [];
+                 return;
+             }
+-            
+-            // get selected mode
+-            const selectedModeRadio = document.querySelector('input[name="validationMode"]:checked');
+-            let mode = selectedModeRadio ? selectedModeRadio.value : 'auto';
+-            
+-            // auto detection
+-            let effectiveMode = mode;
++            const selected = document.querySelector('input[name="validMode"]:checked').value;
++            let mode = selected;
+             if (mode === 'auto') {
+-                const trimmed = source.trim();
+-                // xml declaration or svg root or starts with <xml .. or root <svg
+-                if (trimmed.startsWith('<?xml') || /^\s*<svg\b/i.test(trimmed) || /^\s*<[a-z]+:?\w+(\s+[^>]*)?>/.test(trimmed) && trimmed.includes('xmlns')) {
+-                    effectiveMode = 'xml';
++                const trimmed = rawCode.trim();
++                // detect xml declaration or svg root or explicit xmlns
++                if (trimmed.startsWith('<?xml') || /^\s*<svg\b/i.test(trimmed) || /^\s*<\?xml/.test(trimmed) || (trimmed.includes('xmlns') && !/<html\b/i.test(trimmed))) {
++                    mode = 'xml';
+                 } else {
+-                    effectiveMode = 'html';
++                    mode = 'html';
+                 }
+             }
+-            
+             let errors = [];
+-            if (effectiveMode === 'xml') {
+-                errors = validateXMLSVG(source, 'xml');
++            if (mode === 'xml') {
++                errors = validateXmlSvg(rawCode);
+             } else {
+-                errors = validateHTML(source);
+-                // additional improvement: if the content is definitely SVG but user forced HTML mode? fine.
++                errors = validateHtmlRobust(rawCode);
+             }
+-            
+-            // post-process: ensure error lines within source lines count
+-            const lineCount = source.split('\n').length;
+-            errors = errors.filter(err => err.line >= 1 && err.line <= lineCount);
++            // ensure line numbers do not exceed total lines
++            const totalLines = rawCode.split('\n').length;
++            errors = errors.filter(e => e.line >= 1 && e.line <= totalLines);
+             currentErrors = errors;
+             renderErrors();
+-            if (errors.length === 0) {
+-                // show custom success message
+-                if (effectiveMode === 'xml') {
+-                    validMessageDiv.innerHTML = '<div class="status-ok">✅ XML/SVG is well‑formed — no parser errors detected.</div>';
+-                } else {
+-                    validMessageDiv.innerHTML = '<div class="status-ok">✅ HTML tag structure is balanced, no obvious syntax errors.</div>';
+-                }
+-                validMessageDiv.style.display = 'block';
+-                resultsPanel.style.display = 'none';
+-            } else {
+-                validMessageDiv.style.display = 'none';
+-                resultsPanel.style.display = 'block';
+-            }
+         }
+-        
+-        // ----- LOAD file from disk
+-        function loadFromFile() {
+-            const input = document.createElement('input');
+-            input.type = 'file';
+-            input.accept = '.html,.htm,.xml,.svg,.txt,.xhtml';
+-            input.onchange = (e) => {
++
++        // ----- File operations
++        function loadFile() {
++            const inp = document.createElement('input');
++            inp.type = 'file';
++            inp.accept = '.html,.htm,.xml,.svg,.txt,.xhtml';
++            inp.onchange = (e) => {
+                 const file = e.target.files[0];
+                 if (!file) return;
+                 const reader = new FileReader();
+                 reader.onload = (ev) => {
+                     editor.value = ev.target.result;
+-                    resetUI();
++                    resetDisplay();
++                    runValidation();  // optional revalidate? I prefer manual but better UX? auto after load.
+                 };
+                 reader.readAsText(file);
+             };
+-            input.click();
++            inp.click();
+         }
+-        
+-        // ----- paste from clipboard
+-        async function pasteFromClipboard() {
++
++        async function pasteFromClip() {
+             try {
+                 const text = await navigator.clipboard.readText();
+                 editor.value = text;
+-                resetUI();
++                resetDisplay();
+             } catch (err) {
+-                alert('Could not read clipboard. Ensure permission or use Ctrl+V manually.');
++                alert("Clipboard read failed. Grant permission or paste manually.");
+             }
+         }
+-        
+-        // ----- save to file
++
+         function saveToFile() {
+             const content = editor.value;
+-            if (!content) {
+-                alert('Nothing to save — editor is empty.');
+-                return;
+-            }
+-            const modeRadio = document.querySelector('input[name="validationMode"]:checked');
++            if (!content) return alert('No content to save.');
++            const modeRad = document.querySelector('input[name="validMode"]:checked').value;
+             let ext = '.txt';
+-            if (modeRadio && modeRadio.value === 'xml') ext = '.xml';
+-            else if (modeRadio && modeRadio.value === 'html') ext = '.html';
++            if (modeRad === 'html') ext = '.html';
++            else if (modeRad === 'xml') ext = '.xml';
+             else {
+-                // guess based on content
+-                if (/^\s*<html/i.test(content)) ext = '.html';
+-                else if (/^\s*<\?xml|^\s*<svg/i.test(content)) ext = '.svg';
+-                else ext = '.txt';
++                if (/<html/i.test(content)) ext = '.html';
++                else if (/<svg/i.test(content)) ext = '.svg';
++                else ext = '.xml';
+             }
+             const blob = new Blob([content], {type: 'text/plain'});
+             const a = document.createElement('a');
+             const url = URL.createObjectURL(blob);
+             a.href = url;
+-            a.download = `markup_validation${ext}`;
++            a.download = `validated_markup${ext}`;
+             document.body.appendChild(a);
+             a.click();
+             document.body.removeChild(a);
+             URL.revokeObjectURL(url);
+         }
+-        
+-        // ----- copy editor content to clipboard
+-        async function copyToClipboard() {
+-            try {
+-                await navigator.clipboard.writeText(editor.value);
+-                // subtle feedback
+-                const btn = copyTextBtn;
+-                const originalText = btn.innerText;
+-                btn.innerText = '✓ Copied!';
+-                setTimeout(() => { btn.innerText = originalText; }, 1200);
+-            } catch (err) {
+-                alert('Could not copy: ' + err);
+-            }
++
++        async function copyEditorText() {
++            await navigator.clipboard.writeText(editor.value);
++            const orig = copyBtn.innerText;
++            copyBtn.innerText = '✓ Copied!';
++            setTimeout(() => copyBtn.innerText = orig, 1000);
+         }
+-        
+-        // ----- clear editor & reset errors
+-        function clearEditor() {
++
++        function clearAll() {
+             editor.value = '';
+-            resetUI();
+-            editor.focus();
++            resetDisplay();
++            resultContainer.innerHTML = `<div class="success-chip" style="background:#f0f2f5;">🧹 Cleared</div>`;
+         }
+-        
+-        // ----- event bindings
+-        validateBtn.addEventListener('click', performValidation);
+-        loadFileBtn.addEventListener('click', loadFromFile);
+-        pasteClipBtn.addEventListener('click', pasteFromClipboard);
+-        saveFileBtn.addEventListener('click', saveToFile);
+-        copyTextBtn.addEventListener('click', copyToClipboard);
+-        clearBtn.addEventListener('click', clearEditor);
+-        
+-        // optional: realtime? but manual validate is fine
+-        // initial placeholder demo (optional)
+-        const demoHtml = `<section class="demo">
+-  <h1>Test HTML with errors</h1>
+-  <div>Unclosed div
+-  <img src="test.jpg" alt="sample">
+-  <p>Mismatched closing tag</div>
+-</section>`;
+-        editor.value = demoHtml;
+-        resetUI();
++
++        // events
++        validateBtn.addEventListener('click', runValidation);
++        loadBtn.addEventListener('click', loadFile);
++        pasteBtn.addEventListener('click', pasteFromClip);
++        saveBtn.addEventListener('click', saveToFile);
++        copyBtn.addEventListener('click', copyEditorText);
++        clearBtn.addEventListener('click', clearAll);
++
++        // demo seed with an intentional error so user sees highlights
++        const demoErrorExample = `<div>
++  <h1>Title missing closing tag
++  <p>Unclosed paragraph
++  <img src="photo.jpg" alt="demo">
++  <span class="test">Text</span>
++</div>`;
++        editor.value = demoErrorExample;
++        resetDisplay();
+     })();
+ </script>
+ </body>

@@ -1,0 +1,134 @@
+--- MarkupLinter_v1_11_0.html	2026-06-09 17:12:29.825962077 +0300
++++ MarkupLinter_v1_12_0.html	2026-06-09 17:14:21.477977640 +0300
+@@ -48,6 +48,8 @@
+             --app-file-status-active: #e6f0ff;
+             --app-summary-bg: #f8f9fc;
+             --app-summary-text: #1f3a5f;
++            --app-select-bg: #f0f2f5;
++            --app-select-border: #dce3ec;
+ 
+             max-width: 1400px;
+             margin: 0 auto;
+@@ -85,6 +87,8 @@
+             --app-file-status-active: #1e3a5f;
+             --app-summary-bg: #151e2c;
+             --app-summary-text: #b9d0ff;
++            --app-select-bg: #2a3245;
++            --app-select-border: #3a4358;
+         }
+         #markup-validator-app,
+         #markup-validator-app * {
+@@ -153,24 +157,17 @@
+             background: var(--app-btn-hover);
+             transform: translateY(-1px);
+         }
+-        #markup-validator-app .mode-tabs {
+-            background: var(--app-btn-bg);
+-            padding: 0.2rem 0.6rem;
+-            border-radius: 3rem;
+-            display: flex;
+-            gap: 1rem;
+-        }
+-        #markup-validator-app .mode-tabs label {
+-            display: flex;
+-            align-items: center;
+-            gap: 6px;
++        /* mode dropdown */
++        #markup-validator-app .mode-select {
++            background: var(--app-select-bg);
++            border: 1px solid var(--app-select-border);
++            border-radius: 2rem;
++            padding: 0.4rem 0.8rem;
+             font-size: 0.8rem;
++            font-family: inherit;
++            cursor: pointer;
+             color: var(--app-text-primary);
+         }
+-        #markup-validator-app input[type="radio"] {
+-            accent-color: #2563eb;
+-            margin: 0;
+-        }
+         #markup-validator-app .theme-toggle {
+             background: var(--app-btn-bg);
+             border: 1px solid var(--app-btn-border);
+@@ -317,9 +314,6 @@
+             .toolbar-left, .toolbar-right {
+                 justify-content: center;
+             }
+-            #markup-validator-app .mode-tabs {
+-                justify-content: center;
+-            }
+             #markup-validator-app footer {
+                 flex-direction: column;
+                 gap: 8px;
+@@ -340,11 +334,11 @@
+                 <button id="themeToggleBtn" class="theme-toggle" aria-label="Switch theme">🌓</button>
+             </div>
+             <div class="toolbar-right">
+-                <div class="mode-tabs">
+-                    <label><input type="radio" name="validMode" value="auto" checked> 🔄 Auto</label>
+-                    <label><input type="radio" name="validMode" value="html"> 🌐 HTML</label>
+-                    <label><input type="radio" name="validMode" value="xml"> 📄 XML / SVG</label>
+-                </div>
++                <select id="modeSelect" class="mode-select" aria-label="Validation mode">
++                    <option value="auto">🔄 Auto</option>
++                    <option value="html">🌐 HTML</option>
++                    <option value="xml">📄 XML / SVG</option>
++                </select>
+                 <span id="fileStatusBadge" class="file-status">📄 no file loaded</span>
+             </div>
+         </div>
+@@ -356,13 +350,13 @@
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.11.0</span>
++        <span class="version">version 1.12.0</span>
+     </footer>
+ </div>
+ 
+ <script>
+     (function(){
+-        // ----- THEME TOGGLE (cycle: auto, light, dark) with icon -----
++        // ----- THEME TOGGLE (cycle: auto, light, dark) -----
+         const appContainer = document.getElementById('markup-validator-app');
+         const bodyEl = document.body;
+         const themeToggleBtn = document.getElementById('themeToggleBtn');
+@@ -449,6 +443,7 @@
+         const resultContainer = document.getElementById('resultContainer');
+         const fileStatusBadge = document.getElementById('fileStatusBadge');
+         const summaryLabel = document.getElementById('summaryLabel');
++        const modeSelect = document.getElementById('modeSelect');
+         
+         let currentErrors = [];
+         let loadedFileName = null;
+@@ -620,8 +615,7 @@
+                 clearEditorHighlight();
+                 return;
+             }
+-            const selected = document.querySelector('input[name="validMode"]:checked').value;
+-            let mode = selected;
++            let mode = modeSelect.value;  // 'auto', 'html', 'xml'
+             if (mode === 'auto') {
+                 const trimmed = rawCode.trim();
+                 if (trimmed.startsWith('<?xml') || /^\s*<svg\b/i.test(trimmed) || /^\s*<\?xml/.test(trimmed) || (trimmed.includes('xmlns') && !/<html\b/i.test(trimmed))) {
+@@ -693,7 +687,7 @@
+         function saveToFile() {
+             const content = editor.value;
+             if (!content) return alert('No content to save.');
+-            const modeRad = document.querySelector('input[name="validMode"]:checked').value;
++            const modeRad = modeSelect.value;
+             let ext = '.txt';
+             if (modeRad === 'html') ext = '.html';
+             else if (modeRad === 'xml') ext = '.xml';
+@@ -746,8 +740,9 @@
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
+         editor.addEventListener('input', scheduleValidation);
+-        document.querySelectorAll('input[name="validMode"]').forEach(radio => radio.addEventListener('change', scheduleValidation));
++        modeSelect.addEventListener('change', scheduleValidation);
+         
++        // Initial demo content
+         editor.value = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph

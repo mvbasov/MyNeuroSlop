@@ -1,0 +1,363 @@
+--- MarkupLinter_v1_9_0.html	2026-06-09 16:30:39.739017246 +0300
++++ MarkupLinter_v1_10_0.html	2026-06-09 17:09:30.205729446 +0300
+@@ -46,8 +46,6 @@
+             --app-footer-color: #6c7e97;
+             --app-file-status-bg: #f0f2f5;
+             --app-file-status-active: #e6f0ff;
+-            --app-select-bg: #f0f2f5;
+-            --app-select-border: #dce3ec;
+             --app-summary-bg: #f8f9fc;
+             --app-summary-text: #1f3a5f;
+ 
+@@ -85,8 +83,6 @@
+             --app-footer-color: #8b9ab0;
+             --app-file-status-bg: #2a3245;
+             --app-file-status-active: #1e3a5f;
+-            --app-select-bg: #2a3245;
+-            --app-select-border: #3a4358;
+             --app-summary-bg: #151e2c;
+             --app-summary-text: #b9d0ff;
+         }
+@@ -173,15 +169,21 @@
+             accent-color: #2563eb;
+             margin: 0;
+         }
+-        #markup-validator-app .theme-select {
+-            background: var(--app-select-bg);
+-            border: 1px solid var(--app-select-border);
++        /* theme toggle button (icon) */
++        #markup-validator-app .theme-toggle {
++            background: var(--app-btn-bg);
++            border: 1px solid var(--app-btn-border);
+             border-radius: 2rem;
+-            padding: 0.4rem 0.8rem;
+-            font-size: 0.8rem;
+-            font-family: inherit;
++            padding: 0.45rem 0.9rem;
++            font-size: 1.1rem;
++            line-height: 1;
+             cursor: pointer;
+-            color: var(--app-text-primary);
++            transition: 0.08s linear;
++            font-family: inherit;
++        }
++        #markup-validator-app .theme-toggle:hover {
++            background: var(--app-btn-hover);
++            transform: translateY(-1px);
+         }
+         #markup-validator-app .file-status {
+             font-size: 0.7rem;
+@@ -195,7 +197,6 @@
+         #markup-validator-app .editor-area {
+             padding: 0 2rem 2rem 2rem;
+         }
+-        /* summary label above textarea */
+         #markup-validator-app .validation-summary {
+             margin-bottom: 0.75rem;
+             font-size: 0.85rem;
+@@ -226,7 +227,6 @@
+             border-color: #2563eb;
+             box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+         }
+-        /* error panel at the bottom */
+         #markup-validator-app .error-panel {
+             margin-top: 1.5rem;
+             border-radius: 1.25rem;
+@@ -322,52 +322,48 @@
+ 
+     <div class="app-header">
+         <h1>🔍 Markup Validator</h1>
+-        <div class="subhead">HTML tag balance / well‑formed XML & SVG · pinpoint errors, jump to line</div>
++        <div class="subhead">HTML tag balance / well‑formed XML & SVG · live validation</div>
+         <div class="toolbar">
+             <div class="btn-group">
+-                <button id="validateBtn" class="primary">⚡ VALIDATE NOW</button>
+-                <button id="loadBtn">📂 Load file</button>
+-                <button id="pasteBtn">📋 Paste clipboard</button>
+-                <button id="saveBtn">💾 Save to file</button>
+-                <button id="copyBtn">📄 Copy editor</button>
++                <button id="loadBtn">📂 Load</button>
++                <button id="pasteBtn">📋 Paste</button>
++                <button id="saveBtn">💾 Save</button>
++                <button id="copyBtn">📄 Copy</button>
+                 <button id="clearBtn">🗑 Clear</button>
+             </div>
+             <div class="mode-tabs">
+                 <label><input type="radio" name="validMode" value="auto" checked> 🔄 Auto</label>
+                 <label><input type="radio" name="validMode" value="html"> 🌐 HTML</label>
+-                <label><input type="radio" name="validMode" value="xml"> 📄 XML / SVG (strict)</label>
++                <label><input type="radio" name="validMode" value="xml"> 📄 XML / SVG</label>
+             </div>
+-            <select id="themeToggle" class="theme-select" aria-label="Theme selector">
+-                <option value="auto">🌓 Auto</option>
+-                <option value="light">☀️ Light</option>
+-                <option value="dark">🌙 Dark</option>
+-            </select>
++            <button id="themeToggleBtn" class="theme-toggle" title="Switch theme">🌓</button>
+             <span id="fileStatusBadge" class="file-status">📄 no file loaded</span>
+         </div>
+     </div>
+     <div class="editor-area">
+-        <!-- Simple summary label above textarea -->
+         <div id="summaryLabel" class="validation-summary">⚙️ Ready</div>
+         <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example:&#10;&lt;html&gt;&#10;  &lt;body&gt;&lt;h1&gt;Hello world&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea>
+-        <!-- Full error log below textarea -->
+         <div id="resultContainer"></div>
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.9.0</span>
++        <span class="version">version 1.10.0</span>
+     </footer>
+ </div>
+ 
+ <script>
+     (function(){
+-        // ----- THEME CONTROLLER (unchanged) -----
++        // ----- THEME TOGGLE (cycle: auto, light, dark) with icon -----
+         const appContainer = document.getElementById('markup-validator-app');
+         const bodyEl = document.body;
+-        const themeSelect = document.getElementById('themeToggle');
+-        let currentMode = 'auto';
++        const themeToggleBtn = document.getElementById('themeToggleBtn');
++        let currentMode = 'auto';      // 'auto', 'light', 'dark'
+         let systemListenerActive = false;
+         let mediaQueryListener = null;
+         
++        const themeIcons = { auto: '🌓', light: '☀️', dark: '🌙' };
++        const themeOrder = ['auto', 'light', 'dark'];
++        
+         function applyTheme(themeMode) {
+             if (themeMode === 'dark') {
+                 bodyEl.classList.add('theme-dark');
+@@ -377,10 +373,12 @@
+                 appContainer.classList.remove('theme-dark');
+             }
+         }
++        
+         function getSystemPreference() {
+             return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+         }
+-        function updateFromMode(mode) {
++        
++        function updateThemeFromMode(mode) {
+             if (mode === 'auto') {
+                 applyTheme(getSystemPreference());
+                 activateSystemListener();
+@@ -391,7 +389,9 @@
+                 deactivateSystemListener();
+                 applyTheme('light');
+             }
++            if (themeToggleBtn) themeToggleBtn.textContent = themeIcons[mode] || '🌓';
+         }
++        
+         function activateSystemListener() {
+             if (systemListenerActive) return;
+             const darkModeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+@@ -403,6 +403,7 @@
+             mediaQueryListener = { media: darkModeMedia, handler };
+             systemListenerActive = true;
+         }
++        
+         function deactivateSystemListener() {
+             if (!systemListenerActive || !mediaQueryListener) return;
+             const { media, handler } = mediaQueryListener;
+@@ -411,20 +412,27 @@
+             systemListenerActive = false;
+             mediaQueryListener = null;
+         }
++        
+         function setThemeMode(mode) {
+             currentMode = mode;
+-            updateFromMode(mode);
++            updateThemeFromMode(mode);
+             try { localStorage.setItem('markup_validator_theme', mode); } catch(e) {}
+-            if (themeSelect && themeSelect.value !== mode) themeSelect.value = mode;
+         }
++        
++        function cycleTheme() {
++            let idx = themeOrder.indexOf(currentMode);
++            let next = themeOrder[(idx + 1) % themeOrder.length];
++            setThemeMode(next);
++        }
++        
++        // load saved preference
+         let savedMode = 'auto';
+         try { const stored = localStorage.getItem('markup_validator_theme'); if (stored === 'light' || stored === 'dark' || stored === 'auto') savedMode = stored; } catch(e) {}
+         setThemeMode(savedMode);
+-        if (themeSelect) themeSelect.addEventListener('change', (e) => setThemeMode(e.target.value));
++        if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+         
+-        // ----- VALIDATOR CORE -----
++        // ----- VALIDATOR CORE (live validation on input) -----
+         const editor = document.getElementById('codeEditor');
+-        const validateBtn = document.getElementById('validateBtn');
+         const loadBtn = document.getElementById('loadBtn');
+         const pasteBtn = document.getElementById('pasteBtn');
+         const saveBtn = document.getElementById('saveBtn');
+@@ -433,11 +441,11 @@
+         const resultContainer = document.getElementById('resultContainer');
+         const fileStatusBadge = document.getElementById('fileStatusBadge');
+         const summaryLabel = document.getElementById('summaryLabel');
+-
++        
+         let currentErrors = [];
+         let loadedFileName = null;
+         let validationTimeout = null;
+-
++        
+         function updateSummary() {
+             if (currentErrors.length === 0) {
+                 summaryLabel.innerHTML = '✅ Valid markup';
+@@ -449,7 +457,7 @@
+                 summaryLabel.style.color = "#b45309";
+             }
+         }
+-
++        
+         function renderFullErrorPanel() {
+             if (!currentErrors.length) {
+                 resultContainer.innerHTML = '';
+@@ -473,7 +481,7 @@
+                 listContainer.appendChild(row);
+             }
+         }
+-
++        
+         function clearEditorHighlight() {
+             if (editor.selectionStart !== editor.selectionEnd) {
+                 const pos = editor.selectionStart;
+@@ -482,7 +490,7 @@
+             editor.style.backgroundColor = '';
+             editor.style.transition = '';
+         }
+-
++        
+         function highlightLineAndJump(lineNum) {
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
+@@ -502,14 +510,14 @@
+                 editor.style.transition = '';
+             }, 400);
+         }
+-
++        
+         function highlightBottomError() {
+             if (!currentErrors.length) return;
+             clearEditorHighlight();
+             const bottomError = currentErrors.reduce((prev, curr) => (curr.line > prev.line ? curr : prev), currentErrors[0]);
+             highlightLineAndJump(bottomError.line);
+         }
+-
++        
+         function escapeHtml(str) {
+             return str.replace(/[&<>]/g, function(m) {
+                 if (m === '&') return '&amp;';
+@@ -518,7 +526,7 @@
+                 return m;
+             });
+         }
+-
++        
+         function validateXmlSvg(content) {
+             const errors = [];
+             const parser = new DOMParser();
+@@ -535,7 +543,7 @@
+             }
+             return errors;
+         }
+-
++        
+         function validateHtmlRobust(content) {
+             const errors = [];
+             const lines = content.split('\n');
+@@ -594,7 +602,7 @@
+             }
+             return Array.from(unique.values());
+         }
+-
++        
+         function runValidation() {
+             const rawCode = editor.value;
+             if (rawCode.trim() === '') {
+@@ -625,12 +633,12 @@
+             clearEditorHighlight();
+             if (currentErrors.length > 0) setTimeout(() => highlightBottomError(), 20);
+         }
+-
++        
+         function scheduleValidation() {
+             if (validationTimeout) clearTimeout(validationTimeout);
+             validationTimeout = setTimeout(runValidation, 300);
+         }
+-
++        
+         // File & clipboard handlers
+         function loadFile() {
+             const inp = document.createElement('input');
+@@ -660,7 +668,7 @@
+             };
+             inp.click();
+         }
+-
++        
+         async function pasteFromClip() {
+             try {
+                 const text = await navigator.clipboard.readText();
+@@ -673,7 +681,7 @@
+                 alert("Clipboard read failed. Grant permission or paste manually.");
+             }
+         }
+-
++        
+         function saveToFile() {
+             const content = editor.value;
+             if (!content) return alert('No content to save.');
+@@ -698,14 +706,14 @@
+             document.body.removeChild(a);
+             URL.revokeObjectURL(url);
+         }
+-
++        
+         async function copyEditorText() {
+             await navigator.clipboard.writeText(editor.value);
+             const orig = copyBtn.innerText;
+             copyBtn.innerText = '✓ Copied!';
+             setTimeout(() => copyBtn.innerText = orig, 1000);
+         }
+-
++        
+         function clearAll() {
+             editor.value = '';
+             loadedFileName = null;
+@@ -713,7 +721,7 @@
+             resultContainer.innerHTML = '';
+             scheduleValidation();
+         }
+-
++        
+         function updateFileStatus() {
+             if (loadedFileName) {
+                 fileStatusBadge.innerHTML = `📄 ${loadedFileName}`;
+@@ -723,9 +731,8 @@
+                 fileStatusBadge.style.background = "var(--app-file-status-bg)";
+             }
+         }
+-
++        
+         // Event listeners
+-        validateBtn.addEventListener('click', () => { if (validationTimeout) clearTimeout(validationTimeout); runValidation(); });
+         loadBtn.addEventListener('click', loadFile);
+         pasteBtn.addEventListener('click', pasteFromClip);
+         saveBtn.addEventListener('click', saveToFile);
+@@ -733,8 +740,8 @@
+         clearBtn.addEventListener('click', clearAll);
+         editor.addEventListener('input', scheduleValidation);
+         document.querySelectorAll('input[name="validMode"]').forEach(radio => radio.addEventListener('change', scheduleValidation));
+-
+-        // Initial demo
++        
++        // Initial demo content and validation
+         editor.value = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph

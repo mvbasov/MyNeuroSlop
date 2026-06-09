@@ -1,0 +1,454 @@
+--- MarkupLinter_v1_4_2.html	2026-06-09 15:25:37.408956170 +0300
++++ MarkupLinter_v1_5_0.html	2026-06-09 15:33:04.621290041 +0300
+@@ -2,20 +2,27 @@
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
++    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+     <title>Markup Linter · HTML / XML / SVG validator</title>
++    <!-- base styles for standalone page (minimal, not scoped) -->
+     <style>
+-        * {
+-            box-sizing: border-box;
+-        }
++        /* these affect the whole page only when standalone, but embedding overrides via scoped styles */
+         body {
+-            background: #f4f6fa;
+-            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', monospace;
+             margin: 0;
+-            padding: 2rem 1.5rem;
+-            color: #1a2634;
++            background: #f4f6fa;
++            font-family: system-ui, 'Segoe UI', 'Roboto', monospace;
++            line-height: 1.4;
+         }
+-        .app {
++        /* ensure root container only uses scoped styles inside #markup-validator-app */
++    </style>
++</head>
++<body>
++<!-- APPLICATION ROOT – EMBEDDABLE CONTAINER -->
++<div id="markup-validator-app">
++    <!-- all styles are scoped to this container -->
++    <style>
++        /* ----- scoped styles: everything prefixed with #markup-validator-app ----- */
++        #markup-validator-app {
+             max-width: 1400px;
+             margin: 0 auto;
+             background: white;
+@@ -23,12 +30,13 @@
+             box-shadow: 0 8px 20px rgba(0,0,0,0.02), 0 2px 6px rgba(0,0,0,0.05);
+             border: 1px solid #e9edf2;
+             overflow: hidden;
++            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', monospace;
+         }
+-        .app-header {
++        #markup-validator-app .app-header {
+             padding: 1.2rem 2rem;
+             border-bottom: 2px solid #eff3f8;
+         }
+-        h1 {
++        #markup-validator-app h1 {
+             font-weight: 600;
+             font-size: 1.6rem;
+             margin: 0 0 0.2rem;
+@@ -36,15 +44,16 @@
+             display: flex;
+             align-items: center;
+             gap: 8px;
++            color: #0a2540;
+         }
+-        .subhead {
++        #markup-validator-app .subhead {
+             font-size: 0.85rem;
+             color: #4a5b72;
+             padding-left: 0.25rem;
+             border-left: 3px solid #2563eb;
+             margin-top: 6px;
+         }
+-        .toolbar {
++        #markup-validator-app .toolbar {
+             display: flex;
+             flex-wrap: wrap;
+             justify-content: space-between;
+@@ -54,12 +63,12 @@
+             padding-bottom: 0.75rem;
+             border-bottom: 1px solid #edf2f7;
+         }
+-        .btn-group {
++        #markup-validator-app .btn-group {
+             display: flex;
+             gap: 8px;
+             flex-wrap: wrap;
+         }
+-        button {
++        #markup-validator-app button {
+             background: #f0f2f5;
+             border: 1px solid #dce3ec;
+             padding: 0.45rem 1rem;
+@@ -70,36 +79,36 @@
+             transition: 0.08s linear;
+             font-family: inherit;
+         }
+-        button.primary {
++        #markup-validator-app button.primary {
+             background: #0f2b3d;
+             border-color: #0a1c2a;
+             color: white;
+         }
+-        button.primary:hover {
++        #markup-validator-app button.primary:hover {
+             background: #1f3e55;
+         }
+-        button:hover {
++        #markup-validator-app button:hover {
+             background: #e6ebf2;
+             transform: translateY(-1px);
+         }
+-        .mode-tabs {
++        #markup-validator-app .mode-tabs {
+             background: #f8fafc;
+             padding: 0.2rem 0.6rem;
+             border-radius: 3rem;
+             display: flex;
+             gap: 1rem;
+         }
+-        .mode-tabs label {
++        #markup-validator-app .mode-tabs label {
+             display: flex;
+             align-items: center;
+             gap: 6px;
+             font-size: 0.8rem;
+         }
+-        input[type="radio"] {
++        #markup-validator-app input[type="radio"] {
+             accent-color: #2563eb;
+             margin: 0;
+         }
+-        .file-status {
++        #markup-validator-app .file-status {
+             font-size: 0.7rem;
+             background: #f0f2f5;
+             padding: 0.2rem 0.8rem;
+@@ -107,10 +116,10 @@
+             color: #2c3e66;
+             margin-left: 0.5rem;
+         }
+-        .editor-area {
++        #markup-validator-app .editor-area {
+             padding: 0 2rem 2rem 2rem;
+         }
+-        textarea {
++        #markup-validator-app textarea {
+             width: 100%;
+             height: 380px;
+             font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+@@ -123,18 +132,18 @@
+             resize: vertical;
+             tab-size: 2;
+         }
+-        textarea:focus {
++        #markup-validator-app textarea:focus {
+             outline: none;
+             border-color: #2563eb;
+             box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+         }
+-        .error-panel {
++        #markup-validator-app .error-panel {
+             margin-top: 1.5rem;
+             border-radius: 1.25rem;
+             background: #fffaf5;
+             border: 1px solid #ffe7d6;
+         }
+-        .error-panel-header {
++        #markup-validator-app .error-panel-header {
+             padding: 0.8rem 1.5rem;
+             background: #fff5eb;
+             border-bottom: 1px solid #ffe0ca;
+@@ -143,11 +152,11 @@
+             justify-content: space-between;
+             flex-wrap: wrap;
+         }
+-        .error-list {
++        #markup-validator-app .error-list {
+             max-height: 260px;
+             overflow-y: auto;
+         }
+-        .error-line {
++        #markup-validator-app .error-line {
+             padding: 0.6rem 1.5rem;
+             border-bottom: 1px solid #f2e4d8;
+             display: flex;
+@@ -156,10 +165,10 @@
+             font-size: 0.8rem;
+             cursor: pointer;
+         }
+-        .error-line:hover {
++        #markup-validator-app .error-line:hover {
+             background: #fff2e8;
+         }
+-        .line-badge {
++        #markup-validator-app .line-badge {
+             background: #ffe1cf;
+             border-radius: 30px;
+             padding: 0.1rem 0.7rem;
+@@ -168,12 +177,12 @@
+             min-width: 65px;
+             text-align: center;
+         }
+-        .error-message {
++        #markup-validator-app .error-message {
+             color: #a44100;
+             word-break: break-word;
+             flex: 1;
+         }
+-        .success-chip {
++        #markup-validator-app .success-chip {
+             background: #e0f2e9;
+             padding: 0.5rem 1rem;
+             border-radius: 2rem;
+@@ -182,13 +191,13 @@
+             color: #0e6b3e;
+             display: inline-block;
+         }
+-        .line-hint {
++        #markup-validator-app .line-hint {
+             font-size: 0.7rem;
+             background: #f0f3f8;
+             padding: 0.2rem 0.7rem;
+             border-radius: 30px;
+         }
+-        footer {
++        #markup-validator-app footer {
+             text-align: center;
+             font-size: 0.7rem;
+             border-top: 1px solid #eef2f8;
+@@ -199,7 +208,7 @@
+             align-items: center;
+             flex-wrap: wrap;
+         }
+-        .version {
++        #markup-validator-app .version {
+             font-family: monospace;
+             background: #f0f2f5;
+             padding: 0.2rem 0.6rem;
+@@ -207,15 +216,20 @@
+             font-size: 0.7rem;
+         }
+         @media (max-width: 680px) {
+-            body { padding: 1rem; }
+-            .toolbar { flex-direction: column; align-items: stretch; }
+-            .mode-tabs { justify-content: center; }
+-            footer { flex-direction: column; gap: 8px; }
++            #markup-validator-app .toolbar {
++                flex-direction: column;
++                align-items: stretch;
++            }
++            #markup-validator-app .mode-tabs {
++                justify-content: center;
++            }
++            #markup-validator-app footer {
++                flex-direction: column;
++                gap: 8px;
++            }
+         }
+     </style>
+-</head>
+-<body>
+-<div class="app">
++
+     <div class="app-header">
+         <h1>🔍 Markup Validator</h1>
+         <div class="subhead">HTML tag balance / well‑formed XML & SVG · pinpoint errors, jump to line</div>
+@@ -238,29 +252,31 @@
+     </div>
+     <div class="editor-area">
+         <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example:&#10;&lt;html&gt;&#10;  &lt;body&gt;&lt;h1&gt;Hello world&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea>
+-
+         <div id="resultContainer" style="margin-top: 1rem;"></div>
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.4.2</span>
++        <span class="version">version 1.5.0</span>
+     </footer>
+ </div>
+ 
+ <script>
+-    (function() {
+-        const editor = document.getElementById('codeEditor');
+-        const validateBtn = document.getElementById('validateBtn');
+-        const loadBtn = document.getElementById('loadBtn');
+-        const pasteBtn = document.getElementById('pasteBtn');
+-        const saveBtn = document.getElementById('saveBtn');
+-        const copyBtn = document.getElementById('copyBtn');
+-        const clearBtn = document.getElementById('clearBtn');
+-        const resultContainer = document.getElementById('resultContainer');
+-        const fileStatusBadge = document.getElementById('fileStatusBadge');
++    (function(){
++        // ----- IIFE : no global pollution -----
++        // DOM references
++        const container = document.getElementById('markup-validator-app');
++        const editor = container.querySelector('#codeEditor');
++        const validateBtn = container.querySelector('#validateBtn');
++        const loadBtn = container.querySelector('#loadBtn');
++        const pasteBtn = container.querySelector('#pasteBtn');
++        const saveBtn = container.querySelector('#saveBtn');
++        const copyBtn = container.querySelector('#copyBtn');
++        const clearBtn = container.querySelector('#clearBtn');
++        const resultContainer = container.querySelector('#resultContainer');
++        const fileStatusBadge = container.querySelector('#fileStatusBadge');
+ 
+         let currentErrors = [];
+-        let loadedFileName = null;
++        let loadedFileName = null;      // base name without extension
+ 
+         function resetDisplay() {
+             resultContainer.innerHTML = '';
+@@ -315,6 +331,17 @@
+             highlightLineAndJump(bottomError.line);
+         }
+ 
++        function escapeHtml(str) {
++            return str.replace(/[&<>]/g, function(m) {
++                if (m === '&') return '&amp;';
++                if (m === '<') return '&lt;';
++                if (m === '>') return '&gt;';
++                return m;
++            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
++                return c;
++            });
++        }
++
+         function renderErrors() {
+             if (!currentErrors.length) {
+                 resultContainer.innerHTML = `<div style="padding: 0.5rem 0;"><div class="success-chip">✅ No syntax errors — markup is valid.</div></div>`;
+@@ -339,17 +366,7 @@
+             }
+         }
+ 
+-        function escapeHtml(str) {
+-            return str.replace(/[&<>]/g, function(m) {
+-                if (m === '&') return '&amp;';
+-                if (m === '<') return '&lt;';
+-                if (m === '>') return '&gt;';
+-                return m;
+-            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+-                return c;
+-            });
+-        }
+-
++        // ---------- XML / SVG strict validator ----------
+         function validateXmlSvg(content) {
+             const errors = [];
+             const parser = new DOMParser();
+@@ -368,12 +385,14 @@
+             return errors;
+         }
+ 
++        // ---------- Enhanced HTML validator (robust) ----------
+         function validateHtmlRobust(content) {
+             const errors = [];
+             const lines = content.split('\n');
+             const tagStack = [];
+             for (let i = 0; i < lines.length; i++) {
+                 const line = lines[i];
++                // quote balancing
+                 let inDoubleQuote = false;
+                 let inSingleQuote = false;
+                 for (let idx = 0; idx < line.length; idx++) {
+@@ -420,6 +439,7 @@
+             for (const leftover of tagStack) {
+                 errors.push({ line: leftover.line, message: `Unclosed tag <${leftover.tagName}> — missing corresponding closing tag.` });
+             }
++            // deduplicate by line+message prefix
+             const unique = new Map();
+             for (const e of errors) {
+                 const key = `${e.line}|${e.message.substring(0,70)}`;
+@@ -462,18 +482,15 @@
+             }
+         }
+ 
+-        // Improved file loading with error handling and feedback
++        // ----- File load with robust error handling + name memory -----
+         function loadFile() {
+             const inp = document.createElement('input');
+             inp.type = 'file';
+             inp.accept = '.html,.htm,.xml,.svg,.txt,.xhtml,.xslt';
+             inp.onchange = (event) => {
+                 const file = event.target.files[0];
+-                if (!file) {
+-                    console.warn("No file selected");
+-                    return;
+-                }
+-                // Update status immediately
++                if (!file) return;
++                // store filename base
+                 let fullName = file.name;
+                 let baseName = fullName.replace(/\.[^/.]+$/, "");
+                 loadedFileName = baseName || "document";
+@@ -486,18 +503,15 @@
+                         editor.value = content;
+                         resetDisplay();
+                         clearEditorHighlight();
+-                        // Optional: auto-validate after load? Not doing to avoid confusion, but user can click validate.
+-                        console.log(`File loaded successfully: ${fullName}, size: ${content.length} chars`);
+                     } catch (err) {
+-                        console.error("Error processing file:", err);
+-                        alert("Failed to read file content: " + err.message);
++                        console.error("File processing error:", err);
++                        alert("Failed to process file content.");
+                         loadedFileName = null;
+                         updateFileStatus();
+                     }
+                 };
+-                reader.onerror = (err) => {
+-                    console.error("FileReader error:", err);
+-                    alert("Unable to read file. Check permissions or file format.");
++                reader.onerror = () => {
++                    alert("Unable to read file. Check permissions.");
+                     loadedFileName = null;
+                     updateFileStatus();
+                 };
+@@ -515,7 +529,7 @@
+                 resetDisplay();
+                 clearEditorHighlight();
+             } catch (err) {
+-                alert("Clipboard read failed. Grant permission or paste manually.");
++                alert("Clipboard read failed. Grant permission or paste manually (Ctrl+V).");
+             }
+         }
+ 
+@@ -560,6 +574,7 @@
+             resultContainer.innerHTML = `<div class="success-chip" style="background:#f0f2f5;">🧹 Cleared</div>`;
+         }
+ 
++        // attach events
+         validateBtn.addEventListener('click', runValidation);
+         loadBtn.addEventListener('click', loadFile);
+         pasteBtn.addEventListener('click', pasteFromClip);
+@@ -567,6 +582,7 @@
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
+ 
++        // Demo content with an intentional error (showcases bottom highlight)
+         const demoErrorExample = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph
+@@ -578,6 +594,15 @@
+         clearEditorHighlight();
+         loadedFileName = null;
+         updateFileStatus();
++
++        // Optional: expose test API if needed (for external test harness), but not required
++        if (typeof window !== 'undefined' && !window.__MARKUP_VALIDATOR_API) {
++            window.__MARKUP_VALIDATOR_API = {
++                runValidation,
++                getErrors: () => [...currentErrors],
++                setContent: (c) => { editor.value = c; resetDisplay(); clearEditorHighlight(); }
++            };
++        }
+     })();
+ </script>
+ </body>

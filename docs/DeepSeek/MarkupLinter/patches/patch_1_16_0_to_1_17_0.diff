@@ -1,0 +1,284 @@
+--- MarkupLinter_v1_16_0.html	2026-06-09 17:44:33.281980207 +0300
++++ MarkupLinter_v1_17_0.html	2026-06-09 17:45:25.818022209 +0300
+@@ -5,7 +5,6 @@
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+     <title>Markup Linter · HTML / XML / SVG validator</title>
+     <style>
+-        /* Base styles (global, minimal) */
+         body {
+             margin: 0;
+             font-family: system-ui, 'Segoe UI', 'Roboto', monospace;
+@@ -23,9 +22,7 @@
+ <body>
+ <div id="markup-validator-app">
+     <style>
+-        /* Scoped styles for the entire app container */
+         #markup-validator-app {
+-            /* Light theme variables */
+             --app-bg: #ffffff;
+             --app-border: #e9edf2;
+             --app-text-primary: #1a2634;
+@@ -53,7 +50,6 @@
+             --app-summary-text: #1f3a5f;
+             --app-select-bg: #f0f2f5;
+             --app-select-border: #dce3ec;
+-            /* Highlight colors */
+             --app-highlight-bg: #fff3cd;
+             --app-highlight-border: #ffeaa7;
+ 
+@@ -67,7 +63,6 @@
+             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', monospace;
+             transition: background-color 0.3s ease, border-color 0.2s ease;
+         }
+-        /* Dark theme overrides */
+         #markup-validator-app.theme-dark {
+             --app-bg: #1e2432;
+             --app-border: #2d3548;
+@@ -104,7 +99,6 @@
+             color: var(--app-text-primary);
+             transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+         }
+-        /* Header styles */
+         #markup-validator-app .app-header {
+             padding: 1.2rem 2rem;
+             border-bottom: 2px solid var(--app-header-border);
+@@ -126,7 +120,6 @@
+             border-left: 3px solid #2563eb;
+             margin-top: 6px;
+         }
+-        /* Toolbar styles */
+         #markup-validator-app .toolbar {
+             display: flex;
+             flex-wrap: wrap;
+@@ -205,7 +198,6 @@
+             color: var(--app-text-secondary);
+             transition: background 0.2s;
+         }
+-        /* Editor area with overlay technique */
+         #markup-validator-app .editor-area {
+             padding: 0 2rem 2rem 2rem;
+             position: relative;
+@@ -221,12 +213,10 @@
+             color: var(--app-summary-text);
+             border: 1px solid var(--app-btn-border);
+         }
+-        /* Overlay container */
+         #markup-validator-app .editor-wrapper {
+             position: relative;
+             width: 100%;
+         }
+-        /* The backdrop and highlights container */
+         #markup-validator-app .backdrop {
+             position: absolute;
+             top: 0;
+@@ -251,7 +241,6 @@
+             color: transparent;
+             background-color: transparent;
+         }
+-        /* Highlighted line style */
+         #markup-validator-app .highlights mark {
+             color: transparent;
+             background-color: var(--app-highlight-bg);
+@@ -260,7 +249,6 @@
+             padding: 0;
+             width: 100%;
+         }
+-        /* The actual textarea (transparent background, sits on top) */
+         #markup-validator-app textarea {
+             position: relative;
+             z-index: 2;
+@@ -284,12 +272,10 @@
+             border-color: #2563eb;
+             box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+         }
+-        /* Sync scrollbar styling */
+         #markup-validator-app .backdrop,
+         #markup-validator-app textarea {
+             scrollbar-width: thin;
+         }
+-        /* Error panel at the bottom */
+         #markup-validator-app .error-panel {
+             margin-top: 1.5rem;
+             border-radius: 1.25rem;
+@@ -417,7 +403,7 @@
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.16.0</span>
++        <span class="version">version 1.17.0</span>
+     </footer>
+ </div>
+ 
+@@ -500,7 +486,7 @@
+         setThemeMode(savedMode);
+         if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+         
+-        // ----- VALIDATOR CORE -----
++        // ----- VALIDATOR CORE with persistent highlight (clears on editor focus/input) -----
+         const editor = document.getElementById('codeEditor');
+         const loadBtn = document.getElementById('loadBtn');
+         const pasteBtn = document.getElementById('pasteBtn');
+@@ -521,7 +507,6 @@
+         let validationTimeout = null;
+         let currentHighlightedLine = null;
+         
+-        // Sync scroll position between textarea and backdrop
+         function syncScroll() {
+             if (backdrop && editor) {
+                 backdrop.scrollTop = editor.scrollTop;
+@@ -529,18 +514,14 @@
+             }
+         }
+         
+-        // Update the overlay with highlighted lines
+         function updateOverlay() {
+             const text = editor.value;
+             const lines = text.split('\n');
+-            
+-            // Build highlighted HTML: wrap each line in a div, and mark the target line
+             let html = '';
+             for (let i = 0; i < lines.length; i++) {
+                 const lineNumber = i + 1;
+                 const lineContent = escapeHtml(lines[i]) || ' ';
+                 if (currentHighlightedLine === lineNumber) {
+-                    // Wrap the entire line in a <mark> tag for highlighting
+                     html += `<mark>${lineContent}</mark>\n`;
+                 } else {
+                     html += `${lineContent}\n`;
+@@ -558,6 +539,13 @@
+             });
+         }
+         
++        function clearHighlight() {
++            if (currentHighlightedLine !== null) {
++                currentHighlightedLine = null;
++                updateOverlay();
++            }
++        }
++        
+         function updateSummary() {
+             if (currentErrors.length === 0) {
+                 summaryLabel.innerHTML = '✅ Valid markup';
+@@ -587,19 +575,17 @@
+                 row.setAttribute('data-line', err.line);
+                 row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
+                 row.addEventListener('click', () => {
+-                    // Highlight the line in the overlay
+                     highlightLineInTextarea(err.line);
+                 });
+                 listContainer.appendChild(row);
+             }
+         }
+         
+-        // Highlight a specific line in the textarea using the overlay technique
+         function highlightLineInTextarea(lineNum) {
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
+             
+-            // Set the highlighted line
++            // Set the highlighted line (replaces any previous highlight)
+             currentHighlightedLine = lineNum;
+             updateOverlay();
+             
+@@ -609,13 +595,7 @@
+             editor.scrollTop = Math.max(0, approxY - editor.clientHeight / 3);
+             syncScroll();
+             
+-            // Remove highlight after 2 seconds (or keep until next click)
+-            setTimeout(() => {
+-                if (currentHighlightedLine === lineNum) {
+-                    currentHighlightedLine = null;
+-                    updateOverlay();
+-                }
+-            }, 2000);
++            // No automatic timeout – highlight stays until user interacts with editor
+         }
+         
+         function validateXmlSvg(content) {
+@@ -698,10 +678,8 @@
+             const rawCode = editor.value;
+             if (rawCode.trim() === '') {
+                 currentErrors = [];
+-                currentHighlightedLine = null;
+                 updateSummary();
+                 renderFullErrorPanel();
+-                updateOverlay();
+                 return;
+             }
+             let mode = modeSelect.value;
+@@ -721,11 +699,7 @@
+             currentErrors = errors;
+             updateSummary();
+             renderFullErrorPanel();
+-            // Clear any previous highlight
+-            if (currentHighlightedLine) {
+-                currentHighlightedLine = null;
+-                updateOverlay();
+-            }
++            // Do not clear highlight automatically – keep existing highlight
+         }
+         
+         function scheduleValidation() {
+@@ -733,14 +707,21 @@
+             validationTimeout = setTimeout(runValidation, 300);
+         }
+         
+-        // Event listeners for sync scroll and content update
+-        editor.addEventListener('scroll', syncScroll);
++        // Clear highlight when editor gets focus or user types (interaction)
++        editor.addEventListener('focus', clearHighlight);
+         editor.addEventListener('input', function() {
++            clearHighlight();
+             scheduleValidation();
+             updateOverlay();
+         });
++        editor.addEventListener('scroll', syncScroll);
++        
++        // When mode changes, re-validate but keep highlight? Better clear highlight to avoid confusion
++        modeSelect.addEventListener('change', function() {
++            clearHighlight();
++            scheduleValidation();
++        });
+         
+-        // Initial overlay update
+         function initialOverlaySync() {
+             updateOverlay();
+             syncScroll();
+@@ -763,7 +744,7 @@
+                     try {
+                         editor.value = e.target.result;
+                         resultContainer.innerHTML = '';
+-                        currentHighlightedLine = null;
++                        clearHighlight();
+                         updateOverlay();
+                         scheduleValidation();
+                     } catch (err) {
+@@ -785,7 +766,7 @@
+                 loadedFileName = null;
+                 updateFileStatus();
+                 resultContainer.innerHTML = '';
+-                currentHighlightedLine = null;
++                clearHighlight();
+                 updateOverlay();
+                 scheduleValidation();
+             } catch (err) {
+@@ -830,7 +811,7 @@
+             loadedFileName = null;
+             updateFileStatus();
+             resultContainer.innerHTML = '';
+-            currentHighlightedLine = null;
++            clearHighlight();
+             updateOverlay();
+             scheduleValidation();
+         }
+@@ -850,9 +831,8 @@
+         saveBtn.addEventListener('click', saveToFile);
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
+-        modeSelect.addEventListener('change', scheduleValidation);
+         
+-        // Final initialization
++        // Initial demo content
+         editor.value = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph

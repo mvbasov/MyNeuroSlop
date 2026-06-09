@@ -1,0 +1,118 @@
+--- MarkupLinter_v1_12_0.html	2026-06-09 17:14:21.477977640 +0300
++++ MarkupLinter_v1_13_0.html	2026-06-09 17:25:00.317364650 +0300
+@@ -157,7 +157,6 @@
+             background: var(--app-btn-hover);
+             transform: translateY(-1px);
+         }
+-        /* mode dropdown */
+         #markup-validator-app .mode-select {
+             background: var(--app-select-bg);
+             border: 1px solid var(--app-select-border);
+@@ -350,7 +349,7 @@
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.12.0</span>
++        <span class="version">version 1.13.0</span>
+     </footer>
+ </div>
+ 
+@@ -433,7 +432,7 @@
+         setThemeMode(savedMode);
+         if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+         
+-        // ----- VALIDATOR CORE (live validation) -----
++        // ----- VALIDATOR CORE -----
+         const editor = document.getElementById('codeEditor');
+         const loadBtn = document.getElementById('loadBtn');
+         const pasteBtn = document.getElementById('pasteBtn');
+@@ -478,33 +477,31 @@
+                 row.setAttribute('data-line', err.line);
+                 row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
+                 row.addEventListener('click', () => {
+-                    clearEditorHighlight();
++                    // Manual jump to line: this is intentional user action, selection is fine
+                     highlightLineAndJump(err.line);
+                 });
+                 listContainer.appendChild(row);
+             }
+         }
+         
+-        function clearEditorHighlight() {
+-            if (editor.selectionStart !== editor.selectionEnd) {
+-                const pos = editor.selectionStart;
+-                editor.setSelectionRange(pos, pos);
+-            }
+-            editor.style.backgroundColor = '';
+-            editor.style.transition = '';
+-        }
+-        
++        // Highlight a specific line by temporarily changing background and scrolling, but NOT moving cursor/selection
+         function highlightLineAndJump(lineNum) {
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
++            
++            // Calculate position of line start for scrolling only (we won't set selection)
+             let pos = 0;
+-            for (let i = 0; i < lineNum - 1; i++) pos += lines[i].length + 1;
++            for (let i = 0; i < lineNum - 1; i++) {
++                pos += lines[i].length + 1;
++            }
+             const endPos = pos + lines[lineNum-1].length;
+-            editor.focus();
+-            editor.setSelectionRange(pos, endPos);
++            
++            // Scroll line into view without changing cursor
+             const lineHeight = parseInt(getComputedStyle(editor).lineHeight);
+             const approxY = (lineNum - 1) * lineHeight;
+             editor.scrollTop = Math.max(0, approxY - editor.clientHeight / 3);
++            
++            // Visual flash on the textarea (background) - does not affect cursor
+             const originalBg = editor.style.backgroundColor;
+             editor.style.transition = 'background 0.12s';
+             editor.style.backgroundColor = '#ffefc0';
+@@ -514,13 +511,6 @@
+             }, 400);
+         }
+         
+-        function highlightBottomError() {
+-            if (!currentErrors.length) return;
+-            clearEditorHighlight();
+-            const bottomError = currentErrors.reduce((prev, curr) => (curr.line > prev.line ? curr : prev), currentErrors[0]);
+-            highlightLineAndJump(bottomError.line);
+-        }
+-        
+         function escapeHtml(str) {
+             return str.replace(/[&<>]/g, function(m) {
+                 if (m === '&') return '&amp;';
+@@ -612,10 +602,9 @@
+                 currentErrors = [];
+                 updateSummary();
+                 renderFullErrorPanel();
+-                clearEditorHighlight();
+                 return;
+             }
+-            let mode = modeSelect.value;  // 'auto', 'html', 'xml'
++            let mode = modeSelect.value;
+             if (mode === 'auto') {
+                 const trimmed = rawCode.trim();
+                 if (trimmed.startsWith('<?xml') || /^\s*<svg\b/i.test(trimmed) || /^\s*<\?xml/.test(trimmed) || (trimmed.includes('xmlns') && !/<html\b/i.test(trimmed))) {
+@@ -632,8 +621,7 @@
+             currentErrors = errors;
+             updateSummary();
+             renderFullErrorPanel();
+-            clearEditorHighlight();
+-            if (currentErrors.length > 0) setTimeout(() => highlightBottomError(), 20);
++            // No automatic selection change, no cursor movement
+         }
+         
+         function scheduleValidation() {
+@@ -641,7 +629,7 @@
+             validationTimeout = setTimeout(runValidation, 300);
+         }
+         
+-        // File & clipboard handlers
++        // File & clipboard handlers (unchanged, but ensure no extra selection changes)
+         function loadFile() {
+             const inp = document.createElement('input');
+             inp.type = 'file';

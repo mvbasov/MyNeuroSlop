@@ -1,0 +1,398 @@
+--- MarkupLinter_v1_15_0.html	2026-06-09 17:43:51.149946881 +0300
++++ MarkupLinter_v1_16_0.html	2026-06-09 17:44:33.281980207 +0300
+@@ -5,6 +5,7 @@
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+     <title>Markup Linter · HTML / XML / SVG validator</title>
+     <style>
++        /* Base styles (global, minimal) */
+         body {
+             margin: 0;
+             font-family: system-ui, 'Segoe UI', 'Roboto', monospace;
+@@ -22,7 +23,9 @@
+ <body>
+ <div id="markup-validator-app">
+     <style>
++        /* Scoped styles for the entire app container */
+         #markup-validator-app {
++            /* Light theme variables */
+             --app-bg: #ffffff;
+             --app-border: #e9edf2;
+             --app-text-primary: #1a2634;
+@@ -50,6 +53,9 @@
+             --app-summary-text: #1f3a5f;
+             --app-select-bg: #f0f2f5;
+             --app-select-border: #dce3ec;
++            /* Highlight colors */
++            --app-highlight-bg: #fff3cd;
++            --app-highlight-border: #ffeaa7;
+ 
+             max-width: 1400px;
+             margin: 0 auto;
+@@ -61,6 +67,7 @@
+             font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', monospace;
+             transition: background-color 0.3s ease, border-color 0.2s ease;
+         }
++        /* Dark theme overrides */
+         #markup-validator-app.theme-dark {
+             --app-bg: #1e2432;
+             --app-border: #2d3548;
+@@ -89,12 +96,15 @@
+             --app-summary-text: #b9d0ff;
+             --app-select-bg: #2a3245;
+             --app-select-border: #3a4358;
++            --app-highlight-bg: #3a2e1a;
++            --app-highlight-border: #5c4a2a;
+         }
+         #markup-validator-app,
+         #markup-validator-app * {
+             color: var(--app-text-primary);
+             transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+         }
++        /* Header styles */
+         #markup-validator-app .app-header {
+             padding: 1.2rem 2rem;
+             border-bottom: 2px solid var(--app-header-border);
+@@ -116,6 +126,7 @@
+             border-left: 3px solid #2563eb;
+             margin-top: 6px;
+         }
++        /* Toolbar styles */
+         #markup-validator-app .toolbar {
+             display: flex;
+             flex-wrap: wrap;
+@@ -194,8 +205,10 @@
+             color: var(--app-text-secondary);
+             transition: background 0.2s;
+         }
++        /* Editor area with overlay technique */
+         #markup-validator-app .editor-area {
+             padding: 0 2rem 2rem 2rem;
++            position: relative;
+         }
+         #markup-validator-app .validation-summary {
+             margin-bottom: 0.75rem;
+@@ -208,32 +221,75 @@
+             color: var(--app-summary-text);
+             border: 1px solid var(--app-btn-border);
+         }
++        /* Overlay container */
++        #markup-validator-app .editor-wrapper {
++            position: relative;
++            width: 100%;
++        }
++        /* The backdrop and highlights container */
++        #markup-validator-app .backdrop {
++            position: absolute;
++            top: 0;
++            left: 0;
++            width: 100%;
++            height: 100%;
++            overflow: auto;
++            background-color: var(--app-textarea-bg);
++            border: 1px solid var(--app-textarea-border);
++            border-radius: 1.5rem;
++            pointer-events: none;
++            z-index: 1;
++            box-sizing: border-box;
++            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
++            font-size: 13px;
++            line-height: 1.5;
++            padding: 1rem;
++        }
++        #markup-validator-app .highlights {
++            white-space: pre-wrap;
++            word-wrap: break-word;
++            color: transparent;
++            background-color: transparent;
++        }
++        /* Highlighted line style */
++        #markup-validator-app .highlights mark {
++            color: transparent;
++            background-color: var(--app-highlight-bg);
++            display: block;
++            margin: 0;
++            padding: 0;
++            width: 100%;
++        }
++        /* The actual textarea (transparent background, sits on top) */
+         #markup-validator-app textarea {
++            position: relative;
++            z-index: 2;
+             width: 100%;
+             height: 380px;
+             font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+             font-size: 13px;
+             line-height: 1.5;
+-            background: var(--app-textarea-bg);
++            background: transparent;
+             border: 1px solid var(--app-textarea-border);
+             border-radius: 1.5rem;
+             padding: 1rem;
+             resize: vertical;
+             tab-size: 2;
+             color: var(--app-text-primary);
+-            transition: border 0.2s ease, box-shadow 0.2s ease;
++            caret-color: var(--app-text-primary);
++            overflow: auto;
+         }
+         #markup-validator-app textarea:focus {
+             outline: none;
+             border-color: #2563eb;
+             box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+         }
+-        /* subtle visual indicator for error click (border highlight) */
+-        #markup-validator-app textarea.error-highlight {
+-            border-color: #f59e0b;
+-            box-shadow: 0 0 0 2px #f59e0b;
+-            transition: border 0.08s ease, box-shadow 0.08s ease;
++        /* Sync scrollbar styling */
++        #markup-validator-app .backdrop,
++        #markup-validator-app textarea {
++            scrollbar-width: thin;
+         }
++        /* Error panel at the bottom */
+         #markup-validator-app .error-panel {
+             margin-top: 1.5rem;
+             border-radius: 1.25rem;
+@@ -351,12 +407,17 @@
+     </div>
+     <div class="editor-area">
+         <div id="summaryLabel" class="validation-summary">⚙️ Ready</div>
+-        <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example:&#10;&lt;html&gt;&#10;  &lt;body&gt;&lt;h1&gt;Hello world&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea>
++        <div class="editor-wrapper">
++            <div class="backdrop" id="backdrop">
++                <div class="highlights" id="highlights"></div>
++            </div>
++            <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example:&#10;&lt;html&gt;&#10;  &lt;body&gt;&lt;h1&gt;Hello world&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea>
++        </div>
+         <div id="resultContainer"></div>
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.15.0</span>
++        <span class="version">version 1.16.0</span>
+     </footer>
+ </div>
+ 
+@@ -439,7 +500,7 @@
+         setThemeMode(savedMode);
+         if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+         
+-        // ----- VALIDATOR CORE (with visual border highlight on error click) -----
++        // ----- VALIDATOR CORE -----
+         const editor = document.getElementById('codeEditor');
+         const loadBtn = document.getElementById('loadBtn');
+         const pasteBtn = document.getElementById('pasteBtn');
+@@ -451,9 +512,51 @@
+         const summaryLabel = document.getElementById('summaryLabel');
+         const modeSelect = document.getElementById('modeSelect');
+         
++        // Overlay elements
++        const backdrop = document.getElementById('backdrop');
++        const highlightsDiv = document.getElementById('highlights');
++        
+         let currentErrors = [];
+         let loadedFileName = null;
+         let validationTimeout = null;
++        let currentHighlightedLine = null;
++        
++        // Sync scroll position between textarea and backdrop
++        function syncScroll() {
++            if (backdrop && editor) {
++                backdrop.scrollTop = editor.scrollTop;
++                backdrop.scrollLeft = editor.scrollLeft;
++            }
++        }
++        
++        // Update the overlay with highlighted lines
++        function updateOverlay() {
++            const text = editor.value;
++            const lines = text.split('\n');
++            
++            // Build highlighted HTML: wrap each line in a div, and mark the target line
++            let html = '';
++            for (let i = 0; i < lines.length; i++) {
++                const lineNumber = i + 1;
++                const lineContent = escapeHtml(lines[i]) || ' ';
++                if (currentHighlightedLine === lineNumber) {
++                    // Wrap the entire line in a <mark> tag for highlighting
++                    html += `<mark>${lineContent}</mark>\n`;
++                } else {
++                    html += `${lineContent}\n`;
++                }
++            }
++            highlightsDiv.innerHTML = html;
++        }
++        
++        function escapeHtml(str) {
++            return str.replace(/[&<>]/g, function(m) {
++                if (m === '&') return '&amp;';
++                if (m === '<') return '&lt;';
++                if (m === '>') return '&gt;';
++                return m;
++            });
++        }
+         
+         function updateSummary() {
+             if (currentErrors.length === 0) {
+@@ -474,7 +577,7 @@
+             }
+             const panel = document.createElement('div');
+             panel.className = 'error-panel';
+-            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to jump & highlight</span></div><div class="error-list" id="errorList"></div>`;
++            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to highlight line</span></div><div class="error-list" id="errorList"></div>`;
+             resultContainer.innerHTML = '';
+             resultContainer.appendChild(panel);
+             const listContainer = panel.querySelector('#errorList');
+@@ -484,34 +587,35 @@
+                 row.setAttribute('data-line', err.line);
+                 row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
+                 row.addEventListener('click', () => {
+-                    jumpToLineWithVisualHint(err.line);
++                    // Highlight the line in the overlay
++                    highlightLineInTextarea(err.line);
+                 });
+                 listContainer.appendChild(row);
+             }
+         }
+         
+-        // Scroll to line and briefly highlight the textarea border (subtle, non-disruptive)
+-        function jumpToLineWithVisualHint(lineNum) {
++        // Highlight a specific line in the textarea using the overlay technique
++        function highlightLineInTextarea(lineNum) {
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
++            
++            // Set the highlighted line
++            currentHighlightedLine = lineNum;
++            updateOverlay();
++            
++            // Scroll to the line
+             const lineHeight = parseInt(getComputedStyle(editor).lineHeight);
+             const approxY = (lineNum - 1) * lineHeight;
+             editor.scrollTop = Math.max(0, approxY - editor.clientHeight / 3);
++            syncScroll();
+             
+-            // Add temporary border highlight class
+-            editor.classList.add('error-highlight');
++            // Remove highlight after 2 seconds (or keep until next click)
+             setTimeout(() => {
+-                editor.classList.remove('error-highlight');
+-            }, 300);
+-        }
+-        
+-        function escapeHtml(str) {
+-            return str.replace(/[&<>]/g, function(m) {
+-                if (m === '&') return '&amp;';
+-                if (m === '<') return '&lt;';
+-                if (m === '>') return '&gt;';
+-                return m;
+-            });
++                if (currentHighlightedLine === lineNum) {
++                    currentHighlightedLine = null;
++                    updateOverlay();
++                }
++            }, 2000);
+         }
+         
+         function validateXmlSvg(content) {
+@@ -594,8 +698,10 @@
+             const rawCode = editor.value;
+             if (rawCode.trim() === '') {
+                 currentErrors = [];
++                currentHighlightedLine = null;
+                 updateSummary();
+                 renderFullErrorPanel();
++                updateOverlay();
+                 return;
+             }
+             let mode = modeSelect.value;
+@@ -615,6 +721,11 @@
+             currentErrors = errors;
+             updateSummary();
+             renderFullErrorPanel();
++            // Clear any previous highlight
++            if (currentHighlightedLine) {
++                currentHighlightedLine = null;
++                updateOverlay();
++            }
+         }
+         
+         function scheduleValidation() {
+@@ -622,6 +733,19 @@
+             validationTimeout = setTimeout(runValidation, 300);
+         }
+         
++        // Event listeners for sync scroll and content update
++        editor.addEventListener('scroll', syncScroll);
++        editor.addEventListener('input', function() {
++            scheduleValidation();
++            updateOverlay();
++        });
++        
++        // Initial overlay update
++        function initialOverlaySync() {
++            updateOverlay();
++            syncScroll();
++        }
++        
+         // File & clipboard handlers
+         function loadFile() {
+             const inp = document.createElement('input');
+@@ -639,6 +763,8 @@
+                     try {
+                         editor.value = e.target.result;
+                         resultContainer.innerHTML = '';
++                        currentHighlightedLine = null;
++                        updateOverlay();
+                         scheduleValidation();
+                     } catch (err) {
+                         alert("Failed to process file content.");
+@@ -659,6 +785,8 @@
+                 loadedFileName = null;
+                 updateFileStatus();
+                 resultContainer.innerHTML = '';
++                currentHighlightedLine = null;
++                updateOverlay();
+                 scheduleValidation();
+             } catch (err) {
+                 alert("Clipboard read failed. Grant permission or paste manually.");
+@@ -702,6 +830,8 @@
+             loadedFileName = null;
+             updateFileStatus();
+             resultContainer.innerHTML = '';
++            currentHighlightedLine = null;
++            updateOverlay();
+             scheduleValidation();
+         }
+         
+@@ -720,10 +850,9 @@
+         saveBtn.addEventListener('click', saveToFile);
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
+-        editor.addEventListener('input', scheduleValidation);
+         modeSelect.addEventListener('change', scheduleValidation);
+         
+-        // Initial demo content (contains intentional errors)
++        // Final initialization
+         editor.value = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph
+@@ -732,7 +861,17 @@
+ </div>`;
+         loadedFileName = null;
+         updateFileStatus();
++        initialOverlaySync();
+         scheduleValidation();
++        
++        // Resize observer to keep overlay dimensions in sync
++        const resizeObserver = new ResizeObserver(() => {
++            if (backdrop && editor) {
++                backdrop.style.height = editor.clientHeight + 'px';
++                syncScroll();
++            }
++        });
++        resizeObserver.observe(editor);
+     })();
+ </script>
+ </body>

@@ -1,0 +1,100 @@
+--- MarkupLinter_v1_13_0.html	2026-06-09 17:25:00.317364650 +0300
++++ MarkupLinter_v1_14_0.html	2026-06-09 17:24:36.973366077 +0300
+@@ -349,7 +349,7 @@
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.13.0</span>
++        <span class="version">version 1.14.0</span>
+     </footer>
+ </div>
+ 
+@@ -432,7 +432,7 @@
+         setThemeMode(savedMode);
+         if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+         
+-        // ----- VALIDATOR CORE -----
++        // ----- VALIDATOR CORE (with fixed error display & no flash) -----
+         const editor = document.getElementById('codeEditor');
+         const loadBtn = document.getElementById('loadBtn');
+         const pasteBtn = document.getElementById('pasteBtn');
+@@ -467,7 +467,7 @@
+             }
+             const panel = document.createElement('div');
+             panel.className = 'error-panel';
+-            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to highlight line</span></div><div class="error-list" id="errorList"></div>`;
++            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to jump to line</span></div><div class="error-list" id="errorList"></div>`;
+             resultContainer.innerHTML = '';
+             resultContainer.appendChild(panel);
+             const listContainer = panel.querySelector('#errorList');
+@@ -477,38 +477,21 @@
+                 row.setAttribute('data-line', err.line);
+                 row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
+                 row.addEventListener('click', () => {
+-                    // Manual jump to line: this is intentional user action, selection is fine
+-                    highlightLineAndJump(err.line);
++                    // No background flash, only scroll to line
++                    jumpToLineWithoutFlash(err.line);
+                 });
+                 listContainer.appendChild(row);
+             }
+         }
+         
+-        // Highlight a specific line by temporarily changing background and scrolling, but NOT moving cursor/selection
+-        function highlightLineAndJump(lineNum) {
++        // Smooth scroll to line without any background color change or selection
++        function jumpToLineWithoutFlash(lineNum) {
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
+-            
+-            // Calculate position of line start for scrolling only (we won't set selection)
+-            let pos = 0;
+-            for (let i = 0; i < lineNum - 1; i++) {
+-                pos += lines[i].length + 1;
+-            }
+-            const endPos = pos + lines[lineNum-1].length;
+-            
+-            // Scroll line into view without changing cursor
+             const lineHeight = parseInt(getComputedStyle(editor).lineHeight);
+             const approxY = (lineNum - 1) * lineHeight;
+             editor.scrollTop = Math.max(0, approxY - editor.clientHeight / 3);
+-            
+-            // Visual flash on the textarea (background) - does not affect cursor
+-            const originalBg = editor.style.backgroundColor;
+-            editor.style.transition = 'background 0.12s';
+-            editor.style.backgroundColor = '#ffefc0';
+-            setTimeout(() => {
+-                editor.style.backgroundColor = originalBg;
+-                editor.style.transition = '';
+-            }, 400);
++            // No background flash, no selection change
+         }
+         
+         function escapeHtml(str) {
+@@ -621,7 +604,7 @@
+             currentErrors = errors;
+             updateSummary();
+             renderFullErrorPanel();
+-            // No automatic selection change, no cursor movement
++            // No automatic scrolling or selection
+         }
+         
+         function scheduleValidation() {
+@@ -629,7 +612,7 @@
+             validationTimeout = setTimeout(runValidation, 300);
+         }
+         
+-        // File & clipboard handlers (unchanged, but ensure no extra selection changes)
++        // File & clipboard handlers
+         function loadFile() {
+             const inp = document.createElement('input');
+             inp.type = 'file';
+@@ -730,7 +713,7 @@
+         editor.addEventListener('input', scheduleValidation);
+         modeSelect.addEventListener('change', scheduleValidation);
+         
+-        // Initial demo content
++        // Initial demo content (contains intentional errors)
+         editor.value = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph

@@ -1,0 +1,76 @@
+--- MarkupLinter_v1_4_1.html	2026-06-09 14:25:51.886355781 +0300
++++ MarkupLinter_v1_4_2.html	2026-06-09 15:25:37.408956170 +0300
+@@ -243,7 +243,7 @@
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.4.1</span>
++        <span class="version">version 1.4.2</span>
+     </footer>
+ </div>
+ 
+@@ -260,7 +260,7 @@
+         const fileStatusBadge = document.getElementById('fileStatusBadge');
+ 
+         let currentErrors = [];
+-        let loadedFileName = null;      // store base name without extension
++        let loadedFileName = null;
+ 
+         function resetDisplay() {
+             resultContainer.innerHTML = '';
+@@ -462,24 +462,46 @@
+             }
+         }
+ 
++        // Improved file loading with error handling and feedback
+         function loadFile() {
+             const inp = document.createElement('input');
+             inp.type = 'file';
+-            inp.accept = '.html,.htm,.xml,.svg,.txt,.xhtml';
+-            inp.onchange = (e) => {
+-                const file = e.target.files[0];
+-                if (!file) return;
++            inp.accept = '.html,.htm,.xml,.svg,.txt,.xhtml,.xslt';
++            inp.onchange = (event) => {
++                const file = event.target.files[0];
++                if (!file) {
++                    console.warn("No file selected");
++                    return;
++                }
++                // Update status immediately
+                 let fullName = file.name;
+                 let baseName = fullName.replace(/\.[^/.]+$/, "");
+                 loadedFileName = baseName || "document";
+                 updateFileStatus();
++                
+                 const reader = new FileReader();
+-                reader.onload = (ev) => {
+-                    editor.value = ev.target.result;
+-                    resetDisplay();
+-                    clearEditorHighlight();
++                reader.onload = (e) => {
++                    try {
++                        const content = e.target.result;
++                        editor.value = content;
++                        resetDisplay();
++                        clearEditorHighlight();
++                        // Optional: auto-validate after load? Not doing to avoid confusion, but user can click validate.
++                        console.log(`File loaded successfully: ${fullName}, size: ${content.length} chars`);
++                    } catch (err) {
++                        console.error("Error processing file:", err);
++                        alert("Failed to read file content: " + err.message);
++                        loadedFileName = null;
++                        updateFileStatus();
++                    }
++                };
++                reader.onerror = (err) => {
++                    console.error("FileReader error:", err);
++                    alert("Unable to read file. Check permissions or file format.");
++                    loadedFileName = null;
++                    updateFileStatus();
+                 };
+-                reader.readAsText(file);
++                reader.readAsText(file, "UTF-8");
+             };
+             inp.click();
+         }

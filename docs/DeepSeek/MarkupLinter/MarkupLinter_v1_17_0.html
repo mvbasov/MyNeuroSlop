@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- PRESERVE_BINARY_START -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%231E3A8A%22%20%2F%3E%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%2234%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%225%22%20%2F%3E%20%20%3Cline%20x1%3D%2276%22%20y1%3D%2274%22%20x2%3D%2290%22%20y2%3D%2288%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%20%3Ctext%20x%3D%2250%22%20y%3D%2257%22%20font-family%3D%22monospace%22%20font-size%3D%2230%22%20font-weight%3D%22bold%22%20fill%3D%22%23FFFFFF%22%20text-anchor%3D%22middle%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" />
+    <!-- PRESERVE_BINARY_END -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Markup Linter · HTML / XML / SVG validator</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, 'Segoe UI', 'Roboto', monospace;
+            line-height: 1.4;
+            transition: background-color 0.3s ease, color 0.2s ease;
+        }
+        body:not(.theme-dark) {
+            background: #f4f6fa;
+        }
+        body.theme-dark {
+            background: #121826;
+        }
+    </style>
+</head>
+<body>
+<div id="markup-validator-app">
+    <style>
+        #markup-validator-app {
+            --app-bg: #ffffff;
+            --app-border: #e9edf2;
+            --app-text-primary: #1a2634;
+            --app-text-secondary: #4a5b72;
+            --app-header-border: #eff3f8;
+            --app-btn-bg: #f0f2f5;
+            --app-btn-border: #dce3ec;
+            --app-btn-hover: #e6ebf2;
+            --app-btn-primary-bg: #0f2b3d;
+            --app-btn-primary-hover: #1f3e55;
+            --app-textarea-bg: #fefefe;
+            --app-textarea-border: #dee4ec;
+            --app-error-panel-bg: #fffaf5;
+            --app-error-panel-border: #ffe7d6;
+            --app-error-header-bg: #fff5eb;
+            --app-error-header-border: #ffe0ca;
+            --app-error-line-hover: #fff2e8;
+            --app-line-badge-bg: #ffe1cf;
+            --app-success-bg: #e0f2e9;
+            --app-footer-border: #eef2f8;
+            --app-footer-color: #6c7e97;
+            --app-file-status-bg: #f0f2f5;
+            --app-file-status-active: #e6f0ff;
+            --app-summary-bg: #f8f9fc;
+            --app-summary-text: #1f3a5f;
+            --app-select-bg: #f0f2f5;
+            --app-select-border: #dce3ec;
+            --app-highlight-bg: #fff3cd;
+            --app-highlight-border: #ffeaa7;
+
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--app-bg);
+            border-radius: 2rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.02), 0 2px 6px rgba(0,0,0,0.05);
+            border: 1px solid var(--app-border);
+            overflow: hidden;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', monospace;
+            transition: background-color 0.3s ease, border-color 0.2s ease;
+        }
+        #markup-validator-app.theme-dark {
+            --app-bg: #1e2432;
+            --app-border: #2d3548;
+            --app-text-primary: #eef2ff;
+            --app-text-secondary: #9aa9c1;
+            --app-header-border: #2a3242;
+            --app-btn-bg: #2a3245;
+            --app-btn-border: #3a4358;
+            --app-btn-hover: #353f55;
+            --app-btn-primary-bg: #2563eb;
+            --app-btn-primary-hover: #3b82f6;
+            --app-textarea-bg: #0f121c;
+            --app-textarea-border: #2d3548;
+            --app-error-panel-bg: #251f1a;
+            --app-error-panel-border: #3e2e22;
+            --app-error-header-bg: #2a241e;
+            --app-error-header-border: #4a3828;
+            --app-error-line-hover: #2f281f;
+            --app-line-badge-bg: #5c3a2a;
+            --app-success-bg: #1a3a2a;
+            --app-footer-border: #2a3242;
+            --app-footer-color: #8b9ab0;
+            --app-file-status-bg: #2a3245;
+            --app-file-status-active: #1e3a5f;
+            --app-summary-bg: #151e2c;
+            --app-summary-text: #b9d0ff;
+            --app-select-bg: #2a3245;
+            --app-select-border: #3a4358;
+            --app-highlight-bg: #3a2e1a;
+            --app-highlight-border: #5c4a2a;
+        }
+        #markup-validator-app,
+        #markup-validator-app * {
+            color: var(--app-text-primary);
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+        #markup-validator-app .app-header {
+            padding: 1.2rem 2rem;
+            border-bottom: 2px solid var(--app-header-border);
+        }
+        #markup-validator-app h1 {
+            font-weight: 600;
+            font-size: 1.6rem;
+            margin: 0 0 0.2rem;
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--app-text-primary);
+        }
+        #markup-validator-app .subhead {
+            font-size: 0.85rem;
+            color: var(--app-text-secondary);
+            padding-left: 0.25rem;
+            border-left: 3px solid #2563eb;
+            margin-top: 6px;
+        }
+        #markup-validator-app .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin: 1.2rem 0 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--app-header-border);
+        }
+        .toolbar-left {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .toolbar-right {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #markup-validator-app .icon-btn {
+            background: var(--app-btn-bg);
+            border: 1px solid var(--app-btn-border);
+            padding: 0.4rem;
+            border-radius: 2rem;
+            font-size: 1rem;
+            width: 2rem;
+            height: 2rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.08s linear;
+            font-family: inherit;
+        }
+        #markup-validator-app .icon-btn:hover {
+            background: var(--app-btn-hover);
+            transform: translateY(-1px);
+        }
+        #markup-validator-app .mode-select {
+            background: var(--app-select-bg);
+            border: 1px solid var(--app-select-border);
+            border-radius: 2rem;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            font-family: inherit;
+            cursor: pointer;
+            color: var(--app-text-primary);
+        }
+        #markup-validator-app .theme-toggle {
+            background: var(--app-btn-bg);
+            border: 1px solid var(--app-btn-border);
+            border-radius: 2rem;
+            padding: 0.4rem;
+            width: 2rem;
+            height: 2rem;
+            font-size: 1rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: 0.08s linear;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #markup-validator-app .theme-toggle:hover {
+            background: var(--app-btn-hover);
+            transform: translateY(-1px);
+        }
+        #markup-validator-app .file-status {
+            font-size: 0.7rem;
+            background: var(--app-file-status-bg);
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            color: var(--app-text-secondary);
+            transition: background 0.2s;
+        }
+        #markup-validator-app .editor-area {
+            padding: 0 2rem 2rem 2rem;
+            position: relative;
+        }
+        #markup-validator-app .validation-summary {
+            margin-bottom: 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: var(--app-summary-bg);
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            display: inline-block;
+            color: var(--app-summary-text);
+            border: 1px solid var(--app-btn-border);
+        }
+        #markup-validator-app .editor-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        #markup-validator-app .backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: var(--app-textarea-bg);
+            border: 1px solid var(--app-textarea-border);
+            border-radius: 1.5rem;
+            pointer-events: none;
+            z-index: 1;
+            box-sizing: border-box;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 1rem;
+        }
+        #markup-validator-app .highlights {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: transparent;
+            background-color: transparent;
+        }
+        #markup-validator-app .highlights mark {
+            color: transparent;
+            background-color: var(--app-highlight-bg);
+            display: block;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+        #markup-validator-app textarea {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 380px;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            background: transparent;
+            border: 1px solid var(--app-textarea-border);
+            border-radius: 1.5rem;
+            padding: 1rem;
+            resize: vertical;
+            tab-size: 2;
+            color: var(--app-text-primary);
+            caret-color: var(--app-text-primary);
+            overflow: auto;
+        }
+        #markup-validator-app textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+        }
+        #markup-validator-app .backdrop,
+        #markup-validator-app textarea {
+            scrollbar-width: thin;
+        }
+        #markup-validator-app .error-panel {
+            margin-top: 1.5rem;
+            border-radius: 1.25rem;
+            background: var(--app-error-panel-bg);
+            border: 1px solid var(--app-error-panel-border);
+        }
+        #markup-validator-app .error-panel-header {
+            padding: 0.8rem 1.5rem;
+            background: var(--app-error-header-bg);
+            border-bottom: 1px solid var(--app-error-header-border);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        #markup-validator-app .error-list {
+            max-height: 260px;
+            overflow-y: auto;
+        }
+        #markup-validator-app .error-line {
+            padding: 0.6rem 1.5rem;
+            border-bottom: 1px solid var(--app-error-panel-border);
+            display: flex;
+            gap: 14px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        #markup-validator-app .error-line:hover {
+            background: var(--app-error-line-hover);
+        }
+        #markup-validator-app .line-badge {
+            background: var(--app-line-badge-bg);
+            border-radius: 30px;
+            padding: 0.1rem 0.7rem;
+            font-weight: 700;
+            color: #b45309;
+            min-width: 65px;
+            text-align: center;
+        }
+        #markup-validator-app .error-message {
+            color: #a44100;
+            word-break: break-word;
+            flex: 1;
+        }
+        #markup-validator-app .success-chip {
+            background: var(--app-success-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #0e6b3e;
+            display: inline-block;
+        }
+        #markup-validator-app .line-hint {
+            font-size: 0.7rem;
+            background: var(--app-btn-bg);
+            padding: 0.2rem 0.7rem;
+            border-radius: 30px;
+        }
+        #markup-validator-app footer {
+            text-align: center;
+            font-size: 0.7rem;
+            border-top: 1px solid var(--app-footer-border);
+            padding: 1rem;
+            color: var(--app-footer-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #markup-validator-app .version {
+            font-family: monospace;
+            background: var(--app-btn-bg);
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+        }
+        @media (max-width: 680px) {
+            #markup-validator-app .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .toolbar-left, .toolbar-right {
+                justify-content: center;
+            }
+            #markup-validator-app footer {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+
+    <div class="app-header">
+        <h1>🔍 Markup Validator</h1>
+        <div class="subhead">HTML tag balance / well‑formed XML & SVG · live validation</div>
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <button id="loadBtn" class="icon-btn" aria-label="Load file">📂</button>
+                <button id="pasteBtn" class="icon-btn" aria-label="Paste from clipboard">📋</button>
+                <button id="saveBtn" class="icon-btn" aria-label="Save to file">💾</button>
+                <button id="copyBtn" class="icon-btn" aria-label="Copy editor content">📄</button>
+                <button id="clearBtn" class="icon-btn" aria-label="Clear all">🗑</button>
+                <button id="themeToggleBtn" class="theme-toggle" aria-label="Switch theme">🌓</button>
+            </div>
+            <div class="toolbar-right">
+                <select id="modeSelect" class="mode-select" aria-label="Validation mode">
+                    <option value="auto">🔄 Auto</option>
+                    <option value="html">🌐 HTML</option>
+                    <option value="xml">📄 XML / SVG</option>
+                </select>
+                <span id="fileStatusBadge" class="file-status">📄 no file loaded</span>
+            </div>
+        </div>
+    </div>
+    <div class="editor-area">
+        <div id="summaryLabel" class="validation-summary">⚙️ Ready</div>
+        <div class="editor-wrapper">
+            <div class="backdrop" id="backdrop">
+                <div class="highlights" id="highlights"></div>
+            </div>
+            <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example:&#10;&lt;html&gt;&#10;  &lt;body&gt;&lt;h1&gt;Hello world&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea>
+        </div>
+        <div id="resultContainer"></div>
+    </div>
+    <footer>
+        <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+        <span class="version">version 1.17.0</span>
+    </footer>
+</div>
+
+<script>
+    (function(){
+        // ----- THEME TOGGLE (cycle: auto, light, dark) -----
+        const appContainer = document.getElementById('markup-validator-app');
+        const bodyEl = document.body;
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        let currentMode = 'auto';
+        let systemListenerActive = false;
+        let mediaQueryListener = null;
+        
+        const themeIcons = { auto: '🌓', light: '☀️', dark: '🌙' };
+        const themeOrder = ['auto', 'light', 'dark'];
+        
+        function applyTheme(themeMode) {
+            if (themeMode === 'dark') {
+                bodyEl.classList.add('theme-dark');
+                appContainer.classList.add('theme-dark');
+            } else {
+                bodyEl.classList.remove('theme-dark');
+                appContainer.classList.remove('theme-dark');
+            }
+        }
+        
+        function getSystemPreference() {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        
+        function updateThemeFromMode(mode) {
+            if (mode === 'auto') {
+                applyTheme(getSystemPreference());
+                activateSystemListener();
+            } else if (mode === 'dark') {
+                deactivateSystemListener();
+                applyTheme('dark');
+            } else if (mode === 'light') {
+                deactivateSystemListener();
+                applyTheme('light');
+            }
+            if (themeToggleBtn) themeToggleBtn.textContent = themeIcons[mode] || '🌓';
+        }
+        
+        function activateSystemListener() {
+            if (systemListenerActive) return;
+            const darkModeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+            const handler = (e) => {
+                if (currentMode === 'auto') applyTheme(e.matches ? 'dark' : 'light');
+            };
+            if (darkModeMedia.addEventListener) darkModeMedia.addEventListener('change', handler);
+            else if (darkModeMedia.addListener) darkModeMedia.addListener(handler);
+            mediaQueryListener = { media: darkModeMedia, handler };
+            systemListenerActive = true;
+        }
+        
+        function deactivateSystemListener() {
+            if (!systemListenerActive || !mediaQueryListener) return;
+            const { media, handler } = mediaQueryListener;
+            if (media.removeEventListener) media.removeEventListener('change', handler);
+            else if (media.removeListener) media.removeListener(handler);
+            systemListenerActive = false;
+            mediaQueryListener = null;
+        }
+        
+        function setThemeMode(mode) {
+            currentMode = mode;
+            updateThemeFromMode(mode);
+            try { localStorage.setItem('markup_validator_theme', mode); } catch(e) {}
+        }
+        
+        function cycleTheme() {
+            let idx = themeOrder.indexOf(currentMode);
+            let next = themeOrder[(idx + 1) % themeOrder.length];
+            setThemeMode(next);
+        }
+        
+        let savedMode = 'auto';
+        try { const stored = localStorage.getItem('markup_validator_theme'); if (stored === 'light' || stored === 'dark' || stored === 'auto') savedMode = stored; } catch(e) {}
+        setThemeMode(savedMode);
+        if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+        
+        // ----- VALIDATOR CORE with persistent highlight (clears on editor focus/input) -----
+        const editor = document.getElementById('codeEditor');
+        const loadBtn = document.getElementById('loadBtn');
+        const pasteBtn = document.getElementById('pasteBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const fileStatusBadge = document.getElementById('fileStatusBadge');
+        const summaryLabel = document.getElementById('summaryLabel');
+        const modeSelect = document.getElementById('modeSelect');
+        
+        // Overlay elements
+        const backdrop = document.getElementById('backdrop');
+        const highlightsDiv = document.getElementById('highlights');
+        
+        let currentErrors = [];
+        let loadedFileName = null;
+        let validationTimeout = null;
+        let currentHighlightedLine = null;
+        
+        function syncScroll() {
+            if (backdrop && editor) {
+                backdrop.scrollTop = editor.scrollTop;
+                backdrop.scrollLeft = editor.scrollLeft;
+            }
+        }
+        
+        function updateOverlay() {
+            const text = editor.value;
+            const lines = text.split('\n');
+            let html = '';
+            for (let i = 0; i < lines.length; i++) {
+                const lineNumber = i + 1;
+                const lineContent = escapeHtml(lines[i]) || ' ';
+                if (currentHighlightedLine === lineNumber) {
+                    html += `<mark>${lineContent}</mark>\n`;
+                } else {
+                    html += `${lineContent}\n`;
+                }
+            }
+            highlightsDiv.innerHTML = html;
+        }
+        
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        function clearHighlight() {
+            if (currentHighlightedLine !== null) {
+                currentHighlightedLine = null;
+                updateOverlay();
+            }
+        }
+        
+        function updateSummary() {
+            if (currentErrors.length === 0) {
+                summaryLabel.innerHTML = '✅ Valid markup';
+                summaryLabel.style.background = "var(--app-success-bg)";
+                summaryLabel.style.color = "#0e6b3e";
+            } else {
+                summaryLabel.innerHTML = `⚠️ ${currentErrors.length} error(s) found`;
+                summaryLabel.style.background = "var(--app-error-header-bg)";
+                summaryLabel.style.color = "#b45309";
+            }
+        }
+        
+        function renderFullErrorPanel() {
+            if (!currentErrors.length) {
+                resultContainer.innerHTML = '';
+                return;
+            }
+            const panel = document.createElement('div');
+            panel.className = 'error-panel';
+            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to highlight line</span></div><div class="error-list" id="errorList"></div>`;
+            resultContainer.innerHTML = '';
+            resultContainer.appendChild(panel);
+            const listContainer = panel.querySelector('#errorList');
+            for (const err of currentErrors) {
+                const row = document.createElement('div');
+                row.className = 'error-line';
+                row.setAttribute('data-line', err.line);
+                row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
+                row.addEventListener('click', () => {
+                    highlightLineInTextarea(err.line);
+                });
+                listContainer.appendChild(row);
+            }
+        }
+        
+        function highlightLineInTextarea(lineNum) {
+            const lines = editor.value.split('\n');
+            if (lineNum < 1 || lineNum > lines.length) return;
+            
+            // Set the highlighted line (replaces any previous highlight)
+            currentHighlightedLine = lineNum;
+            updateOverlay();
+            
+            // Scroll to the line
+            const lineHeight = parseInt(getComputedStyle(editor).lineHeight);
+            const approxY = (lineNum - 1) * lineHeight;
+            editor.scrollTop = Math.max(0, approxY - editor.clientHeight / 3);
+            syncScroll();
+            
+            // No automatic timeout – highlight stays until user interacts with editor
+        }
+        
+        function validateXmlSvg(content) {
+            const errors = [];
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(content, "text/xml");
+            const parseError = doc.querySelector('parsererror');
+            if (parseError) {
+                const rawErrorMsg = parseError.textContent || '';
+                let lineMatch = rawErrorMsg.match(/line\s+(\d+)/i);
+                let line = lineMatch ? parseInt(lineMatch[1], 10) : 1;
+                if (isNaN(line)) line = 1;
+                let cleanedMsg = rawErrorMsg.replace(/\s+/g, ' ').trim();
+                if (cleanedMsg.length > 160) cleanedMsg = cleanedMsg.slice(0, 150) + '…';
+                errors.push({ line: line, message: `XML/SVG parse: ${cleanedMsg}` });
+            }
+            return errors;
+        }
+        
+        function validateHtmlRobust(content) {
+            const errors = [];
+            const lines = content.split('\n');
+            const tagStack = [];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                let inDoubleQuote = false, inSingleQuote = false;
+                for (let idx = 0; idx < line.length; idx++) {
+                    const ch = line[idx];
+                    if (ch === '"' && !inSingleQuote) inDoubleQuote = !inDoubleQuote;
+                    else if (ch === "'" && !inDoubleQuote) inSingleQuote = !inSingleQuote;
+                }
+                if (inDoubleQuote) errors.push({ line: i+1, message: `Unclosed double quote (") in line — attribute value likely unterminated.` });
+                if (inSingleQuote) errors.push({ line: i+1, message: `Unclosed single quote (') in line — attribute value likely unterminated.` });
+                
+                let processedLine = line.replace(/="[^"]*"/g, '=""').replace(/='[^']*'/g, "=''");
+                const openAngles = (processedLine.match(/</g) || []).length;
+                const closeAngles = (processedLine.match(/>/g) || []).length;
+                if (openAngles !== closeAngles) {
+                    errors.push({ line: i+1, message: `Mismatched angle brackets: ${openAngles} opening '<' vs ${closeAngles} closing '>'` });
+                }
+                
+                const tagRegex = /<(\/?)([\w:-]+)(\s+[^>]*?)?(\/)?>/g;
+                let match;
+                while ((match = tagRegex.exec(line)) !== null) {
+                    const full = match[0];
+                    const isClosing = match[1] === '/';
+                    let tagName = match[2] ? match[2].toLowerCase() : '';
+                    const selfClosingSlash = match[4] === '/';
+                    const isSelfClosing = selfClosingSlash || full.endsWith('/>');
+                    const voidTags = ['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'];
+                    const isVoid = voidTags.includes(tagName);
+                    
+                    if (!isClosing && !isSelfClosing && !isVoid) {
+                        tagStack.push({ tagName, line: i+1 });
+                    } else if (isClosing) {
+                        if (tagStack.length === 0) {
+                            errors.push({ line: i+1, message: `Unexpected closing tag </${tagName}> — no matching open tag.` });
+                        } else {
+                            const last = tagStack.pop();
+                            if (last.tagName !== tagName) {
+                                errors.push({ line: i+1, message: `Mismatched closing: expected </${last.tagName}>, got </${tagName}>.` });
+                                tagStack.push(last);
+                            }
+                        }
+                    }
+                }
+            }
+            for (const leftover of tagStack) {
+                errors.push({ line: leftover.line, message: `Unclosed tag <${leftover.tagName}> — missing corresponding closing tag.` });
+            }
+            const unique = new Map();
+            for (const e of errors) {
+                const key = `${e.line}|${e.message.substring(0,70)}`;
+                if (!unique.has(key)) unique.set(key, e);
+            }
+            return Array.from(unique.values());
+        }
+        
+        function runValidation() {
+            const rawCode = editor.value;
+            if (rawCode.trim() === '') {
+                currentErrors = [];
+                updateSummary();
+                renderFullErrorPanel();
+                return;
+            }
+            let mode = modeSelect.value;
+            if (mode === 'auto') {
+                const trimmed = rawCode.trim();
+                if (trimmed.startsWith('<?xml') || /^\s*<svg\b/i.test(trimmed) || /^\s*<\?xml/.test(trimmed) || (trimmed.includes('xmlns') && !/<html\b/i.test(trimmed))) {
+                    mode = 'xml';
+                } else {
+                    mode = 'html';
+                }
+            }
+            let errors = [];
+            if (mode === 'xml') errors = validateXmlSvg(rawCode);
+            else errors = validateHtmlRobust(rawCode);
+            const totalLines = rawCode.split('\n').length;
+            errors = errors.filter(e => e.line >= 1 && e.line <= totalLines);
+            currentErrors = errors;
+            updateSummary();
+            renderFullErrorPanel();
+            // Do not clear highlight automatically – keep existing highlight
+        }
+        
+        function scheduleValidation() {
+            if (validationTimeout) clearTimeout(validationTimeout);
+            validationTimeout = setTimeout(runValidation, 300);
+        }
+        
+        // Clear highlight when editor gets focus or user types (interaction)
+        editor.addEventListener('focus', clearHighlight);
+        editor.addEventListener('input', function() {
+            clearHighlight();
+            scheduleValidation();
+            updateOverlay();
+        });
+        editor.addEventListener('scroll', syncScroll);
+        
+        // When mode changes, re-validate but keep highlight? Better clear highlight to avoid confusion
+        modeSelect.addEventListener('change', function() {
+            clearHighlight();
+            scheduleValidation();
+        });
+        
+        function initialOverlaySync() {
+            updateOverlay();
+            syncScroll();
+        }
+        
+        // File & clipboard handlers
+        function loadFile() {
+            const inp = document.createElement('input');
+            inp.type = 'file';
+            inp.accept = '.html,.htm,.xml,.svg,.txt,.xhtml,.xslt';
+            inp.onchange = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                let fullName = file.name;
+                let baseName = fullName.replace(/\.[^/.]+$/, "");
+                loadedFileName = baseName || "document";
+                updateFileStatus();
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        editor.value = e.target.result;
+                        resultContainer.innerHTML = '';
+                        clearHighlight();
+                        updateOverlay();
+                        scheduleValidation();
+                    } catch (err) {
+                        alert("Failed to process file content.");
+                        loadedFileName = null;
+                        updateFileStatus();
+                    }
+                };
+                reader.onerror = () => { alert("Unable to read file."); loadedFileName = null; updateFileStatus(); };
+                reader.readAsText(file, "UTF-8");
+            };
+            inp.click();
+        }
+        
+        async function pasteFromClip() {
+            try {
+                const text = await navigator.clipboard.readText();
+                editor.value = text;
+                loadedFileName = null;
+                updateFileStatus();
+                resultContainer.innerHTML = '';
+                clearHighlight();
+                updateOverlay();
+                scheduleValidation();
+            } catch (err) {
+                alert("Clipboard read failed. Grant permission or paste manually.");
+            }
+        }
+        
+        function saveToFile() {
+            const content = editor.value;
+            if (!content) return alert('No content to save.');
+            const modeRad = modeSelect.value;
+            let ext = '.txt';
+            if (modeRad === 'html') ext = '.html';
+            else if (modeRad === 'xml') ext = '.xml';
+            else {
+                if (/<html/i.test(content)) ext = '.html';
+                else if (/<svg/i.test(content)) ext = '.svg';
+                else ext = '.xml';
+            }
+            let finalBase = loadedFileName ? `${loadedFileName}_validated` : 'validated_markup';
+            let filename = finalBase + ext;
+            const blob = new Blob([content], {type: 'text/plain'});
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        async function copyEditorText() {
+            await navigator.clipboard.writeText(editor.value);
+            const orig = copyBtn.textContent;
+            copyBtn.textContent = '✓';
+            setTimeout(() => copyBtn.textContent = '📄', 1000);
+        }
+        
+        function clearAll() {
+            editor.value = '';
+            loadedFileName = null;
+            updateFileStatus();
+            resultContainer.innerHTML = '';
+            clearHighlight();
+            updateOverlay();
+            scheduleValidation();
+        }
+        
+        function updateFileStatus() {
+            if (loadedFileName) {
+                fileStatusBadge.innerHTML = `📄 ${loadedFileName}`;
+                fileStatusBadge.style.background = "var(--app-file-status-active)";
+            } else {
+                fileStatusBadge.innerHTML = `📄 no file loaded`;
+                fileStatusBadge.style.background = "var(--app-file-status-bg)";
+            }
+        }
+        
+        loadBtn.addEventListener('click', loadFile);
+        pasteBtn.addEventListener('click', pasteFromClip);
+        saveBtn.addEventListener('click', saveToFile);
+        copyBtn.addEventListener('click', copyEditorText);
+        clearBtn.addEventListener('click', clearAll);
+        
+        // Initial demo content
+        editor.value = `<div>
+  <h1>Title missing closing tag
+  <p>Unclosed paragraph
+  <img src="photo.jpg" alt="demo">
+  <span class="test">Text</span>
+</div>`;
+        loadedFileName = null;
+        updateFileStatus();
+        initialOverlaySync();
+        scheduleValidation();
+        
+        // Resize observer to keep overlay dimensions in sync
+        const resizeObserver = new ResizeObserver(() => {
+            if (backdrop && editor) {
+                backdrop.style.height = editor.clientHeight + 'px';
+                syncScroll();
+            }
+        });
+        resizeObserver.observe(editor);
+    })();
+</script>
+</body>
+</html>

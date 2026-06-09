@@ -1,0 +1,456 @@
+--- MarkupLinter_v1_8_0.html	2026-06-09 16:31:24.191090792 +0300
++++ MarkupLinter_v1_9_0.html	2026-06-09 16:30:39.739017246 +0300
+@@ -48,6 +48,8 @@
+             --app-file-status-active: #e6f0ff;
+             --app-select-bg: #f0f2f5;
+             --app-select-border: #dce3ec;
++            --app-summary-bg: #f8f9fc;
++            --app-summary-text: #1f3a5f;
+ 
+             max-width: 1400px;
+             margin: 0 auto;
+@@ -85,6 +87,8 @@
+             --app-file-status-active: #1e3a5f;
+             --app-select-bg: #2a3245;
+             --app-select-border: #3a4358;
++            --app-summary-bg: #151e2c;
++            --app-summary-text: #b9d0ff;
+         }
+         #markup-validator-app,
+         #markup-validator-app * {
+@@ -191,8 +195,17 @@
+         #markup-validator-app .editor-area {
+             padding: 0 2rem 2rem 2rem;
+         }
+-        #markup-validator-app .validation-status {
+-            margin-bottom: 1rem;
++        /* summary label above textarea */
++        #markup-validator-app .validation-summary {
++            margin-bottom: 0.75rem;
++            font-size: 0.85rem;
++            font-weight: 500;
++            background: var(--app-summary-bg);
++            padding: 0.4rem 1rem;
++            border-radius: 2rem;
++            display: inline-block;
++            color: var(--app-summary-text);
++            border: 1px solid var(--app-btn-border);
+         }
+         #markup-validator-app textarea {
+             width: 100%;
+@@ -213,8 +226,9 @@
+             border-color: #2563eb;
+             box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+         }
++        /* error panel at the bottom */
+         #markup-validator-app .error-panel {
+-            margin-top: 0;
++            margin-top: 1.5rem;
+             border-radius: 1.25rem;
+             background: var(--app-error-panel-bg);
+             border: 1px solid var(--app-error-panel-border);
+@@ -332,23 +346,24 @@
+         </div>
+     </div>
+     <div class="editor-area">
+-        <!-- validation status moved ABOVE textarea -->
+-        <div id="resultContainer" class="validation-status"></div>
++        <!-- Simple summary label above textarea -->
++        <div id="summaryLabel" class="validation-summary">⚙️ Ready</div>
+         <textarea id="codeEditor" placeholder="Paste HTML, XML or SVG markup...&#10;&#10;Example:&#10;&lt;html&gt;&#10;  &lt;body&gt;&lt;h1&gt;Hello world&lt;/h1&gt;&lt;/body&gt;&#10;&lt;/html&gt;"></textarea>
++        <!-- Full error log below textarea -->
++        <div id="resultContainer"></div>
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.8.0</span>
++        <span class="version">version 1.9.0</span>
+     </footer>
+ </div>
+ 
+ <script>
+     (function(){
+-        // ----- DYNAMIC THEME CONTROLLER (with localStorage and system listener) -----
++        // ----- THEME CONTROLLER (unchanged) -----
+         const appContainer = document.getElementById('markup-validator-app');
+         const bodyEl = document.body;
+         const themeSelect = document.getElementById('themeToggle');
+-        
+         let currentMode = 'auto';
+         let systemListenerActive = false;
+         let mediaQueryListener = null;
+@@ -362,15 +377,12 @@
+                 appContainer.classList.remove('theme-dark');
+             }
+         }
+-        
+         function getSystemPreference() {
+             return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+         }
+-        
+         function updateFromMode(mode) {
+             if (mode === 'auto') {
+-                const systemTheme = getSystemPreference();
+-                applyTheme(systemTheme);
++                applyTheme(getSystemPreference());
+                 activateSystemListener();
+             } else if (mode === 'dark') {
+                 deactivateSystemListener();
+@@ -380,89 +392,85 @@
+                 applyTheme('light');
+             }
+         }
+-        
+         function activateSystemListener() {
+             if (systemListenerActive) return;
+             const darkModeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+             const handler = (e) => {
+-                if (currentMode === 'auto') {
+-                    applyTheme(e.matches ? 'dark' : 'light');
+-                }
++                if (currentMode === 'auto') applyTheme(e.matches ? 'dark' : 'light');
+             };
+-            if (darkModeMedia.addEventListener) {
+-                darkModeMedia.addEventListener('change', handler);
+-            } else if (darkModeMedia.addListener) {
+-                darkModeMedia.addListener(handler);
+-            }
++            if (darkModeMedia.addEventListener) darkModeMedia.addEventListener('change', handler);
++            else if (darkModeMedia.addListener) darkModeMedia.addListener(handler);
+             mediaQueryListener = { media: darkModeMedia, handler };
+             systemListenerActive = true;
+         }
+-        
+         function deactivateSystemListener() {
+             if (!systemListenerActive || !mediaQueryListener) return;
+             const { media, handler } = mediaQueryListener;
+-            if (media.removeEventListener) {
+-                media.removeEventListener('change', handler);
+-            } else if (media.removeListener) {
+-                media.removeListener(handler);
+-            }
++            if (media.removeEventListener) media.removeEventListener('change', handler);
++            else if (media.removeListener) media.removeListener(handler);
+             systemListenerActive = false;
+             mediaQueryListener = null;
+         }
+-        
+         function setThemeMode(mode) {
+             currentMode = mode;
+             updateFromMode(mode);
+-            try {
+-                localStorage.setItem('markup_validator_theme', mode);
+-            } catch(e) {}
+-            if (themeSelect && themeSelect.value !== mode) {
+-                themeSelect.value = mode;
+-            }
++            try { localStorage.setItem('markup_validator_theme', mode); } catch(e) {}
++            if (themeSelect && themeSelect.value !== mode) themeSelect.value = mode;
+         }
+-        
+         let savedMode = 'auto';
+-        try {
+-            const stored = localStorage.getItem('markup_validator_theme');
+-            if (stored === 'light' || stored === 'dark' || stored === 'auto') {
+-                savedMode = stored;
+-            }
+-        } catch(e) {}
++        try { const stored = localStorage.getItem('markup_validator_theme'); if (stored === 'light' || stored === 'dark' || stored === 'auto') savedMode = stored; } catch(e) {}
+         setThemeMode(savedMode);
++        if (themeSelect) themeSelect.addEventListener('change', (e) => setThemeMode(e.target.value));
+         
+-        if (themeSelect) {
+-            themeSelect.addEventListener('change', (e) => {
+-                setThemeMode(e.target.value);
+-            });
+-        }
+-        
+-        // ----- VALIDATOR CORE (same as before) -----
+-        const editor = appContainer.querySelector('#codeEditor');
+-        const validateBtn = appContainer.querySelector('#validateBtn');
+-        const loadBtn = appContainer.querySelector('#loadBtn');
+-        const pasteBtn = appContainer.querySelector('#pasteBtn');
+-        const saveBtn = appContainer.querySelector('#saveBtn');
+-        const copyBtn = appContainer.querySelector('#copyBtn');
+-        const clearBtn = appContainer.querySelector('#clearBtn');
+-        const resultContainer = appContainer.querySelector('#resultContainer');
+-        const fileStatusBadge = appContainer.querySelector('#fileStatusBadge');
++        // ----- VALIDATOR CORE -----
++        const editor = document.getElementById('codeEditor');
++        const validateBtn = document.getElementById('validateBtn');
++        const loadBtn = document.getElementById('loadBtn');
++        const pasteBtn = document.getElementById('pasteBtn');
++        const saveBtn = document.getElementById('saveBtn');
++        const copyBtn = document.getElementById('copyBtn');
++        const clearBtn = document.getElementById('clearBtn');
++        const resultContainer = document.getElementById('resultContainer');
++        const fileStatusBadge = document.getElementById('fileStatusBadge');
++        const summaryLabel = document.getElementById('summaryLabel');
+ 
+         let currentErrors = [];
+         let loadedFileName = null;
+         let validationTimeout = null;
+ 
+-        function resetDisplay() {
+-            resultContainer.innerHTML = '';
+-            currentErrors = [];
++        function updateSummary() {
++            if (currentErrors.length === 0) {
++                summaryLabel.innerHTML = '✅ Valid markup';
++                summaryLabel.style.background = "var(--app-success-bg)";
++                summaryLabel.style.color = "#0e6b3e";
++            } else {
++                summaryLabel.innerHTML = `⚠️ ${currentErrors.length} error(s) found`;
++                summaryLabel.style.background = "var(--app-error-header-bg)";
++                summaryLabel.style.color = "#b45309";
++            }
+         }
+ 
+-        function updateFileStatus() {
+-            if (loadedFileName) {
+-                fileStatusBadge.innerHTML = `📄 ${loadedFileName}`;
+-                fileStatusBadge.style.background = "var(--app-file-status-active)";
+-            } else {
+-                fileStatusBadge.innerHTML = `📄 no file loaded`;
+-                fileStatusBadge.style.background = "var(--app-file-status-bg)";
++        function renderFullErrorPanel() {
++            if (!currentErrors.length) {
++                resultContainer.innerHTML = '';
++                return;
++            }
++            const panel = document.createElement('div');
++            panel.className = 'error-panel';
++            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to highlight line</span></div><div class="error-list" id="errorList"></div>`;
++            resultContainer.innerHTML = '';
++            resultContainer.appendChild(panel);
++            const listContainer = panel.querySelector('#errorList');
++            for (const err of currentErrors) {
++                const row = document.createElement('div');
++                row.className = 'error-line';
++                row.setAttribute('data-line', err.line);
++                row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
++                row.addEventListener('click', () => {
++                    clearEditorHighlight();
++                    highlightLineAndJump(err.line);
++                });
++                listContainer.appendChild(row);
+             }
+         }
+ 
+@@ -479,9 +487,7 @@
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
+             let pos = 0;
+-            for (let i = 0; i < lineNum - 1; i++) {
+-                pos += lines[i].length + 1;
+-            }
++            for (let i = 0; i < lineNum - 1; i++) pos += lines[i].length + 1;
+             const endPos = pos + lines[lineNum-1].length;
+             editor.focus();
+             editor.setSelectionRange(pos, endPos);
+@@ -510,35 +516,9 @@
+                 if (m === '<') return '&lt;';
+                 if (m === '>') return '&gt;';
+                 return m;
+-            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+-                return c;
+             });
+         }
+ 
+-        function renderErrors() {
+-            if (!currentErrors.length) {
+-                resultContainer.innerHTML = `<div style="padding: 0.5rem 0;"><div class="success-chip">✅ No syntax errors — markup is valid.</div></div>`;
+-                return;
+-            }
+-            const panel = document.createElement('div');
+-            panel.className = 'error-panel';
+-            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ ${currentErrors.length} error(s) found</span><span class="line-hint">↳ click any error to highlight line</span></div><div class="error-list" id="errorList"></div>`;
+-            resultContainer.innerHTML = '';
+-            resultContainer.appendChild(panel);
+-            const listContainer = panel.querySelector('#errorList');
+-            for (const err of currentErrors) {
+-                const row = document.createElement('div');
+-                row.className = 'error-line';
+-                row.setAttribute('data-line', err.line);
+-                row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
+-                row.addEventListener('click', () => {
+-                    clearEditorHighlight();
+-                    highlightLineAndJump(err.line);
+-                });
+-                listContainer.appendChild(row);
+-            }
+-        }
+-
+         function validateXmlSvg(content) {
+             const errors = [];
+             const parser = new DOMParser();
+@@ -552,7 +532,6 @@
+                 let cleanedMsg = rawErrorMsg.replace(/\s+/g, ' ').trim();
+                 if (cleanedMsg.length > 160) cleanedMsg = cleanedMsg.slice(0, 150) + '…';
+                 errors.push({ line: line, message: `XML/SVG parse: ${cleanedMsg}` });
+-                return errors;
+             }
+             return errors;
+         }
+@@ -563,8 +542,7 @@
+             const tagStack = [];
+             for (let i = 0; i < lines.length; i++) {
+                 const line = lines[i];
+-                let inDoubleQuote = false;
+-                let inSingleQuote = false;
++                let inDoubleQuote = false, inSingleQuote = false;
+                 for (let idx = 0; idx < line.length; idx++) {
+                     const ch = line[idx];
+                     if (ch === '"' && !inSingleQuote) inDoubleQuote = !inDoubleQuote;
+@@ -620,8 +598,9 @@
+         function runValidation() {
+             const rawCode = editor.value;
+             if (rawCode.trim() === '') {
+-                resultContainer.innerHTML = `<div class="success-chip" style="background:var(--app-btn-bg); color:var(--app-text-secondary);">📄 Editor is empty — nothing to validate.</div>`;
+                 currentErrors = [];
++                updateSummary();
++                renderFullErrorPanel();
+                 clearEditorHighlight();
+                 return;
+             }
+@@ -636,30 +615,23 @@
+                 }
+             }
+             let errors = [];
+-            if (mode === 'xml') {
+-                errors = validateXmlSvg(rawCode);
+-            } else {
+-                errors = validateHtmlRobust(rawCode);
+-            }
++            if (mode === 'xml') errors = validateXmlSvg(rawCode);
++            else errors = validateHtmlRobust(rawCode);
+             const totalLines = rawCode.split('\n').length;
+             errors = errors.filter(e => e.line >= 1 && e.line <= totalLines);
+             currentErrors = errors;
+-            renderErrors();
++            updateSummary();
++            renderFullErrorPanel();
+             clearEditorHighlight();
+-            if (currentErrors.length > 0) {
+-                setTimeout(() => highlightBottomError(), 20);
+-            }
++            if (currentErrors.length > 0) setTimeout(() => highlightBottomError(), 20);
+         }
+ 
+-        // Debounced validation on input
+         function scheduleValidation() {
+             if (validationTimeout) clearTimeout(validationTimeout);
+-            validationTimeout = setTimeout(() => {
+-                runValidation();
+-            }, 300);
++            validationTimeout = setTimeout(runValidation, 300);
+         }
+ 
+-        // ----- File operations (trigger validation after load) -----
++        // File & clipboard handlers
+         function loadFile() {
+             const inp = document.createElement('input');
+             inp.type = 'file';
+@@ -674,23 +646,16 @@
+                 const reader = new FileReader();
+                 reader.onload = (e) => {
+                     try {
+-                        const content = e.target.result;
+-                        editor.value = content;
+-                        resetDisplay();
+-                        clearEditorHighlight();
+-                        scheduleValidation(); // validate after load
++                        editor.value = e.target.result;
++                        resultContainer.innerHTML = '';
++                        scheduleValidation();
+                     } catch (err) {
+-                        console.error("File processing error:", err);
+                         alert("Failed to process file content.");
+                         loadedFileName = null;
+                         updateFileStatus();
+                     }
+                 };
+-                reader.onerror = () => {
+-                    alert("Unable to read file. Check permissions.");
+-                    loadedFileName = null;
+-                    updateFileStatus();
+-                };
++                reader.onerror = () => { alert("Unable to read file."); loadedFileName = null; updateFileStatus(); };
+                 reader.readAsText(file, "UTF-8");
+             };
+             inp.click();
+@@ -702,11 +667,10 @@
+                 editor.value = text;
+                 loadedFileName = null;
+                 updateFileStatus();
+-                resetDisplay();
+-                clearEditorHighlight();
+-                scheduleValidation(); // validate after paste
++                resultContainer.innerHTML = '';
++                scheduleValidation();
+             } catch (err) {
+-                alert("Clipboard read failed. Grant permission or paste manually (Ctrl+V).");
++                alert("Clipboard read failed. Grant permission or paste manually.");
+             }
+         }
+ 
+@@ -746,41 +710,40 @@
+             editor.value = '';
+             loadedFileName = null;
+             updateFileStatus();
+-            resetDisplay();
+-            clearEditorHighlight();
+-            resultContainer.innerHTML = `<div class="success-chip" style="background:var(--app-btn-bg);">🧹 Cleared</div>`;
++            resultContainer.innerHTML = '';
++            scheduleValidation();
+         }
+ 
+-        // Event binding
+-        validateBtn.addEventListener('click', () => {
+-            if (validationTimeout) clearTimeout(validationTimeout);
+-            runValidation();
+-        });
++        function updateFileStatus() {
++            if (loadedFileName) {
++                fileStatusBadge.innerHTML = `📄 ${loadedFileName}`;
++                fileStatusBadge.style.background = "var(--app-file-status-active)";
++            } else {
++                fileStatusBadge.innerHTML = `📄 no file loaded`;
++                fileStatusBadge.style.background = "var(--app-file-status-bg)";
++            }
++        }
++
++        // Event listeners
++        validateBtn.addEventListener('click', () => { if (validationTimeout) clearTimeout(validationTimeout); runValidation(); });
+         loadBtn.addEventListener('click', loadFile);
+         pasteBtn.addEventListener('click', pasteFromClip);
+         saveBtn.addEventListener('click', saveToFile);
+         copyBtn.addEventListener('click', copyEditorText);
+         clearBtn.addEventListener('click', clearAll);
+         editor.addEventListener('input', scheduleValidation);
+-        // Also re-validate when mode (HTML/XML/Auto) changes
+-        const modeRadios = document.querySelectorAll('input[name="validMode"]');
+-        modeRadios.forEach(radio => {
+-            radio.addEventListener('change', () => scheduleValidation());
+-        });
++        document.querySelectorAll('input[name="validMode"]').forEach(radio => radio.addEventListener('change', scheduleValidation));
+ 
+-        // Initial demo content and validation
+-        const demoErrorExample = `<div>
++        // Initial demo
++        editor.value = `<div>
+   <h1>Title missing closing tag
+   <p>Unclosed paragraph
+   <img src="photo.jpg" alt="demo">
+   <span class="test">Text</span>
+ </div>`;
+-        editor.value = demoErrorExample;
+-        resetDisplay();
+-        clearEditorHighlight();
+         loadedFileName = null;
+         updateFileStatus();
+-        scheduleValidation(); // run initial validation
++        scheduleValidation();
+     })();
+ </script>
+ </body>

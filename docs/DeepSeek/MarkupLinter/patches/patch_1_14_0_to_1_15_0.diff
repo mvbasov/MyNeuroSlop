@@ -1,0 +1,88 @@
+--- MarkupLinter_v1_14_0.html	2026-06-09 17:24:36.973366077 +0300
++++ MarkupLinter_v1_15_0.html	2026-06-09 17:43:51.149946881 +0300
+@@ -221,12 +221,19 @@
+             resize: vertical;
+             tab-size: 2;
+             color: var(--app-text-primary);
++            transition: border 0.2s ease, box-shadow 0.2s ease;
+         }
+         #markup-validator-app textarea:focus {
+             outline: none;
+             border-color: #2563eb;
+             box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+         }
++        /* subtle visual indicator for error click (border highlight) */
++        #markup-validator-app textarea.error-highlight {
++            border-color: #f59e0b;
++            box-shadow: 0 0 0 2px #f59e0b;
++            transition: border 0.08s ease, box-shadow 0.08s ease;
++        }
+         #markup-validator-app .error-panel {
+             margin-top: 1.5rem;
+             border-radius: 1.25rem;
+@@ -349,7 +356,7 @@
+     </div>
+     <footer>
+         <span>✔ XML/SVG: DOMParser (strict) · HTML: tag matching + quote balance</span>
+-        <span class="version">version 1.14.0</span>
++        <span class="version">version 1.15.0</span>
+     </footer>
+ </div>
+ 
+@@ -432,7 +439,7 @@
+         setThemeMode(savedMode);
+         if (themeToggleBtn) themeToggleBtn.addEventListener('click', cycleTheme);
+         
+-        // ----- VALIDATOR CORE (with fixed error display & no flash) -----
++        // ----- VALIDATOR CORE (with visual border highlight on error click) -----
+         const editor = document.getElementById('codeEditor');
+         const loadBtn = document.getElementById('loadBtn');
+         const pasteBtn = document.getElementById('pasteBtn');
+@@ -467,7 +474,7 @@
+             }
+             const panel = document.createElement('div');
+             panel.className = 'error-panel';
+-            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to jump to line</span></div><div class="error-list" id="errorList"></div>`;
++            panel.innerHTML = `<div class="error-panel-header"><span>⚠️ Detailed errors</span><span class="line-hint">↳ click any error to jump & highlight</span></div><div class="error-list" id="errorList"></div>`;
+             resultContainer.innerHTML = '';
+             resultContainer.appendChild(panel);
+             const listContainer = panel.querySelector('#errorList');
+@@ -477,21 +484,25 @@
+                 row.setAttribute('data-line', err.line);
+                 row.innerHTML = `<span class="line-badge">line ${err.line}</span><span class="error-message">${escapeHtml(err.message)}</span>`;
+                 row.addEventListener('click', () => {
+-                    // No background flash, only scroll to line
+-                    jumpToLineWithoutFlash(err.line);
++                    jumpToLineWithVisualHint(err.line);
+                 });
+                 listContainer.appendChild(row);
+             }
+         }
+         
+-        // Smooth scroll to line without any background color change or selection
+-        function jumpToLineWithoutFlash(lineNum) {
++        // Scroll to line and briefly highlight the textarea border (subtle, non-disruptive)
++        function jumpToLineWithVisualHint(lineNum) {
+             const lines = editor.value.split('\n');
+             if (lineNum < 1 || lineNum > lines.length) return;
+             const lineHeight = parseInt(getComputedStyle(editor).lineHeight);
+             const approxY = (lineNum - 1) * lineHeight;
+             editor.scrollTop = Math.max(0, approxY - editor.clientHeight / 3);
+-            // No background flash, no selection change
++            
++            // Add temporary border highlight class
++            editor.classList.add('error-highlight');
++            setTimeout(() => {
++                editor.classList.remove('error-highlight');
++            }, 300);
+         }
+         
+         function escapeHtml(str) {
+@@ -604,7 +615,6 @@
+             currentErrors = errors;
+             updateSummary();
+             renderFullErrorPanel();
+-            // No automatic scrolling or selection
+         }
+         
+         function scheduleValidation() {
