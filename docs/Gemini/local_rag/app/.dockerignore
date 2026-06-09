@@ -1,0 +1,33 @@
+## Ignore Python virtual environments
+
+.venv/
+venv/
+ENV/
+env/
+
+## Ignore Python compiler caches
+
+/pycache/
+/.pyc
+/.pyo
+/*.pyd
+
+## Ignore local database cache or tracking files
+
+.indexer_hash_cache.json
+*.log
+
+## Ignore local git configurations
+
+.git/
+.gitignore
+
+## Ignore operating system temp files
+
+.DS_Store
+
+## Ignore Docker files inside the build
+
+.dockerignore
+Dockerfile
+Dockerfile.txt

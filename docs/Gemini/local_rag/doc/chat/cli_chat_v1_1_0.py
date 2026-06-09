@@ -10,8 +10,11 @@ logger = logging.getLogger(__name__)
 # Configuration matching app.py v1.7.0 targets
 OLLAMA_URL = "http://localhost:11434"
 QDRANT_URL = "http://localhost:6333"
-EMBED_MODEL = "all-minilm" 
-LLM_MODEL = "qwen2.5:0.5b" 
+#EMBED_MODEL = "all-minilm" 
+EMBED_MODEL = "nomic-embed-text" 
+#LLM_MODEL = "qwen2.5:0.5b" 
+#LLM_MODEL = "qwen2.5:1.5b" 
+LLM_MODEL = "qwen2.5:3b" # docker exec -it ollama ollama pull qwen2.5:3b 
 COLLECTION_NAME = "rag_documents"
 
 try:

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+pyenv install 3.11.10
+
+# 3. Lock this specific project folder to use only that Python version
+pyenv local 3.11.10
+
+# 4. (Optional but Recommended) Create a dedicated virtual environment using that version
+python -m venv .venv
+
+# 5. Activate your new virtual environment
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+
+pip install -r requirements.txt
+
+sudo apt install libsqlite3-dev

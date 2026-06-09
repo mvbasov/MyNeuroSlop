@@ -86,28 +86,3 @@ services:
       - QDRANT_PORT=6333
 #      - ENABLE_HTTP_LOGS=true  # <--- Add this to see HTTP logs again        
     restart: unless-stopped
-
-  # Containerized Conversational Interface (Web server by default, CLI-attachable)
-  rag-chat:
-    build: ./chat
-    container_name: rag-chat
-    depends_on:
-      qdrant:
-        condition: service_started
-      ollama:
-        condition: service_healthy
-    ports:
-      - "5001:5001" # Web Chat interface port
-    volumes:
-      - ./data:/data # Mapped directory for local context expansions
-    stdin_open: true
-    tty: true
-    environment:
-      - PYTHONUNBUFFERED=1
-      - OLLAMA_URL=http://ollama:11434
-      - QDRANT_URL=http://qdrant:6333
-      - EMBED_MODEL=nomic-embed-text
-      - LLM_MODEL=qwen2.5:3b # Configured to run qwen2.5:3b for premium Russian text processing
-      - DATA_DIR=/data
-    restart: unless-stopped
-

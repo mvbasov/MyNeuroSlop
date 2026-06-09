@@ -9,9 +9,10 @@ def fix_trailing_commas(file_path):
 
         # Regex explanation:
         # ,       - matches a literal comma
-        # (\s*[\]}]) - matches and captures zero or more whitespace (including newlines) AND a closing bracket ] or brace }
-        # r'\1'   - replaces the whole match with just the captured whitespace and bracket/brace (preserving newlines)
-        fixed_content = re.sub(r',(\s*[\]}])', r'\1', content)
+        # \s* - matches zero or more whitespace characters (spaces, newlines)
+        # ([\]}]) - matches and captures a closing bracket ] or brace }
+        # r'\1'   - replaces the whole match with just the captured bracket/brace
+        fixed_content = re.sub(r',\s*([\]}])', r'\1', content)
 
         if content != fixed_content:
             with open(file_path, 'w', encoding='utf-8') as f:

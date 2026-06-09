@@ -1,2 +1,3 @@
 docker-compose restart rag-app
+docker-compose restart rag-chat
 
