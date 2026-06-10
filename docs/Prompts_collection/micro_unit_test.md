@@ -27,8 +27,6 @@ Whenever you create a new application and want me to generate this exact testing
 > 2. **The Injector:** Dynamically load a separate `{app_name}_tests.js` script. If the URL contains `?test=run`, automatically execute `window.__runTests()`.
 > 3. **The Test Suite (Separate File):** Generate the companion Javascript test file. Include lightweight vanilla `assert()` and `assertTrue()` functions. Write tests that validate both internal logic (via the API bridge) and DOM UI changes.
 > 4. **Visual Output:** Hook into the app's native UI (e.g., a toast notification) to display the final test pass/fail results. Use an interval enforcer to ensure the final score toast stays visible for 7 seconds without being overwritten by the app's internal timeouts.
-> 
->
 
 ---
 
