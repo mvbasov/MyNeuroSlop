@@ -1,0 +1,181 @@
+--- MarkupLinter_v1_26_0.html	2026-06-09 22:06:04.624721993 +0300
++++ MarkupLinter_v1_27_0.html	2026-06-10 16:49:55.786335175 +0300
+@@ -141,11 +141,11 @@
+         }
+         .editor-with-lines { display: flex; border: 1px solid var(--app-textarea-border); border-radius: 1.5rem; background: var(--app-textarea-bg); overflow: hidden; }
+         .line-numbers {
+-            background: var(--app-line-number-bg);
++            background: var(--app-textarea-bg);
+             padding: 1rem 0.5rem 1rem 1rem;
+-            font-family: 'SF Mono', 'Fira Code', monospace;
++            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, Menlo, Monaco, monospace;
+             font-size: 13px;
+-            line-height: 1.5;
++            line-height: 20px;
+             text-align: right;
+             color: var(--app-line-number-color);
+             user-select: none;
+@@ -161,26 +161,37 @@
+             left: 0;
+             width: 100%;
+             height: 100%;
+-            overflow: auto;
++            overflow: hidden;
+             background-color: var(--app-textarea-bg);
+             pointer-events: none;
+             z-index: 1;
+             box-sizing: border-box;
+-            font-family: 'SF Mono', 'Fira Code', monospace;
++            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, Menlo, Monaco, monospace;
+             font-size: 13px;
+-            line-height: 1.5;
++            line-height: 20px;
+             padding: 1rem;
+         }
+-        .highlights { white-space: pre-wrap; word-wrap: break-word; color: transparent; background-color: transparent; }
+-        .highlights mark { color: transparent; background-color: var(--app-highlight-bg); display: inline; background: var(--app-highlight-bg); }
++        .highlights {
++            white-space: pre;
++            word-wrap: normal;
++            color: transparent !important;
++            -webkit-text-fill-color: transparent !important;
++            background-color: transparent;
++        }
++        .highlights mark {
++            color: transparent !important;
++            -webkit-text-fill-color: transparent !important;
++            background-color: var(--app-highlight-bg);
++            display: inline;
++        }
+         textarea {
+             position: relative;
+             z-index: 2;
+             width: 100%;
+             height: 380px;
+-            font-family: 'SF Mono', 'Fira Code', monospace;
++            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, Menlo, Monaco, monospace;
+             font-size: 13px;
+-            line-height: 1.5;
++            line-height: 20px;
+             background: transparent;
+             border: none;
+             padding: 1rem;
+@@ -190,13 +201,14 @@
+             caret-color: var(--app-text-primary);
+             overflow: auto;
+             outline: none;
++            box-sizing: border-box;
+         }
+         textarea:focus { outline: none; }
+         .backdrop .highlights, textarea {
+-            white-space: pre-wrap;
+-            word-wrap: break-word;
+-            word-break: break-word;
+-            overflow-wrap: break-word;
++            white-space: pre;
++            word-wrap: normal;
++            word-break: normal;
++            overflow-wrap: normal;
+         }
+         .backdrop, textarea { scrollbar-width: thin; }
+         .error-panel { margin-top: 1.5rem; border-radius: 1.25rem; background: var(--app-error-panel-bg); border: 1px solid var(--app-error-panel-border); }
+@@ -227,6 +239,7 @@
+                 <button id="copyBtn" class="icon-btn" title="Copy editor content">📄</button>
+                 <button id="clearBtn" class="icon-btn" title="Clear all">🗑</button>
+                 <button id="themeToggleBtn" class="theme-toggle" title="Switch theme">🌓</button>
++                <button id="toggleLineNumbersBtn" class="icon-btn" title="Toggle Line Numbers">🔢</button>
+                 <button id="jumpToInnerBtn" class="icon-btn" title="Jump to innermost error">🎯</button>
+             </div>
+             <div class="toolbar-right">
+@@ -246,7 +259,7 @@
+     </div>
+     <footer>
+         <span>✔ Strict XML: correct error line, full highlighting, no overlay artifacts</span>
+-        <span class="version">v1.26.0 · rock‑solid sync</span>
++        <span class="version">v1.27.0 · perfect sync & design</span>
+     </footer>
+ </div>
+ 
+@@ -302,6 +315,15 @@
+         let loadedFileName = null;
+         let validationTimeout = null;
+         let currentHighlightedLine = null;
++        let showLineNumbers = true;
++        
++        try {
++            const storedLineNumbers = localStorage.getItem('markup_validator_show_line_numbers');
++            if (storedLineNumbers === 'false') {
++                showLineNumbers = false;
++            }
++        } catch(e) {}
++        
+         let editor = null;
+         let lineNumbersDiv = null;
+         let backdrop = null;
+@@ -319,10 +341,30 @@
+             if (!editor || !lineNumbersDiv) return;
+             const lines = editor.value.split('\n');
+             let numbersHtml = '';
+-            for (let i = 1; i <= lines.length; i++) numbersHtml += i + '\n';
++            for (let i = 1; i <= lines.length; i++) numbersHtml += i + '.\n';
+             lineNumbersDiv.innerText = numbersHtml;
+         }
+         
++        function applyLineNumbersVisibility() {
++            if (lineNumbersDiv) {
++                lineNumbersDiv.style.display = showLineNumbers ? 'block' : 'none';
++            }
++            const toggleBtn = document.getElementById('toggleLineNumbersBtn');
++            if (toggleBtn) {
++                toggleBtn.style.opacity = showLineNumbers ? '1' : '0.5';
++                toggleBtn.style.borderColor = showLineNumbers ? 'var(--app-btn-border)' : 'var(--app-textarea-border)';
++            }
++        }
++
++        function toggleLineNumbers() {
++            showLineNumbers = !showLineNumbers;
++            applyLineNumbersVisibility();
++            try {
++                localStorage.setItem('markup_validator_show_line_numbers', showLineNumbers ? 'true' : 'false');
++            } catch(e) {}
++            fullSync();
++        }
++        
+         function updateOverlay() {
+             if (!editor || !highlightsDiv) return;
+             const lines = editor.value.split('\n');
+@@ -349,7 +391,8 @@
+         
+         function fullSync() {
+             if (!backdrop || !editor) return;
+-            // Force backdrop height to match textarea exactly
++            // Force backdrop size to match textarea's client size exactly (handles scrollbar widths flawlessly)
++            backdrop.style.width = editor.clientWidth + 'px';
+             backdrop.style.height = editor.clientHeight + 'px';
+             // Rebuild overlay to ensure marks are correctly placed
+             updateOverlay();
+@@ -563,6 +606,9 @@
+             editor.addEventListener('input', function() { scheduleValidation(); updateOverlay(); updateLineNumbers(); });
+             editor.addEventListener('scroll', syncScroll);
+             
++            // Apply line numbers setting
++            applyLineNumbersVisibility();
++            
+             // Initial sync
+             fullSync();
+             
+@@ -709,12 +755,14 @@
+             const copyBtn = document.getElementById('copyBtn');
+             const clearBtn = document.getElementById('clearBtn');
+             const jumpBtn = document.getElementById('jumpToInnerBtn');
++            const toggleLineNumbersBtn = document.getElementById('toggleLineNumbersBtn');
+             if (loadBtn) loadBtn.addEventListener('click', loadFileModern);
+             if (pasteBtn) pasteBtn.addEventListener('click', pasteFromClip);
+             if (saveBtn) saveBtn.addEventListener('click', saveToFile);
+             if (copyBtn) copyBtn.addEventListener('click', copyEditorText);
+             if (clearBtn) clearBtn.addEventListener('click', clearAll);
+             if (jumpBtn) jumpBtn.addEventListener('click', jumpToInnermostError);
++            if (toggleLineNumbersBtn) toggleLineNumbersBtn.addEventListener('click', toggleLineNumbers);
+             modeSelect.addEventListener('change', onModeChange);
+         }
+         

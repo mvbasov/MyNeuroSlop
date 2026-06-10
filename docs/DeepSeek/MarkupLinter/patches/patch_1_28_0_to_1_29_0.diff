@@ -1,0 +1,170 @@
+--- MarkupLinter_v1_28_0.html	2026-06-10 17:03:25.683391535 +0300
++++ MarkupLinter_v1_29_0.html	2026-06-10 17:08:45.348924182 +0300
+@@ -217,11 +217,18 @@
+             overflow-wrap: normal;
+         }
+         textarea:focus { outline: none; }
+-        .backdrop .highlights, textarea {
+-            white-space: pre;
+-            word-wrap: normal;
+-            word-break: normal;
+-            overflow-wrap: normal;
++        .highlights, textarea {
++            white-space: pre !important;
++            word-wrap: normal !important;
++            word-break: normal !important;
++            overflow-wrap: normal !important;
++        }
++        #markup-validator-app.wrap-enabled .highlights, 
++        #markup-validator-app.wrap-enabled textarea {
++            white-space: pre-wrap !important;
++            word-wrap: break-word !important;
++            word-break: normal !important;
++            overflow-wrap: break-word !important;
+         }
+         .backdrop, textarea { scrollbar-width: thin; }
+         .error-panel { margin-top: 1.5rem; border-radius: 1.25rem; background: var(--app-error-panel-bg); border: 1px solid var(--app-error-panel-border); }
+@@ -253,6 +260,7 @@
+                 <button id="clearBtn" class="icon-btn" title="Clear all">🗑</button>
+                 <button id="themeToggleBtn" class="theme-toggle" title="Switch theme">🌓</button>
+                 <button id="toggleLineNumbersBtn" class="icon-btn" title="Toggle Line Numbers">🔢</button>
++                <button id="toggleWrapBtn" class="icon-btn" title="Toggle Line Wrap">🔁</button>
+                 <button id="jumpToInnerBtn" class="icon-btn" title="Jump to innermost error">🎯</button>
+             </div>
+             <div class="toolbar-right">
+@@ -272,7 +280,7 @@
+     </div>
+     <footer>
+         <span>✔ Strict XML: correct error line, full highlighting, no overlay artifacts</span>
+-        <span class="version">v1.28.0 · perfect scroll sync</span>
++        <span class="version">v1.29.0 · optional wrap feature</span>
+     </footer>
+ </div>
+ 
+@@ -329,12 +337,17 @@
+         let validationTimeout = null;
+         let currentHighlightedLine = null;
+         let showLineNumbers = true;
++        let lineWrapEnabled = false;
+         
+         try {
+             const storedLineNumbers = localStorage.getItem('markup_validator_show_line_numbers');
+             if (storedLineNumbers === 'false') {
+                 showLineNumbers = false;
+             }
++            const storedLineWrap = localStorage.getItem('markup_validator_line_wrap');
++            if (storedLineWrap === 'true') {
++                lineWrapEnabled = true;
++            }
+         } catch(e) {}
+         
+         let editor = null;
+@@ -384,40 +397,71 @@
+             }
+         }
+         
++        // Match dimensions dynamically to keep backdrop alignment 100% correct
+         function fullSync() {
+             if (!backdrop || !editor) return;
+-            // Match structural widths dynamically to handle scrollbar sizes seamlessly
+             backdrop.style.width = editor.clientWidth + 'px';
+             backdrop.style.height = editor.clientHeight + 'px';
+             if (lineNumbersDiv) {
+                 lineNumbersDiv.style.height = editor.clientHeight + 'px';
+             }
+-            // Rebuild overlay to ensure marks are correctly placed
+             updateOverlay();
+-            // Sync scroll positions
+             syncScroll();
+             updateLineNumbers();
+         }
+         
+-        function applyLineNumbersVisibility() {
++        function applyLineNumbersAndWrapVisibility() {
++            const app = document.getElementById('markup-validator-app');
++            if (lineWrapEnabled) {
++                app.classList.add('wrap-enabled');
++            } else {
++                app.classList.remove('wrap-enabled');
++            }
++
++            const toggleWrapBtn = document.getElementById('toggleWrapBtn');
++            if (toggleWrapBtn) {
++                toggleWrapBtn.style.opacity = lineWrapEnabled ? '1' : '0.5';
++                toggleWrapBtn.style.borderColor = lineWrapEnabled ? 'var(--app-btn-border)' : 'var(--app-textarea-border)';
++            }
++
++            const effectiveShowLineNumbers = showLineNumbers && !lineWrapEnabled;
+             if (lineNumbersDiv) {
+-                lineNumbersDiv.style.display = showLineNumbers ? 'block' : 'none';
++                lineNumbersDiv.style.display = effectiveShowLineNumbers ? 'block' : 'none';
+             }
+-            const toggleBtn = document.getElementById('toggleLineNumbersBtn');
+-            if (toggleBtn) {
+-                toggleBtn.style.opacity = showLineNumbers ? '1' : '0.5';
+-                toggleBtn.style.borderColor = showLineNumbers ? 'var(--app-btn-border)' : 'var(--app-textarea-border)';
++
++            const toggleLineNumbersBtn = document.getElementById('toggleLineNumbersBtn');
++            if (toggleLineNumbersBtn) {
++                if (lineWrapEnabled) {
++                    toggleLineNumbersBtn.style.opacity = '0.25';
++                    toggleLineNumbersBtn.style.cursor = 'not-allowed';
++                    toggleLineNumbersBtn.title = 'Line numbers disabled when wrap is enabled';
++                } else {
++                    toggleLineNumbersBtn.style.opacity = showLineNumbers ? '1' : '0.5';
++                    toggleLineNumbersBtn.style.cursor = 'pointer';
++                    toggleLineNumbersBtn.title = 'Toggle Line Numbers';
++                }
++                toggleLineNumbersBtn.style.borderColor = effectiveShowLineNumbers ? 'var(--app-btn-border)' : 'var(--app-textarea-border)';
+             }
+         }
+ 
+         function toggleLineNumbers() {
++            if (lineWrapEnabled) return;
+             showLineNumbers = !showLineNumbers;
+-            applyLineNumbersVisibility();
++            applyLineNumbersAndWrapVisibility();
+             try {
+                 localStorage.setItem('markup_validator_show_line_numbers', showLineNumbers ? 'true' : 'false');
+             } catch(e) {}
+             fullSync();
+         }
++
++        function toggleWrap() {
++            lineWrapEnabled = !lineWrapEnabled;
++            applyLineNumbersAndWrapVisibility();
++            try {
++                localStorage.setItem('markup_validator_line_wrap', lineWrapEnabled ? 'true' : 'false');
++            } catch(e) {}
++            fullSync();
++        }
+         
+         function clearHighlight() { if (currentHighlightedLine !== null) { currentHighlightedLine = null; updateOverlay(); } }
+         
+@@ -625,8 +669,8 @@
+             editor.addEventListener('input', function() { scheduleValidation(); updateOverlay(); updateLineNumbers(); });
+             editor.addEventListener('scroll', syncScroll);
+             
+-            // Apply line numbers setting
+-            applyLineNumbersVisibility();
++            // Apply line numbers and wrap setting
++            applyLineNumbersAndWrapVisibility();
+             
+             // Initial sync
+             fullSync();
+@@ -775,6 +819,7 @@
+             const clearBtn = document.getElementById('clearBtn');
+             const jumpBtn = document.getElementById('jumpToInnerBtn');
+             const toggleLineNumbersBtn = document.getElementById('toggleLineNumbersBtn');
++            const toggleWrapBtn = document.getElementById('toggleWrapBtn');
+             if (loadBtn) loadBtn.addEventListener('click', loadFileModern);
+             if (pasteBtn) pasteBtn.addEventListener('click', pasteFromClip);
+             if (saveBtn) saveBtn.addEventListener('click', saveToFile);
+@@ -782,6 +827,7 @@
+             if (clearBtn) clearBtn.addEventListener('click', clearAll);
+             if (jumpBtn) jumpBtn.addEventListener('click', jumpToInnermostError);
+             if (toggleLineNumbersBtn) toggleLineNumbersBtn.addEventListener('click', toggleLineNumbers);
++            if (toggleWrapBtn) toggleWrapBtn.addEventListener('click', toggleWrap);
+             modeSelect.addEventListener('change', onModeChange);
+         }
+         

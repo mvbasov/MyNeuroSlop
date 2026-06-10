@@ -1,0 +1,43 @@
+--- MarkupLinter_v1_30_0.html	2026-06-10 17:32:35.605249494 +0300
++++ MarkupLinter_v1_31_0.html	2026-06-10 17:40:38.902970924 +0300
+@@ -303,7 +303,7 @@
+     </div>
+     <footer>
+         <span>✔ Strict XML: correct error line, full highlighting, no overlay artifacts</span>
+-        <span class="version">v1.30.0 · built-in unit tests</span>
++        <span class="version">v1.31.0 · built-in unit tests</span>
+     </footer>
+ </div>
+ 
+@@ -683,14 +683,6 @@
+         
+         function scheduleValidation() { if (validationTimeout) clearTimeout(validationTimeout); validationTimeout = setTimeout(runValidation, 300); }
+         
+-        function jumpToInnermostError() {
+-            const btn = document.getElementById('jumpToInnerBtn');
+-            if (!currentErrors.length) { if(btn) btn.textContent = '❌'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 800); return; }
+-            const innermost = getInnermostError(currentErrors);
+-            if (innermost) { jumpToLine(innermost.line); if(btn) btn.textContent = '✓'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 500); }
+-            else { if(btn) btn.textContent = '❌'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 800); }
+-        }
+-        
+         // ----- Build editor DOM with perfect sync setup -----
+         function buildEditorDOM() {
+             const wrapper = document.createElement('div');
+@@ -880,7 +872,6 @@
+             if (saveBtn) saveBtn.addEventListener('click', saveToFile);
+             if (copyBtn) copyBtn.addEventListener('click', copyEditorText);
+             if (clearBtn) clearBtn.addEventListener('click', clearAll);
+-            if (jumpBtn) jumpBtn.addEventListener('click', jumpToInnermostError);
+             if (toggleLineNumbersBtn) toggleLineNumbersBtn.addEventListener('click', toggleLineNumbers);
+             if (toggleWrapBtn) toggleWrapBtn.addEventListener('click', toggleWrap);
+             modeSelect.addEventListener('change', onModeChange);
+@@ -924,7 +915,7 @@
+ 
+             // Inject companion test file
+             const script = document.createElement('script');
+-            script.src = 'MarkupLinter_v1_30_0_tests.js';
++            script.src = 'MarkupLinter_v1_31_0_tests.js';
+             script.onload = () => {
+                 if (/[?&]test=run/.test(window.location.search)) {
+                     setTimeout(() => {

@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- PRESERVE_BINARY_START -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%231E3A8A%22%20%2F%3E%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%2234%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%225%22%20%2F%3E%20%20%3Cline%20x1%3D%2276%22%20y1%3D%2274%22%20x2%3D%2290%22%20y2%3D%2288%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%20%3Ctext%20x%3D%2250%22%20y%3D%2257%22%20font-family%3D%22monospace%22%20font-size%3D%2230%22%20font-weight%3D%22bold%22%20fill%3D%22%23FFFFFF%22%20text-anchor%3D%22middle%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" />
+    <!-- PRESERVE_BINARY_END -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Markup Linter · Perfect sync · Highlight works in all modes</title>
     <style>
@@ -120,7 +122,7 @@
         .icon-btn:hover, .theme-toggle:hover { background: var(--app-btn-hover); transform: translateY(-1px); }
         .mode-select {
             background: var(--app-select-bg);
-            border: 1px solid var(--app-select-border);
+            border: 1px solid var(--select-border);
             border-radius: 2rem;
             padding: 0.4rem 0.8rem;
             font-size: 0.8rem;
@@ -140,12 +142,17 @@
             border: 1px solid var(--app-btn-border);
         }
         .editor-with-lines { display: flex; border: 1px solid var(--app-textarea-border); border-radius: 1.5rem; background: var(--app-textarea-bg); overflow: hidden; }
+        
         .line-numbers {
-            background: var(--app-line-number-bg);
-            padding: 1rem 0.5rem 1rem 1rem;
-            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: var(--app-textarea-bg);
+            padding-top: 1rem;
+            padding-bottom: 1rem; /* Locked to match editor padding precisely */
+            padding-left: 1rem;
+            padding-right: 0.5rem;
+            margin: 0;
+            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, Menlo, Monaco, monospace;
             font-size: 13px;
-            line-height: 1.5;
+            line-height: 20px; /* Explicit matching line-height */
             text-align: right;
             color: var(--app-line-number-color);
             user-select: none;
@@ -153,6 +160,7 @@
             overflow-y: hidden;
             border-right: 1px solid var(--app-textarea-border);
             flex-shrink: 0;
+            box-sizing: border-box;
         }
         .editor-wrapper { position: relative; flex: 1; }
         .backdrop {
@@ -161,26 +169,38 @@
             left: 0;
             width: 100%;
             height: 100%;
-            overflow: auto;
+            overflow: hidden;
             background-color: var(--app-textarea-bg);
             pointer-events: none;
             z-index: 1;
             box-sizing: border-box;
-            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, Menlo, Monaco, monospace;
             font-size: 13px;
-            line-height: 1.5;
+            line-height: 20px;
             padding: 1rem;
         }
-        .highlights { white-space: pre-wrap; word-wrap: break-word; color: transparent; background-color: transparent; }
-        .highlights mark { color: transparent; background-color: var(--app-highlight-bg); display: inline; background: var(--app-highlight-bg); }
+        .highlights { 
+            white-space: pre; 
+            word-wrap: normal; 
+            color: transparent !important; 
+            -webkit-text-fill-color: transparent !important;
+            background-color: transparent; 
+        }
+        .highlights mark { 
+            color: transparent !important; 
+            -webkit-text-fill-color: transparent !important;
+            background-color: var(--app-highlight-bg); 
+            display: inline; 
+        }
         textarea {
             position: relative;
             z-index: 2;
             width: 100%;
             height: 380px;
-            font-family: 'SF Mono', 'Fira Code', monospace;
+            margin: 0;
+            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, Menlo, Monaco, monospace;
             font-size: 13px;
-            line-height: 1.5;
+            line-height: 20px; /* Locked explicit layout height */
             background: transparent;
             border: none;
             padding: 1rem;
@@ -190,13 +210,25 @@
             caret-color: var(--app-text-primary);
             overflow: auto;
             outline: none;
+            box-sizing: border-box;
+            white-space: pre;
+            word-wrap: normal;
+            word-break: normal;
+            overflow-wrap: normal;
         }
         textarea:focus { outline: none; }
-        .backdrop .highlights, textarea {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            word-break: break-word;
-            overflow-wrap: break-word;
+        .highlights, textarea {
+            white-space: pre !important;
+            word-wrap: normal !important;
+            word-break: normal !important;
+            overflow-wrap: normal !important;
+        }
+        #markup-validator-app.wrap-enabled .highlights, 
+        #markup-validator-app.wrap-enabled textarea {
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+            word-break: normal !important;
+            overflow-wrap: break-word !important;
         }
         .backdrop, textarea { scrollbar-width: thin; }
         .error-panel { margin-top: 1.5rem; border-radius: 1.25rem; background: var(--app-error-panel-bg); border: 1px solid var(--app-error-panel-border); }
@@ -214,6 +246,29 @@
             .toolbar-left, .toolbar-right { justify-content: center; }
             footer { flex-direction: column; gap: 8px; }
         }
+        .app-toast {
+            display: none;
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--app-btn-primary-bg);
+            color: #ffffff;
+            border: 1px solid var(--app-btn-border);
+            padding: 0.8rem 1.6rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            z-index: 10000;
+            font-size: 0.9rem;
+            font-weight: 500;
+            align-items: center;
+            gap: 0.5rem;
+            animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: calc(100vw - 4rem);
+        }
+        @keyframes toastSlideIn {
+            from { transform: translateY(1rem); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 
     <div class="app-header">
@@ -227,6 +282,8 @@
                 <button id="copyBtn" class="icon-btn" title="Copy editor content">📄</button>
                 <button id="clearBtn" class="icon-btn" title="Clear all">🗑</button>
                 <button id="themeToggleBtn" class="theme-toggle" title="Switch theme">🌓</button>
+                <button id="toggleLineNumbersBtn" class="icon-btn" title="Toggle Line Numbers">🔢</button>
+                <button id="toggleWrapBtn" class="icon-btn" title="Toggle Line Wrap">🔁</button>
                 <button id="jumpToInnerBtn" class="icon-btn" title="Jump to innermost error">🎯</button>
             </div>
             <div class="toolbar-right">
@@ -246,13 +303,13 @@
     </div>
     <footer>
         <span>✔ Strict XML: correct error line, full highlighting, no overlay artifacts</span>
-        <span class="version">v1.26.0 · rock‑solid sync</span>
+        <span class="version">v1.31.0 · built-in unit tests</span>
     </footer>
 </div>
 
 <script>
     (function(){
-        // ----- THEME TOGGLE (unchanged) -----
+        // ----- THEME TOGGLE -----
         const appContainer = document.getElementById('markup-validator-app');
         const bodyEl = document.body;
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -302,6 +359,20 @@
         let loadedFileName = null;
         let validationTimeout = null;
         let currentHighlightedLine = null;
+        let showLineNumbers = true;
+        let lineWrapEnabled = false;
+        
+        try {
+            const storedLineNumbers = localStorage.getItem('markup_validator_show_line_numbers');
+            if (storedLineNumbers === 'false') {
+                showLineNumbers = false;
+            }
+            const storedLineWrap = localStorage.getItem('markup_validator_line_wrap');
+            if (storedLineWrap === 'true') {
+                lineWrapEnabled = true;
+            }
+        } catch(e) {}
+        
         let editor = null;
         let lineNumbersDiv = null;
         let backdrop = null;
@@ -314,12 +385,44 @@
         
         // Helper functions
         function escapeHtml(str) { return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+
+        let toastTimeout = null;
+        let toastInterval = null;
+        function showToast(message, duration = 3000, enforceLock = false) {
+            let toast = document.getElementById('appToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'appToast';
+                toast.className = 'app-toast';
+                appContainer.appendChild(toast);
+            }
+            toast.innerHTML = message;
+            toast.style.display = 'flex';
+            
+            if (toastTimeout) clearTimeout(toastTimeout);
+            if (toastInterval) clearInterval(toastInterval);
+
+            if (enforceLock) {
+                const startTime = Date.now();
+                toastInterval = setInterval(() => {
+                    toast.innerHTML = message;
+                    if (Date.now() - startTime > duration) {
+                        clearInterval(toastInterval);
+                        toast.style.display = 'none';
+                    }
+                }, 100);
+            } else {
+                toastTimeout = setTimeout(() => {
+                    toast.style.display = 'none';
+                }, duration);
+            }
+        }
         
         function updateLineNumbers() {
             if (!editor || !lineNumbersDiv) return;
             const lines = editor.value.split('\n');
             let numbersHtml = '';
-            for (let i = 1; i <= lines.length; i++) numbersHtml += i + '\n';
+            for (let i = 1; i <= lines.length; i++) numbersHtml += i + '.\n';
             lineNumbersDiv.innerText = numbersHtml;
         }
         
@@ -344,18 +447,75 @@
                 backdrop.scrollTop = editor.scrollTop;
                 backdrop.scrollLeft = editor.scrollLeft;
             }
-            if (lineNumbersDiv && editor) lineNumbersDiv.scrollTop = editor.scrollTop;
+            if (lineNumbersDiv && editor) {
+                lineNumbersDiv.scrollTop = editor.scrollTop;
+            }
         }
         
+        // Match dimensions dynamically to keep backdrop alignment 100% correct
         function fullSync() {
             if (!backdrop || !editor) return;
-            // Force backdrop height to match textarea exactly
+            backdrop.style.width = editor.clientWidth + 'px';
             backdrop.style.height = editor.clientHeight + 'px';
-            // Rebuild overlay to ensure marks are correctly placed
+            if (lineNumbersDiv) {
+                lineNumbersDiv.style.height = editor.clientHeight + 'px';
+            }
             updateOverlay();
-            // Sync scroll positions
             syncScroll();
             updateLineNumbers();
+        }
+        
+        function applyLineNumbersAndWrapVisibility() {
+            const app = document.getElementById('markup-validator-app');
+            if (lineWrapEnabled) {
+                app.classList.add('wrap-enabled');
+            } else {
+                app.classList.remove('wrap-enabled');
+            }
+
+            const toggleWrapBtn = document.getElementById('toggleWrapBtn');
+            if (toggleWrapBtn) {
+                toggleWrapBtn.style.opacity = lineWrapEnabled ? '1' : '0.5';
+                toggleWrapBtn.style.borderColor = lineWrapEnabled ? 'var(--app-btn-border)' : 'var(--app-textarea-border)';
+            }
+
+            const effectiveShowLineNumbers = showLineNumbers && !lineWrapEnabled;
+            if (lineNumbersDiv) {
+                lineNumbersDiv.style.display = effectiveShowLineNumbers ? 'block' : 'none';
+            }
+
+            const toggleLineNumbersBtn = document.getElementById('toggleLineNumbersBtn');
+            if (toggleLineNumbersBtn) {
+                if (lineWrapEnabled) {
+                    toggleLineNumbersBtn.style.opacity = '0.25';
+                    toggleLineNumbersBtn.style.cursor = 'not-allowed';
+                    toggleLineNumbersBtn.title = 'Line numbers disabled when wrap is enabled';
+                } else {
+                    toggleLineNumbersBtn.style.opacity = showLineNumbers ? '1' : '0.5';
+                    toggleLineNumbersBtn.style.cursor = 'pointer';
+                    toggleLineNumbersBtn.title = 'Toggle Line Numbers';
+                }
+                toggleLineNumbersBtn.style.borderColor = effectiveShowLineNumbers ? 'var(--app-btn-border)' : 'var(--app-textarea-border)';
+            }
+        }
+
+        function toggleLineNumbers() {
+            if (lineWrapEnabled) return;
+            showLineNumbers = !showLineNumbers;
+            applyLineNumbersAndWrapVisibility();
+            try {
+                localStorage.setItem('markup_validator_show_line_numbers', showLineNumbers ? 'true' : 'false');
+            } catch(e) {}
+            fullSync();
+        }
+
+        function toggleWrap() {
+            lineWrapEnabled = !lineWrapEnabled;
+            applyLineNumbersAndWrapVisibility();
+            try {
+                localStorage.setItem('markup_validator_line_wrap', lineWrapEnabled ? 'true' : 'false');
+            } catch(e) {}
+            fullSync();
         }
         
         function clearHighlight() { if (currentHighlightedLine !== null) { currentHighlightedLine = null; updateOverlay(); } }
@@ -397,13 +557,13 @@
             if (lineNum < 1 || lineNum > lines.length) return;
             currentHighlightedLine = lineNum;
             updateOverlay();
-            const lineHeight = parseInt(getComputedStyle(editor).lineHeight);
+            const lineHeight = 20; // Exact explicit pixel calculation
             const approxY = (lineNum - 1) * lineHeight;
             editor.scrollTop = Math.max(0, approxY - editor.clientHeight / 3);
             syncScroll();
         }
         
-        // ----- Validators (unchanged) -----
+        // ----- Validators -----
         function validateXmlSvg(content) {
             const errors = [];
             const parser = new DOMParser();
@@ -439,7 +599,7 @@
                 let inDoubleQuote = false, inSingleQuote = false;
                 for (let ch of line) {
                     if (ch === '"' && !inSingleQuote) inDoubleQuote = !inDoubleQuote;
-                    else if (ch === "'" && !inDoubleQuote) inSingleQuote = !inSingleQuote;
+                    else if (ch === "'" && !inDoubleQuote) inSingleQuote = !inDoubleQuote;
                 }
                 if (inDoubleQuote) errors.push({ line: i+1, message: `Unclosed double quote (") in line`, depth: currentDepth });
                 if (inSingleQuote) errors.push({ line: i+1, message: `Unclosed single quote (') in line`, depth: currentDepth });
@@ -491,6 +651,7 @@
             }, errors[0]);
         }
         
+        // Ensure accurate line-numbers counting representation on input change
         function runValidation() {
             if (!editor) return;
             const rawCode = editor.value;
@@ -521,14 +682,6 @@
         }
         
         function scheduleValidation() { if (validationTimeout) clearTimeout(validationTimeout); validationTimeout = setTimeout(runValidation, 300); }
-        
-        function jumpToInnermostError() {
-            const btn = document.getElementById('jumpToInnerBtn');
-            if (!currentErrors.length) { if(btn) btn.textContent = '❌'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 800); return; }
-            const innermost = getInnermostError(currentErrors);
-            if (innermost) { jumpToLine(innermost.line); if(btn) btn.textContent = '✓'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 500); }
-            else { if(btn) btn.textContent = '❌'; setTimeout(() => { if(btn) btn.textContent = '🎯'; }, 800); }
-        }
         
         // ----- Build editor DOM with perfect sync setup -----
         function buildEditorDOM() {
@@ -563,13 +716,16 @@
             editor.addEventListener('input', function() { scheduleValidation(); updateOverlay(); updateLineNumbers(); });
             editor.addEventListener('scroll', syncScroll);
             
+            // Apply line numbers and wrap setting
+            applyLineNumbersAndWrapVisibility();
+            
             // Initial sync
             fullSync();
             
-            // Use ResizeObserver to catch any layout changes (error panel appearing, window resize, etc.)
+            // Use ResizeObserver to catch any layout changes
             const resizeObserver = new ResizeObserver(() => { fullSync(); });
             resizeObserver.observe(editor);
-            // Also observe the editor area root to catch when error panel changes height
+            
             const editorAreaRoot = document.getElementById('editorAreaRoot');
             if (editorAreaRoot) resizeObserver.observe(editorAreaRoot);
             
@@ -684,7 +840,7 @@
             else { fileStatusBadge.innerHTML = `📄 no file loaded`; fileStatusBadge.style.background = "var(--app-file-status-bg)"; }
         }
         
-        // ----- Mode change: reinitialize editor to ensure clean state -----
+        // ----- Mode change -----
         function onModeChange() {
             const currentContent = editor ? editor.value : `<div>
   <h1>Title missing closing tag</h1>
@@ -709,12 +865,15 @@
             const copyBtn = document.getElementById('copyBtn');
             const clearBtn = document.getElementById('clearBtn');
             const jumpBtn = document.getElementById('jumpToInnerBtn');
+            const toggleLineNumbersBtn = document.getElementById('toggleLineNumbersBtn');
+            const toggleWrapBtn = document.getElementById('toggleWrapBtn');
             if (loadBtn) loadBtn.addEventListener('click', loadFileModern);
             if (pasteBtn) pasteBtn.addEventListener('click', pasteFromClip);
             if (saveBtn) saveBtn.addEventListener('click', saveToFile);
             if (copyBtn) copyBtn.addEventListener('click', copyEditorText);
             if (clearBtn) clearBtn.addEventListener('click', clearAll);
-            if (jumpBtn) jumpBtn.addEventListener('click', jumpToInnermostError);
+            if (toggleLineNumbersBtn) toggleLineNumbersBtn.addEventListener('click', toggleLineNumbers);
+            if (toggleWrapBtn) toggleWrapBtn.addEventListener('click', toggleWrap);
             modeSelect.addEventListener('change', onModeChange);
         }
         
@@ -728,6 +887,46 @@
 </div>`;
         initEditor(initialContent);
         bindGlobalButtons();
+
+        // ----- Test Bridge exposure -----
+        if (/[?&]test=/.test(window.location.search)) {
+            window.__TEST_API__ = {
+                getEditor: () => editor,
+                getLineNumbersDiv: () => lineNumbersDiv,
+                getBackdrop: () => backdrop,
+                getHighlightsDiv: () => highlightsDiv,
+                getResultContainer: () => resultContainer,
+                getSummaryLabel: () => summaryLabel,
+                getModeSelect: () => modeSelect,
+                getCurrentErrors: () => currentErrors,
+                getCurrentHighlightedLine: () => currentHighlightedLine,
+                getShowLineNumbers: () => showLineNumbers,
+                getLineWrapEnabled: () => lineWrapEnabled,
+                validateXmlSvg: validateXmlSvg,
+                validateHtmlRobust: validateHtmlRobust,
+                runValidation: runValidation,
+                toggleLineNumbers: toggleLineNumbers,
+                toggleWrap: toggleWrap,
+                clearAll: clearAll,
+                jumpToLine: jumpToLine,
+                showToast: showToast,
+                initContent: (txt) => { if (editor) { editor.value = txt; runValidation(); } }
+            };
+
+            // Inject companion test file
+            const script = document.createElement('script');
+            script.src = 'MarkupLinter_v1_31_0_tests.js';
+            script.onload = () => {
+                if (/[?&]test=run/.test(window.location.search)) {
+                    setTimeout(() => {
+                        if (typeof window.__runTests === 'function') {
+                            window.__runTests();
+                        }
+                    }, 500);
+                }
+            };
+            document.head.appendChild(script);
+        }
     })();
 </script>
 </body>

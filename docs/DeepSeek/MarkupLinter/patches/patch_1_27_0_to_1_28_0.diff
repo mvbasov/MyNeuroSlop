@@ -1,0 +1,246 @@
+--- MarkupLinter_v1_27_0.html	2026-06-10 16:49:55.786335175 +0300
++++ MarkupLinter_v1_28_0.html	2026-06-10 17:03:25.683391535 +0300
+@@ -2,7 +2,9 @@
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
++    <!-- PRESERVE_BINARY_START -->
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%20%20%3Crect%20width%3D%22100%22%20height%3D%22100%22%20rx%3D%2220%22%20fill%3D%22%231E3A8A%22%20%2F%3E%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2248%22%20r%3D%2234%22%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%225%22%20%2F%3E%20%20%3Cline%20x1%3D%2276%22%20y1%3D%2274%22%20x2%3D%2290%22%20y2%3D%2288%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%20%3Ctext%20x%3D%2250%22%20y%3D%2257%22%20font-family%3D%22monospace%22%20font-size%3D%2230%22%20font-weight%3D%22bold%22%20fill%3D%22%23FFFFFF%22%20text-anchor%3D%22middle%22%3E%26lt%3B%2F%26gt%3B%3C%2Ftext%3E%3C%2Fsvg%3E" />
++    <!-- PRESERVE_BINARY_END -->
+     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+     <title>Markup Linter · Perfect sync · Highlight works in all modes</title>
+     <style>
+@@ -120,7 +122,7 @@
+         .icon-btn:hover, .theme-toggle:hover { background: var(--app-btn-hover); transform: translateY(-1px); }
+         .mode-select {
+             background: var(--app-select-bg);
+-            border: 1px solid var(--app-select-border);
++            border: 1px solid var(--select-border);
+             border-radius: 2rem;
+             padding: 0.4rem 0.8rem;
+             font-size: 0.8rem;
+@@ -140,12 +142,17 @@
+             border: 1px solid var(--app-btn-border);
+         }
+         .editor-with-lines { display: flex; border: 1px solid var(--app-textarea-border); border-radius: 1.5rem; background: var(--app-textarea-bg); overflow: hidden; }
++        
+         .line-numbers {
+             background: var(--app-textarea-bg);
+-            padding: 1rem 0.5rem 1rem 1rem;
++            padding-top: 1rem;
++            padding-bottom: 1rem; /* Locked to match editor padding precisely */
++            padding-left: 1rem;
++            padding-right: 0.5rem;
++            margin: 0;
+             font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, Menlo, Monaco, monospace;
+             font-size: 13px;
+-            line-height: 20px;
++            line-height: 20px; /* Explicit matching line-height */
+             text-align: right;
+             color: var(--app-line-number-color);
+             user-select: none;
+@@ -153,6 +160,7 @@
+             overflow-y: hidden;
+             border-right: 1px solid var(--app-textarea-border);
+             flex-shrink: 0;
++            box-sizing: border-box;
+         }
+         .editor-wrapper { position: relative; flex: 1; }
+         .backdrop {
+@@ -171,27 +179,28 @@
+             line-height: 20px;
+             padding: 1rem;
+         }
+-        .highlights {
+-            white-space: pre;
+-            word-wrap: normal;
+-            color: transparent !important;
++        .highlights { 
++            white-space: pre; 
++            word-wrap: normal; 
++            color: transparent !important; 
+             -webkit-text-fill-color: transparent !important;
+-            background-color: transparent;
++            background-color: transparent; 
+         }
+-        .highlights mark {
+-            color: transparent !important;
++        .highlights mark { 
++            color: transparent !important; 
+             -webkit-text-fill-color: transparent !important;
+-            background-color: var(--app-highlight-bg);
+-            display: inline;
++            background-color: var(--app-highlight-bg); 
++            display: inline; 
+         }
+         textarea {
+             position: relative;
+             z-index: 2;
+             width: 100%;
+             height: 380px;
++            margin: 0;
+             font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', Consolas, Menlo, Monaco, monospace;
+             font-size: 13px;
+-            line-height: 20px;
++            line-height: 20px; /* Locked explicit layout height */
+             background: transparent;
+             border: none;
+             padding: 1rem;
+@@ -202,6 +211,10 @@
+             overflow: auto;
+             outline: none;
+             box-sizing: border-box;
++            white-space: pre;
++            word-wrap: normal;
++            word-break: normal;
++            overflow-wrap: normal;
+         }
+         textarea:focus { outline: none; }
+         .backdrop .highlights, textarea {
+@@ -259,13 +272,13 @@
+     </div>
+     <footer>
+         <span>✔ Strict XML: correct error line, full highlighting, no overlay artifacts</span>
+-        <span class="version">v1.27.0 · perfect sync & design</span>
++        <span class="version">v1.28.0 · perfect scroll sync</span>
+     </footer>
+ </div>
+ 
+ <script>
+     (function(){
+-        // ----- THEME TOGGLE (unchanged) -----
++        // ----- THEME TOGGLE -----
+         const appContainer = document.getElementById('markup-validator-app');
+         const bodyEl = document.body;
+         const themeToggleBtn = document.getElementById('themeToggleBtn');
+@@ -345,26 +358,6 @@
+             lineNumbersDiv.innerText = numbersHtml;
+         }
+         
+-        function applyLineNumbersVisibility() {
+-            if (lineNumbersDiv) {
+-                lineNumbersDiv.style.display = showLineNumbers ? 'block' : 'none';
+-            }
+-            const toggleBtn = document.getElementById('toggleLineNumbersBtn');
+-            if (toggleBtn) {
+-                toggleBtn.style.opacity = showLineNumbers ? '1' : '0.5';
+-                toggleBtn.style.borderColor = showLineNumbers ? 'var(--app-btn-border)' : 'var(--app-textarea-border)';
+-            }
+-        }
+-
+-        function toggleLineNumbers() {
+-            showLineNumbers = !showLineNumbers;
+-            applyLineNumbersVisibility();
+-            try {
+-                localStorage.setItem('markup_validator_show_line_numbers', showLineNumbers ? 'true' : 'false');
+-            } catch(e) {}
+-            fullSync();
+-        }
+-        
+         function updateOverlay() {
+             if (!editor || !highlightsDiv) return;
+             const lines = editor.value.split('\n');
+@@ -386,14 +379,19 @@
+                 backdrop.scrollTop = editor.scrollTop;
+                 backdrop.scrollLeft = editor.scrollLeft;
+             }
+-            if (lineNumbersDiv && editor) lineNumbersDiv.scrollTop = editor.scrollTop;
++            if (lineNumbersDiv && editor) {
++                lineNumbersDiv.scrollTop = editor.scrollTop;
++            }
+         }
+         
+         function fullSync() {
+             if (!backdrop || !editor) return;
+-            // Force backdrop size to match textarea's client size exactly (handles scrollbar widths flawlessly)
++            // Match structural widths dynamically to handle scrollbar sizes seamlessly
+             backdrop.style.width = editor.clientWidth + 'px';
+             backdrop.style.height = editor.clientHeight + 'px';
++            if (lineNumbersDiv) {
++                lineNumbersDiv.style.height = editor.clientHeight + 'px';
++            }
+             // Rebuild overlay to ensure marks are correctly placed
+             updateOverlay();
+             // Sync scroll positions
+@@ -401,6 +399,26 @@
+             updateLineNumbers();
+         }
+         
++        function applyLineNumbersVisibility() {
++            if (lineNumbersDiv) {
++                lineNumbersDiv.style.display = showLineNumbers ? 'block' : 'none';
++            }
++            const toggleBtn = document.getElementById('toggleLineNumbersBtn');
++            if (toggleBtn) {
++                toggleBtn.style.opacity = showLineNumbers ? '1' : '0.5';
++                toggleBtn.style.borderColor = showLineNumbers ? 'var(--app-btn-border)' : 'var(--app-textarea-border)';
++            }
++        }
++
++        function toggleLineNumbers() {
++            showLineNumbers = !showLineNumbers;
++            applyLineNumbersVisibility();
++            try {
++                localStorage.setItem('markup_validator_show_line_numbers', showLineNumbers ? 'true' : 'false');
++            } catch(e) {}
++            fullSync();
++        }
++        
+         function clearHighlight() { if (currentHighlightedLine !== null) { currentHighlightedLine = null; updateOverlay(); } }
+         
+         function updateSummary() {
+@@ -440,13 +458,13 @@
+             if (lineNum < 1 || lineNum > lines.length) return;
+             currentHighlightedLine = lineNum;
+             updateOverlay();
+-            const lineHeight = parseInt(getComputedStyle(editor).lineHeight);
++            const lineHeight = 20; // Exact explicit pixel calculation
+             const approxY = (lineNum - 1) * lineHeight;
+             editor.scrollTop = Math.max(0, approxY - editor.clientHeight / 3);
+             syncScroll();
+         }
+         
+-        // ----- Validators (unchanged) -----
++        // ----- Validators -----
+         function validateXmlSvg(content) {
+             const errors = [];
+             const parser = new DOMParser();
+@@ -482,7 +500,7 @@
+                 let inDoubleQuote = false, inSingleQuote = false;
+                 for (let ch of line) {
+                     if (ch === '"' && !inSingleQuote) inDoubleQuote = !inDoubleQuote;
+-                    else if (ch === "'" && !inDoubleQuote) inSingleQuote = !inSingleQuote;
++                    else if (ch === "'" && !inDoubleQuote) inSingleQuote = !inDoubleQuote;
+                 }
+                 if (inDoubleQuote) errors.push({ line: i+1, message: `Unclosed double quote (") in line`, depth: currentDepth });
+                 if (inSingleQuote) errors.push({ line: i+1, message: `Unclosed single quote (') in line`, depth: currentDepth });
+@@ -534,6 +552,7 @@
+             }, errors[0]);
+         }
+         
++        // Ensure accurate line-numbers counting representation on input change
+         function runValidation() {
+             if (!editor) return;
+             const rawCode = editor.value;
+@@ -612,10 +631,10 @@
+             // Initial sync
+             fullSync();
+             
+-            // Use ResizeObserver to catch any layout changes (error panel appearing, window resize, etc.)
++            // Use ResizeObserver to catch any layout changes
+             const resizeObserver = new ResizeObserver(() => { fullSync(); });
+             resizeObserver.observe(editor);
+-            // Also observe the editor area root to catch when error panel changes height
++            
+             const editorAreaRoot = document.getElementById('editorAreaRoot');
+             if (editorAreaRoot) resizeObserver.observe(editorAreaRoot);
+             
+@@ -730,7 +749,7 @@
+             else { fileStatusBadge.innerHTML = `📄 no file loaded`; fileStatusBadge.style.background = "var(--app-file-status-bg)"; }
+         }
+         
+-        // ----- Mode change: reinitialize editor to ensure clean state -----
++        // ----- Mode change -----
+         function onModeChange() {
+             const currentContent = editor ? editor.value : `<div>
+   <h1>Title missing closing tag</h1>

@@ -1,0 +1,130 @@
+--- MarkupLinter_v1_29_0.html	2026-06-10 17:08:45.348924182 +0300
++++ MarkupLinter_v1_30_0.html	2026-06-10 17:32:35.605249494 +0300
+@@ -246,6 +246,29 @@
+             .toolbar-left, .toolbar-right { justify-content: center; }
+             footer { flex-direction: column; gap: 8px; }
+         }
++        .app-toast {
++            display: none;
++            position: fixed;
++            bottom: 2rem;
++            right: 2rem;
++            background: var(--app-btn-primary-bg);
++            color: #ffffff;
++            border: 1px solid var(--app-btn-border);
++            padding: 0.8rem 1.6rem;
++            border-radius: 1rem;
++            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
++            z-index: 10000;
++            font-size: 0.9rem;
++            font-weight: 500;
++            align-items: center;
++            gap: 0.5rem;
++            animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
++            max-width: calc(100vw - 4rem);
++        }
++        @keyframes toastSlideIn {
++            from { transform: translateY(1rem); opacity: 0; }
++            to { transform: translateY(0); opacity: 1; }
++        }
+     </style>
+ 
+     <div class="app-header">
+@@ -280,7 +303,7 @@
+     </div>
+     <footer>
+         <span>✔ Strict XML: correct error line, full highlighting, no overlay artifacts</span>
+-        <span class="version">v1.29.0 · optional wrap feature</span>
++        <span class="version">v1.30.0 · built-in unit tests</span>
+     </footer>
+ </div>
+ 
+@@ -362,6 +385,38 @@
+         
+         // Helper functions
+         function escapeHtml(str) { return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
++
++        let toastTimeout = null;
++        let toastInterval = null;
++        function showToast(message, duration = 3000, enforceLock = false) {
++            let toast = document.getElementById('appToast');
++            if (!toast) {
++                toast = document.createElement('div');
++                toast.id = 'appToast';
++                toast.className = 'app-toast';
++                appContainer.appendChild(toast);
++            }
++            toast.innerHTML = message;
++            toast.style.display = 'flex';
++            
++            if (toastTimeout) clearTimeout(toastTimeout);
++            if (toastInterval) clearInterval(toastInterval);
++
++            if (enforceLock) {
++                const startTime = Date.now();
++                toastInterval = setInterval(() => {
++                    toast.innerHTML = message;
++                    if (Date.now() - startTime > duration) {
++                        clearInterval(toastInterval);
++                        toast.style.display = 'none';
++                    }
++                }, 100);
++            } else {
++                toastTimeout = setTimeout(() => {
++                    toast.style.display = 'none';
++                }, duration);
++            }
++        }
+         
+         function updateLineNumbers() {
+             if (!editor || !lineNumbersDiv) return;
+@@ -841,7 +896,47 @@
+ </div>`;
+         initEditor(initialContent);
+         bindGlobalButtons();
++
++        // ----- Test Bridge exposure -----
++        if (/[?&]test=/.test(window.location.search)) {
++            window.__TEST_API__ = {
++                getEditor: () => editor,
++                getLineNumbersDiv: () => lineNumbersDiv,
++                getBackdrop: () => backdrop,
++                getHighlightsDiv: () => highlightsDiv,
++                getResultContainer: () => resultContainer,
++                getSummaryLabel: () => summaryLabel,
++                getModeSelect: () => modeSelect,
++                getCurrentErrors: () => currentErrors,
++                getCurrentHighlightedLine: () => currentHighlightedLine,
++                getShowLineNumbers: () => showLineNumbers,
++                getLineWrapEnabled: () => lineWrapEnabled,
++                validateXmlSvg: validateXmlSvg,
++                validateHtmlRobust: validateHtmlRobust,
++                runValidation: runValidation,
++                toggleLineNumbers: toggleLineNumbers,
++                toggleWrap: toggleWrap,
++                clearAll: clearAll,
++                jumpToLine: jumpToLine,
++                showToast: showToast,
++                initContent: (txt) => { if (editor) { editor.value = txt; runValidation(); } }
++            };
++
++            // Inject companion test file
++            const script = document.createElement('script');
++            script.src = 'MarkupLinter_v1_30_0_tests.js';
++            script.onload = () => {
++                if (/[?&]test=run/.test(window.location.search)) {
++                    setTimeout(() => {
++                        if (typeof window.__runTests === 'function') {
++                            window.__runTests();
++                        }
++                    }, 500);
++                }
++            };
++            document.head.appendChild(script);
++        }
+     })();
+ </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>
