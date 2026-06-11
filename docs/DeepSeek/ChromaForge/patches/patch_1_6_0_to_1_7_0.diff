@@ -1,0 +1,314 @@
+--- ChromaForge_v1_6_0.html	2026-06-05 16:51:15.228508322 +0300
++++ ChromaForge_v1_7_0.html	2026-06-11 18:23:17.603195106 +0300
+@@ -14,20 +14,21 @@
+             --main-bg: #f1f5f9; --main-surface: #ffffff; --main-text: #0f172a; --main-border: #e2e8f0;
+             --main-accent: #3b82f6; --main-accent-hover: #2563eb; --main-radius: 14px; --main-shadow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05);
+             --primary: #3b82f6; --secondary: #10b981; --bg-color: #f9fafb; --surface-color: #ffffff;
+-            --text-color: #1f2937; --border-color: #e5e7eb; --radius-sm: 8px; --radius-md: 14px;
++            --text-color: #1f2937; --border-color: #e5e7eb; --info-color: #64748b; --radius-sm: 8px; --radius-md: 14px;
+             --shadow-sm: 0 4px 12px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.05); --transition: all 0.2s ease;
+         }
+         #name-app.main-dark { --main-bg: #0f172a; --main-surface: #1e293b; --main-text: #e2e8f0; --main-border: #334155; --main-accent: #8b5cf6; --main-accent-hover: #a78bfa; }
+         #name-app { display: block; width: 100%; background: var(--main-bg); transition: background 0.2s, color 0.2s; }
+         #name-app .app-container { max-width: 1440px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 1.5rem; color: var(--main-text); }
+-        #name-app .theme-studio { flex: 1.2; min-width: 260px; background: var(--main-surface); border-radius: var(--main-radius); padding: 1.25rem; box-shadow: var(--main-shadow); border: 1px solid var(--main-border); transition: var(--transition); height: fit-content; }
++        #name-app .theme-studio { flex: 1.2; min-width: 280px; background: var(--main-surface); border-radius: var(--main-radius); padding: 1.25rem; box-shadow: var(--main-shadow); border: 1px solid var(--main-border); transition: var(--transition); height: fit-content; }
+         #name-app .studio-section { margin-bottom: 1.5rem; }
+         #name-app .studio-section h3 { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.2px; margin-bottom: 0.8rem; border-left: 3px solid var(--main-accent); padding-left: 0.7rem; color: var(--main-text); }
+-        #name-app .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.8rem; margin-bottom: 0.5rem; }
++        #name-app .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.8rem; margin-bottom: 0.5rem; }
+         #name-app .color-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--main-bg); padding: 0.4rem 0.7rem; border-radius: 40px; border: 1px solid var(--main-border); }
+         #name-app .color-item label { font-size: 0.75rem; font-weight: 500; text-transform: capitalize; color: var(--main-text); }
+         #name-app .color-item input { width: 44px; height: 32px; border: 1px solid var(--main-border); border-radius: 10px; background: var(--main-surface); cursor: pointer; padding: 2px; }
+-        #name-app .preset-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0.5rem; }
++        #name-app .studio-dropdown { background: var(--main-bg); border: 1px solid var(--main-border); padding: 0.35rem 0.6rem; border-radius: 40px; font-size: 0.75rem; font-weight: 500; color: var(--main-text); cursor: pointer; height: 34px; outline: none; transition: var(--transition); width: 100%; }
++        #name-app .studio-dropdown:hover { border-color: var(--main-accent); }
+         #name-app .preset-btn { background: var(--main-bg); border: 1px solid var(--main-border); padding: 0.35rem 0.9rem; border-radius: 60px; font-size: 0.75rem; font-weight: 500; color: var(--main-text); cursor: pointer; transition: all 0.2s ease; }
+         #name-app .preset-btn:hover { background: var(--main-accent); color: white; border-color: var(--main-accent); transform: translateY(-1px); }
+         #name-app .reset-btn { background: var(--main-accent); color: white; border: none; }
+@@ -39,6 +40,7 @@
+         #name-app .theme-mode-btn { background: var(--main-bg); border: 1px solid var(--main-border); padding: 0.25rem 0.7rem; border-radius: 40px; font-size: 0.7rem; font-weight: 500; color: var(--main-text); cursor: pointer; transition: all 0.2s; }
+         #name-app .theme-mode-btn.active { background: var(--main-accent); color: white; border-color: var(--main-accent); }
+         #name-app .info-badge { font-size: 0.65rem; text-align: center; margin-top: 1rem; color: var(--main-text); opacity: 0.65; }
++        #name-app .preview-panel .info-badge { color: var(--info-color); opacity: 0.95; font-size: 0.65rem; text-align: center; margin-top: 1rem; }
+         #name-app .version-row { margin-top: 0.8rem; text-align: center; font-size: 0.6rem; font-family: monospace; color: var(--main-text); opacity: 0.55; border-top: 1px dashed var(--main-border); padding-top: 0.8rem; }
+         #name-app .export-import-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0.8rem; }
+         #name-app .action-btn { background: var(--main-bg); border: 1px solid var(--main-border); padding: 0.3rem 0.8rem; border-radius: 60px; font-size: 0.7rem; font-weight: 500; color: var(--main-text); cursor: pointer; transition: all 0.2s; }
+@@ -90,22 +92,29 @@
+                     <div class="color-item"><label>📦 Surface</label><input type="color" id="surfacePicker" value="#ffffff"></div>
+                     <div class="color-item"><label>✍️ Text</label><input type="color" id="textPicker" value="#1f2937"></div>
+                     <div class="color-item"><label>🧵 Border</label><input type="color" id="borderPicker" value="#e5e7eb"></div>
++                    <div class="color-item"><label>ℹ️ Info Badge</label><input type="color" id="infoPicker" value="#64748b"></div>
+                 </div>
+             </div>
+             <div class="studio-section">
+                 <h3>✨ Mock App Presets</h3>
+-                <div class="preset-buttons">
+-                    <button class="preset-btn" data-preset="default">🌿 Default</button>
+-                    <button class="preset-btn" data-preset="dark">🌙 Dark Matter</button>
+-                    <button class="preset-btn" data-preset="ocean">🌊 Ocean Drift</button>
+-                    <button class="preset-btn" data-preset="sunset">🌅 Sunset Glow</button>
+-                    <button class="preset-btn" data-preset="forest">🍃 Forest Canopy</button>
+-                    <button class="preset-btn" data-preset="soft-light">🌸 Soft Light</button>
+-                    <button class="preset-btn" data-preset="soft-dark">🌙 Soft Dark (Blue)</button>
+-                    <button class="preset-btn reset-btn" id="resetToDefaultBtn">⟳ Reset Preview</button>
++                <div class="preset-select-group" style="display: flex; gap: 8px; margin-top: 0.5rem; width: 100%;">
++                    <select id="presetDropdown" class="studio-dropdown" style="flex: 1;">
++                        <option value="default">🌿 Default</option>
++                        <option value="dark">🌙 Dark Matter</option>
++                        <option value="ocean">🌊 Ocean Drift</option>
++                        <option value="sunset">🌅 Sunset Glow</option>
++                        <option value="forest">🍃 Forest Canopy</option>
++                        <option value="soft-light">🌸 Soft Light</option>
++                        <option value="soft-dark">🌙 Soft Dark (Blue)</option>
++                    </select>
++                    <button class="preset-btn reset-btn" id="resetToDefaultBtn" style="white-space: nowrap; height: 34px; padding: 0 12px; margin-top: 0; border-radius: 40px;">⟳ Reset</button>
+                 </div>
+             </div>
+             <div class="studio-section">
++                <h3>📋 CSS Live Preview</h3>
++                <textarea id="cssLivePreview" readonly style="width: 100%; height: 130px; font-family: monospace; font-size: 0.7rem; padding: 0.6rem; background: var(--main-bg); color: var(--main-text); border: 1px solid var(--main-border); border-radius: var(--main-radius); resize: none; margin-top: 0.5rem; outline: none; transition: var(--transition); line-height: 1.45;"></textarea>
++            </div>
++            <div class="studio-section">
+                 <h3>📦 Export / Import</h3>
+                 <div class="export-import-group">
+                     <button id="copyCssBtn" class="action-btn">📋 Copy CSS</button>
+@@ -125,7 +134,7 @@
+                 </div>
+             </div>
+             <div class="info-badge">⚡ Left panel = main interface theme<br>🎨 Right preview = independent mock app theme</div>
+-            <div class="version-row"><span>📌 ChromaForge · v1.6.0</span><br><span style="font-size:0.55rem;">(improved soft presets, blue‑based soft dark)</span></div>
++            <div class="version-row"><span>📌 ChromaForge · v1.7.0</span><br><span style="font-size:0.55rem;">(live CSS preview, preset dropdown, info‑badge token)</span></div>
+         </div>
+ 
+         <div class="preview-panel">
+@@ -144,8 +153,8 @@
+                         <div class="card"><div class="card-title">🌿 Thematic abstraction</div><div class="card-text">Colors reshape the mood. This entire UI responds to your custom variables — primary, secondary, surface, border and text.</div><div class="button-group"><button class="btn btn-primary">Explore</button><button class="btn btn-secondary">Palette</button></div><div class="chip-row"><span class="chip">#chroma</span><span class="chip">themeable</span><span class="chip">css vars</span></div></div>
+                         <div class="card"><div class="card-title">🎛️ Dynamic control</div><div class="input-group"><label>Email address</label><input type="email" class="input-field" placeholder="design@abstract.app" value="hello@chroma.studio"></div><div class="input-group"><label>Feedback / role</label><select class="input-field"><option>Theme explorer</option><option>UI artist</option><option>Developer</option></select></div><button class="btn btn-primary" style="width:100%; margin-top: 6px;">Subscribe to inspiration</button></div>
+                     </div>
+-                    <div class="card" style="margin-bottom: 1rem;"><div class="card-title">📊 Theme engagement</div><div class="progress-section"><div class="progress-label"><span>Harmony score</span><span>78%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 78%; background: var(--primary);"></div></div></div><div class="progress-section"><div class="progress-label"><span>Contrast ratio</span><span>dynamic</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 92%; background: var(--secondary);"></div></div></div><div class="stats"><div class="stat-item"><div class="stat-number" id="primaryStat">⬤</div><div style="font-size: 0.65rem;">Primary</div></div><div class="stat-item"><div class="stat-number" id="secondaryStat">⬤</div><div style="font-size: 0.65rem;">Secondary</div></div><div class="stat-item"><div class="stat-number">∞</div><div style="font-size: 0.65rem;">Offline</div></div></div></div>
+-                    <div class="card"><div class="card-title">🎨 Color tokens in action</div><div class="card-text">Primary & secondary appear on buttons, badges, progress bars, and links — all driven by your theme variables.</div><div class="button-group"><button class="btn">Neutral</button><button class="btn btn-primary">Primary action</button><button class="btn btn-secondary">Secondary action</button></div><div style="margin-top: 0.7rem; font-size: 0.7rem; border-left: 2px solid var(--primary); padding-left: 10px;">✦ Mock app theme is independent from main interface.</div></div>
++                    <div class="card" style="margin-bottom: 1rem;"><div class="card-title">📊 Theme engagement</div><div class="progress-section"><div class="progress-label"><span>Harmony score</span><span>78%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 78%; background: var(--primary);"></div></div></div><div class="progress-section"><div class="progress-label"><span>Contrast ratio</span><span>dynamic</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 92%; background: var(--secondary);"></div></div></div><div class="stats"><div class="stat-item"><div class="stat-number" id="primaryStat">⬤</div><div style="font-size: 0.65rem;">Primary</div></div><div class="stat-item"><div class="stat-number" id="secondaryStat">⬤</div><div style="font-size: 0.65rem;">Secondary</div></div><div class="stat-item"><div class="stat-number" id="infoStat">⬤</div><div style="font-size: 0.65rem;">Info Badge</div></div></div></div>
++                    <div class="card"><div class="card-title">🎨 Color tokens in action</div><div class="card-text">Primary & secondary appear on buttons, badges, progress bars, and links — all driven by your theme variables.</div><div class="button-group"><button class="btn">Neutral</button><button class="btn btn-primary">Primary action</button><button class="btn btn-secondary">Secondary action</button></div><div class="info-badge" style="margin-top: 0.7rem; text-align: left; border-left: 2px solid var(--primary); padding-left: 10px;">✦ Mock app theme is independent from main interface.</div></div>
+                 </div>
+                 <!-- Components Tab -->
+                 <div id="tab-components" class="tab-pane">
+@@ -174,14 +183,14 @@
+     // ---------- APP CORE ----------
+     const DEFAULT_PREVIEW_THEME = {
+         primary: "#3b82f6", secondary: "#10b981", bgColor: "#f9fafb",
+-        surfaceColor: "#ffffff", textColor: "#1f2937", borderColor: "#e5e7eb"
++        surfaceColor: "#ffffff", textColor: "#1f2937", borderColor: "#e5e7eb", infoColor: "#64748b"
+     };
+     const PREVIEW_PRESETS = {
+         default: { ...DEFAULT_PREVIEW_THEME },
+-        dark: { primary: "#8b5cf6", secondary: "#ec4899", bgColor: "#111827", surfaceColor: "#1f2937", textColor: "#f9fafb", borderColor: "#374151" },
+-        ocean: { primary: "#0ea5e9", secondary: "#06b6d4", bgColor: "#f0f9ff", surfaceColor: "#ffffff", textColor: "#0f172a", borderColor: "#bae6fd" },
+-        sunset: { primary: "#f97316", secondary: "#f43f5e", bgColor: "#fff7ed", surfaceColor: "#ffffff", textColor: "#431407", borderColor: "#fed7aa" },
+-        forest: { primary: "#22c55e", secondary: "#84cc16", bgColor: "#ecfdf5", surfaceColor: "#ffffff", textColor: "#064e3b", borderColor: "#bbf7d0" },
++        dark: { primary: "#8b5cf6", secondary: "#ec4899", bgColor: "#111827", surfaceColor: "#1f2937", textColor: "#f9fafb", borderColor: "#374151", infoColor: "#3b82f6" },
++        ocean: { primary: "#0ea5e9", secondary: "#06b6d4", bgColor: "#f0f9ff", surfaceColor: "#ffffff", textColor: "#0f172a", borderColor: "#bae6fd", infoColor: "#0284c7" },
++        sunset: { primary: "#f97316", secondary: "#f43f5e", bgColor: "#fff7ed", surfaceColor: "#ffffff", textColor: "#431407", borderColor: "#fed7aa", infoColor: "#ea580c" },
++        forest: { primary: "#22c55e", secondary: "#84cc16", bgColor: "#ecfdf5", surfaceColor: "#ffffff", textColor: "#064e3b", borderColor: "#bbf7d0", infoColor: "#16a34a" },
+         // Soft Light - darker, richer pastel
+         "soft-light": {
+             primary: "#5a8fcc",      // darker dusty blue
+@@ -189,7 +198,8 @@
+             bgColor: "#efe2c6",      // warm cream, slightly darker
+             surfaceColor: "#fdf7e8",
+             textColor: "#2c2c2c",    // dark gray for contrast
+-            borderColor: "#c8b99a"
++            borderColor: "#c8b99a",
++            infoColor: "#7e6c54"
+         },
+         // Soft Dark - blue-based instead of violet
+         "soft-dark": {
+@@ -198,7 +208,8 @@
+             bgColor: "#1e2a3a",      // deep navy-blue background
+             surfaceColor: "#2a3a4a",
+             textColor: "#e2e8f0",
+-            borderColor: "#3a4a5a"
++            borderColor: "#3a4a5a",
++            infoColor: "#4a6a8a"
+         }
+     };
+     const root = document.documentElement;
+@@ -208,9 +219,33 @@
+     const surfacePicker = document.getElementById('surfacePicker');
+     const textPicker = document.getElementById('textPicker');
+     const borderPicker = document.getElementById('borderPicker');
++    const infoPicker = document.getElementById('infoPicker');
+     const resetPreviewBtn = document.getElementById('resetToDefaultBtn');
+-    const presetBtns = document.querySelectorAll('[data-preset]');
++    const presetDropdown = document.getElementById('presetDropdown');
++    const cssLivePreview = document.getElementById('cssLivePreview');
+     
++    function updateCssPreview() {
++        const theme = getCurrentPreviewTheme();
++        const cssString = `:root {\n  --primary: ${theme.primary};\n  --secondary: ${theme.secondary};\n  --bg-color: ${theme.bgColor};\n  --surface-color: ${theme.surfaceColor};\n  --text-color: ${theme.textColor};\n  --border-color: ${theme.borderColor};\n  --info-color: ${theme.infoColor};\n}`;
++        if(cssLivePreview) {
++            cssLivePreview.value = cssString;
++        }
++    }
++
++    function markAsCustom() {
++        if (presetDropdown) {
++            let customOpt = presetDropdown.querySelector('option[value="custom"]');
++            if (!customOpt) {
++                customOpt = document.createElement('option');
++                customOpt.value = 'custom';
++                customOpt.textContent = '🎨 Custom Theme';
++                customOpt.style.display = 'none';
++                presetDropdown.appendChild(customOpt);
++            }
++            presetDropdown.value = 'custom';
++        }
++    }
++
+     function applyPreviewTheme(theme) {
+         root.style.setProperty('--primary', theme.primary);
+         root.style.setProperty('--secondary', theme.secondary);
+@@ -218,20 +253,49 @@
+         root.style.setProperty('--surface-color', theme.surfaceColor);
+         root.style.setProperty('--text-color', theme.textColor);
+         root.style.setProperty('--border-color', theme.borderColor);
++        root.style.setProperty('--info-color', theme.infoColor || "#64748b");
+         if(primaryPicker) primaryPicker.value = theme.primary;
+         if(secondaryPicker) secondaryPicker.value = theme.secondary;
+         if(bgPicker) bgPicker.value = theme.bgColor;
+         if(surfacePicker) surfacePicker.value = theme.surfaceColor;
+         if(textPicker) textPicker.value = theme.textColor;
+         if(borderPicker) borderPicker.value = theme.borderColor;
+-        updatePreviewStats(theme.primary, theme.secondary);
++        if(infoPicker) infoPicker.value = theme.infoColor || "#64748b";
++        updatePreviewStats(theme.primary, theme.secondary, theme.infoColor || "#64748b");
++        
++        // Sync Dropdown
++        if (presetDropdown) {
++            let matchedPreset = 'custom';
++            let customOpt = presetDropdown.querySelector('option[value="custom"]');
++            if (!customOpt) {
++                customOpt = document.createElement('option');
++                customOpt.value = 'custom';
++                customOpt.textContent = '🎨 Custom Theme';
++                customOpt.style.display = 'none';
++                presetDropdown.appendChild(customOpt);
++            }
++            const keys = Object.keys(PREVIEW_PRESETS);
++            for (const k of keys) {
++                const p = PREVIEW_PRESETS[k];
++                if (p.primary === theme.primary && p.secondary === theme.secondary && p.bgColor === theme.bgColor && p.surfaceColor === theme.surfaceColor && theme.textColor === p.textColor && theme.borderColor === p.borderColor && (theme.infoColor || "#64748b") === (p.infoColor || "#64748b")) {
++                    matchedPreset = k;
++                    break;
++                }
++            }
++            presetDropdown.value = matchedPreset;
++        }
++        updateCssPreview();
+     }
+-    function updatePreviewStats(primaryHex, secondaryHex) {
++    
++    function updatePreviewStats(primaryHex, secondaryHex, infoHex) {
+         const ps = document.getElementById('primaryStat');
+         const ss = document.getElementById('secondaryStat');
++        const is = document.getElementById('infoStat');
+         if(ps){ ps.style.color = primaryHex; ps.textContent = "⬤"; }
+         if(ss){ ss.style.color = secondaryHex; ss.textContent = "⬤"; }
++        if(is){ is.style.color = infoHex; is.textContent = "⬤"; }
+     }
++    
+     function getCurrentPreviewTheme() {
+         return {
+             primary: root.style.getPropertyValue('--primary').trim() || getComputedStyle(root).getPropertyValue('--primary').trim(),
+@@ -239,9 +303,11 @@
+             bgColor: root.style.getPropertyValue('--bg-color').trim() || getComputedStyle(root).getPropertyValue('--bg-color').trim(),
+             surfaceColor: root.style.getPropertyValue('--surface-color').trim() || getComputedStyle(root).getPropertyValue('--surface-color').trim(),
+             textColor: root.style.getPropertyValue('--text-color').trim() || getComputedStyle(root).getPropertyValue('--text-color').trim(),
+-            borderColor: root.style.getPropertyValue('--border-color').trim() || getComputedStyle(root).getPropertyValue('--border-color').trim()
++            borderColor: root.style.getPropertyValue('--border-color').trim() || getComputedStyle(root).getPropertyValue('--border-color').trim(),
++            infoColor: root.style.getPropertyValue('--info-color').trim() || getComputedStyle(root).getPropertyValue('--info-color').trim() || "#64748b"
+         };
+     }
++    
+     function bindPicker(picker, cssVar){
+         if(!picker) return;
+         picker.addEventListener('input', (e)=>{
+@@ -249,20 +315,29 @@
+             root.style.setProperty(cssVar, val);
+             if(cssVar === '--primary'){ const ps = document.getElementById('primaryStat'); if(ps) ps.style.color = val; }
+             if(cssVar === '--secondary'){ const ss = document.getElementById('secondaryStat'); if(ss) ss.style.color = val; }
++            if(cssVar === '--info-color'){ const is = document.getElementById('infoStat'); if(is) is.style.color = val; }
++            markAsCustom();
++            updateCssPreview();
+         });
+     }
++    
+     bindPicker(primaryPicker,'--primary');
+     bindPicker(secondaryPicker,'--secondary');
+     bindPicker(bgPicker,'--bg-color');
+     bindPicker(surfacePicker,'--surface-color');
+     bindPicker(textPicker,'--text-color');
+     bindPicker(borderPicker,'--border-color');
+-    presetBtns.forEach(btn => {
+-        btn.addEventListener('click', ()=>{
+-            const preset = btn.getAttribute('data-preset');
+-            if(preset && PREVIEW_PRESETS[preset]) applyPreviewTheme(PREVIEW_PRESETS[preset]);
++    bindPicker(infoPicker,'--info-color');
++    
++    if (presetDropdown) {
++        presetDropdown.addEventListener('change', (e) => {
++            const val = e.target.value;
++            if (val && PREVIEW_PRESETS[val]) {
++                applyPreviewTheme(PREVIEW_PRESETS[val]);
++            }
+         });
+-    });
++    }
++    
+     if(resetPreviewBtn) resetPreviewBtn.addEventListener('click', ()=> applyPreviewTheme(DEFAULT_PREVIEW_THEME));
+     applyPreviewTheme(DEFAULT_PREVIEW_THEME);
+     
+@@ -334,7 +409,7 @@
+     // ----- Export / Import -----
+     function copyCssToClipboard() {
+         const theme = getCurrentPreviewTheme();
+-        const cssString = `:root {\n  --primary: ${theme.primary};\n  --secondary: ${theme.secondary};\n  --bg-color: ${theme.bgColor};\n  --surface-color: ${theme.surfaceColor};\n  --text-color: ${theme.textColor};\n  --border-color: ${theme.borderColor};\n}`;
++        const cssString = `:root {\n  --primary: ${theme.primary};\n  --secondary: ${theme.secondary};\n  --bg-color: ${theme.bgColor};\n  --surface-color: ${theme.surfaceColor};\n  --text-color: ${theme.textColor};\n  --border-color: ${theme.borderColor};\n  --info-color: ${theme.infoColor};\n}`;
+         navigator.clipboard.writeText(cssString).then(() => showToast("✅ CSS copied to clipboard!", "info")).catch(() => showToast("❌ Failed to copy", "error"));
+     }
+     function exportToJson() {
+@@ -358,6 +433,7 @@
+                 const theme = JSON.parse(e.target.result);
+                 const required = ['primary','secondary','bgColor','surfaceColor','textColor','borderColor'];
+                 if(required.every(k => theme[k] && /^#[0-9A-Fa-f]{6}$/.test(theme[k]))) {
++                    if (!theme.infoColor) theme.infoColor = "#64748b";
+                     applyPreviewTheme(theme);
+                     showToast("📂 Theme imported successfully", "info");
+                 } else {
+@@ -414,7 +490,9 @@
+             getPreviewPanel: () => document.querySelector('#name-app .preview-panel'),
+             getPrimaryButton: () => document.querySelector('#name-app .btn-primary'),
+             getPrimaryStatElement: () => document.getElementById('primaryStat'),
+-            getProgressFill: () => document.querySelector('#name-app .progress-fill'),
++            getInfoStatElement: () => document.getElementById('infoStat'),
++            getLivePreviewTextarea: () => document.getElementById('cssLivePreview'),
++            getPresetDropdown: () => document.getElementById('presetDropdown'),
+             copyCssToClipboard, exportToJson, importFromJson,
+             switchTab, getActiveTab: () => document.querySelector('#name-app .tab-pane.active-pane')?.id.replace('tab-', '') || 'dashboard',
+             getCounterValue: () => parseInt(document.getElementById('counterValue')?.textContent || '0'),
+@@ -425,7 +503,7 @@
+         };
+         function loadTestScript() {
+             const script = document.createElement('script');
+-            script.src = 'ChromaForge_v1_6_0_tests.js';
++            script.src = 'ChromaForge_v1_7_0_tests.js';
+             script.onload = () => {
+                 if(urlParams.get('test') === 'run' && typeof window.__runTests === 'function') {
+                     window.__runTests();
+@@ -439,4 +517,4 @@
+ })();
+ </script>
+ </body>
+-</html>
++</html>
+\ No newline at end of file

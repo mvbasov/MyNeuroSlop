@@ -1,0 +1,85 @@
+--- ChromaForge_v1_7_0.html	2026-06-11 18:23:17.603195106 +0300
++++ ChromaForge_v1_8_0.html	2026-06-11 18:29:13.143316420 +0300
+@@ -134,7 +134,7 @@
+                 </div>
+             </div>
+             <div class="info-badge">⚡ Left panel = main interface theme<br>🎨 Right preview = independent mock app theme</div>
+-            <div class="version-row"><span>📌 ChromaForge · v1.7.0</span><br><span style="font-size:0.55rem;">(live CSS preview, preset dropdown, info‑badge token)</span></div>
++            <div class="version-row"><span>📌 ChromaForge · v1.8.0</span><br><span style="font-size:0.55rem;">(live CSS preview, preset dropdown, info‑badge token)</span></div>
+         </div>
+ 
+         <div class="preview-panel">
+@@ -153,7 +153,7 @@
+                         <div class="card"><div class="card-title">🌿 Thematic abstraction</div><div class="card-text">Colors reshape the mood. This entire UI responds to your custom variables — primary, secondary, surface, border and text.</div><div class="button-group"><button class="btn btn-primary">Explore</button><button class="btn btn-secondary">Palette</button></div><div class="chip-row"><span class="chip">#chroma</span><span class="chip">themeable</span><span class="chip">css vars</span></div></div>
+                         <div class="card"><div class="card-title">🎛️ Dynamic control</div><div class="input-group"><label>Email address</label><input type="email" class="input-field" placeholder="design@abstract.app" value="hello@chroma.studio"></div><div class="input-group"><label>Feedback / role</label><select class="input-field"><option>Theme explorer</option><option>UI artist</option><option>Developer</option></select></div><button class="btn btn-primary" style="width:100%; margin-top: 6px;">Subscribe to inspiration</button></div>
+                     </div>
+-                    <div class="card" style="margin-bottom: 1rem;"><div class="card-title">📊 Theme engagement</div><div class="progress-section"><div class="progress-label"><span>Harmony score</span><span>78%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 78%; background: var(--primary);"></div></div></div><div class="progress-section"><div class="progress-label"><span>Contrast ratio</span><span>dynamic</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 92%; background: var(--secondary);"></div></div></div><div class="stats"><div class="stat-item"><div class="stat-number" id="primaryStat">⬤</div><div style="font-size: 0.65rem;">Primary</div></div><div class="stat-item"><div class="stat-number" id="secondaryStat">⬤</div><div style="font-size: 0.65rem;">Secondary</div></div><div class="stat-item"><div class="stat-number" id="infoStat">⬤</div><div style="font-size: 0.65rem;">Info Badge</div></div></div></div>
++                    <div class="card" style="margin-bottom: 1rem;"><div class="card-title">📊 Theme engagement</div><div class="progress-section"><div class="progress-label"><span>Harmony score</span><span>78%</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 78%; background: var(--primary);"></div></div></div><div class="progress-section"><div class="progress-label"><span>Contrast ratio</span><span>dynamic</span></div><div class="progress-bar-bg"><div class="progress-fill" style="width: 92%; background: var(--secondary);"></div></div></div><div class="stats"><div class="stat-item"><div class="stat-number" id="primaryStat">⬤</div><div style="font-size: 0.65rem; color: var(--text-color);">Primary</div></div><div class="stat-item"><div class="stat-number" id="secondaryStat">⬤</div><div style="font-size: 0.65rem; color: var(--text-color);">Secondary</div></div><div class="stat-item"><div class="stat-number" id="infoStat">⬤</div><div style="font-size: 0.65rem; color: var(--text-color);">Info Badge</div></div></div></div>
+                     <div class="card"><div class="card-title">🎨 Color tokens in action</div><div class="card-text">Primary & secondary appear on buttons, badges, progress bars, and links — all driven by your theme variables.</div><div class="button-group"><button class="btn">Neutral</button><button class="btn btn-primary">Primary action</button><button class="btn btn-secondary">Secondary action</button></div><div class="info-badge" style="margin-top: 0.7rem; text-align: left; border-left: 2px solid var(--primary); padding-left: 10px;">✦ Mock app theme is independent from main interface.</div></div>
+                 </div>
+                 <!-- Components Tab -->
+@@ -168,7 +168,7 @@
+                 <!-- Playground Tab -->
+                 <div id="tab-playground" class="tab-pane">
+                     <div class="card"><div class="card-title">🎮 Interactive Playground</div><div class="card-text">Try live theming with dynamic counters and color mixing.</div>
+-                        <div class="button-group"><button id="playgroundCounterBtn" class="btn btn-primary">Click me</button><span id="counterValue" style="margin-left: 10px; font-weight: bold;">0</span></div>
++                        <div class="button-group"><button id="playgroundCounterBtn" class="btn btn-primary">Click me</button><span id="counterValue" style="margin-left: 10px; font-weight: bold; color: var(--text-color);">0</span></div>
+                         <div class="progress-section"><div class="progress-label"><span>Random fill (themed)</span><span id="randomPercent">0%</span></div><div class="progress-bar-bg"><div id="randomFill" class="progress-fill" style="width: 0%;"></div></div></div>
+                         <button id="randomFillBtn" class="btn btn-secondary" style="margin-top: 8px;">Randomize</button>
+                         <div class="info-badge" style="margin-top: 12px;">✨ All interactive elements adapt to current theme.</div>
+@@ -181,6 +181,7 @@
+ <script>
+ (function(){
+     // ---------- APP CORE ----------
++    let lastSelectedPreset = "default";
+     const DEFAULT_PREVIEW_THEME = {
+         primary: "#3b82f6", secondary: "#10b981", bgColor: "#f9fafb",
+         surfaceColor: "#ffffff", textColor: "#1f2937", borderColor: "#e5e7eb", infoColor: "#64748b"
+@@ -283,6 +284,9 @@
+                 }
+             }
+             presetDropdown.value = matchedPreset;
++            if (matchedPreset !== 'custom') {
++                lastSelectedPreset = matchedPreset;
++            }
+         }
+         updateCssPreview();
+     }
+@@ -332,13 +336,19 @@
+     if (presetDropdown) {
+         presetDropdown.addEventListener('change', (e) => {
+             const val = e.target.value;
+-            if (val && PREVIEW_PRESETS[val]) {
++            if (val && val !== 'custom' && PREVIEW_PRESETS[val]) {
++                lastSelectedPreset = val;
+                 applyPreviewTheme(PREVIEW_PRESETS[val]);
+             }
+         });
+     }
+     
+-    if(resetPreviewBtn) resetPreviewBtn.addEventListener('click', ()=> applyPreviewTheme(DEFAULT_PREVIEW_THEME));
++    if(resetPreviewBtn) {
++        resetPreviewBtn.addEventListener('click', () => {
++            const targetTheme = PREVIEW_PRESETS[lastSelectedPreset] || DEFAULT_PREVIEW_THEME;
++            applyPreviewTheme(targetTheme);
++        });
++    }
+     applyPreviewTheme(DEFAULT_PREVIEW_THEME);
+     
+     // Main program theme (light/dark/auto)
+@@ -503,7 +513,7 @@
+         };
+         function loadTestScript() {
+             const script = document.createElement('script');
+-            script.src = 'ChromaForge_v1_7_0_tests.js';
++            script.src = 'ChromaForge_v1_8_0_tests.js';
+             script.onload = () => {
+                 if(urlParams.get('test') === 'run' && typeof window.__runTests === 'function') {
+                     window.__runTests();
+@@ -517,4 +527,4 @@
+ })();
+ </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>

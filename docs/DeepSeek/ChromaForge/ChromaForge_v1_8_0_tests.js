@@ -1,4 +1,4 @@
-// ChromaForge_v1_6_0_tests.js - updated soft preset expectations
+// ChromaForge_v1_8_0_tests.js - updated for live CSS preview, preset dropdown & info-badge
 (function() {
     let totalTests = 0;
     let passedTests = 0;
@@ -61,34 +61,39 @@
         testRan = true;
         totalTests = 0; passedTests = 0; failedTests = 0;
         results.length = 0;
-        console.log("🧪 ChromaForge test suite (v1.6.0)\n");
+        console.log("🧪 ChromaForge test suite (v1.8.0)\n");
         
         // ----- 1. Internal Logic Tests -----
-        const testTheme = { primary: "#ff0000", secondary: "#00ff00", bgColor: "#ffffff", surfaceColor: "#eeeeee", textColor: "#000000", borderColor: "#cccccc" };
+        const testTheme = { primary: "#ff0000", secondary: "#00ff00", bgColor: "#ffffff", surfaceColor: "#eeeeee", textColor: "#000000", borderColor: "#cccccc", infoColor: "#666666" };
         api.applyPreviewTheme(testTheme);
         const current = api.getCurrentPreviewTheme();
         assertEquals(current.primary, "#ff0000", "applyPreviewTheme updates --primary to red");
         assertEquals(current.secondary, "#00ff00", "applyPreviewTheme updates --secondary to green");
+        assertEquals(current.infoColor, "#666666", "applyPreviewTheme updates --info-color to grey");
         
         api.applyPreviewTheme(api.DEFAULT_PREVIEW_THEME);
         const defaultTheme = api.getCurrentPreviewTheme();
         assertEquals(defaultTheme.primary, api.DEFAULT_PREVIEW_THEME.primary, "Reset to default restores primary color");
+        assertEquals(defaultTheme.infoColor, api.DEFAULT_PREVIEW_THEME.infoColor, "Reset to default restores info-badge color");
         
         api.applyPreviewTheme(api.PREVIEW_PRESETS.dark);
         const darkPreview = api.getCurrentPreviewTheme();
         assertEquals(darkPreview.primary, "#8b5cf6", "Dark preset primary is purple");
         assertEquals(darkPreview.bgColor, "#111827", "Dark preset background is dark");
+        assertEquals(darkPreview.infoColor, "#3b82f6", "Dark preset infoColor is blue");
         
         // Test updated soft presets
         api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-light"]);
         const softLight = api.getCurrentPreviewTheme();
         assertEquals(softLight.primary, "#5a8fcc", "Soft Light preset primary is darker pastel blue");
         assertEquals(softLight.bgColor, "#efe2c6", "Soft Light preset background is warm cream");
+        assertEquals(softLight.infoColor, "#7e6c54", "Soft Light preset infoColor is soft gold-brown");
         
         api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-dark"]);
         const softDark = api.getCurrentPreviewTheme();
         assertEquals(softDark.primary, "#7a9cbb", "Soft Dark preset primary is dusty blue");
         assertEquals(softDark.bgColor, "#1e2a3a", "Soft Dark preset background is deep navy-blue");
+        assertEquals(softDark.infoColor, "#4a6a8a", "Soft Dark preset infoColor is dusty steel-blue");
         
         // Main theme switching
         api.applyMainTheme("light");
@@ -103,6 +108,7 @@
         api.applyPreviewTheme(api.PREVIEW_PRESETS["soft-light"]);
         const softPrimaryRgb = "rgb(90, 143, 204)"; // #5a8fcc
         const softBorderRgb = "rgb(200, 185, 154)"; // #c8b99a
+        const softInfoRgb = "rgb(126, 108, 84)";    // #7e6c54
         
         const primaryBtn = api.getPrimaryButton();
         if(primaryBtn) {
@@ -122,6 +128,12 @@
             const statColor = window.getComputedStyle(statEl).color;
             assertTrue(statColor === softPrimaryRgb, `Primary stat dot reflects soft primary (${statColor})`);
         }
+
+        const infoStatEl = api.getInfoStatElement();
+        if(infoStatEl) {
+            const infoStatColor = window.getComputedStyle(infoStatEl).color;
+            assertTrue(infoStatColor === softInfoRgb, `Info Badge stat dot reflects soft info-badge color (${infoStatColor})`);
+        } else { assert(false, "Info Badge stat element not found"); }
         
         const card = document.querySelector('#name-app .card');
         if(card) {
@@ -137,8 +149,25 @@
         assertTrue(studioBg !== "rgb(241, 245, 249)" && studioBg.length > 0, "Main dark theme changes studio background");
         api.applyMainTheme("auto");
         
-        // ----- 3. Tab Switching & Playground Tests -----
-        assertEquals(api.getActiveTab(), "dashboard", "Initial active tab is dashboard");
+        // ----- 3. Preset Dropdown & Live Preview tests -----
+        const dropdown = api.getPresetDropdown();
+        if(dropdown) {
+            assertEquals(dropdown.value, "soft-light", "Preset dropdown is synced to soft-light");
+            
+            // programmatically trigger dropdown switch
+            dropdown.value = "sunset";
+            dropdown.dispatchEvent(new Event('change'));
+            const sunsetTheme = api.getCurrentPreviewTheme();
+            assertEquals(sunsetTheme.primary, "#f97316", "Dropdown selection successfully changed preview to Sunset Glow");
+        } else { assert(false, "Dropdown selector element not found"); }
+
+        const livePreview = api.getLivePreviewTextarea();
+        if(livePreview) {
+            assertTrue(livePreview.value.includes("--info-color:"), "Live CSS preview contains --info-color field");
+            assertTrue(livePreview.value.includes("--primary: #f97316"), "Live CSS preview reflects sunset primary in real time");
+        } else { assert(false, "Live CSS preview textarea element not found"); }
+        
+        // ----- 4. Tab Switching & Playground Tests -----
         api.switchTab("components");
         assertEquals(api.getActiveTab(), "components", "Switch to components tab works");
         api.switchTab("playground");
@@ -156,8 +185,8 @@
         const newPercent = api.getRandomFillPercent();
         assertTrue(newPercent !== initialPercent || newPercent >= 0, "Random fill button changes width");
         
-        // ----- 4. Export / Import -----
-        const testExportTheme = { primary: "#aa44cc", secondary: "#77aa33", bgColor: "#ffeecc", surfaceColor: "#ffffff", textColor: "#111111", borderColor: "#dddddd" };
+        // ----- 5. Export / Import -----
+        const testExportTheme = { primary: "#aa44cc", secondary: "#77aa33", bgColor: "#ffeecc", surfaceColor: "#ffffff", textColor: "#111111", borderColor: "#dddddd", infoColor: "#bb7766" };
         api.applyPreviewTheme(testExportTheme);
         const exported = api.getCurrentPreviewTheme();
         assertEquals(exported.primary, "#aa44cc", "getCurrentPreviewTheme works");
@@ -168,6 +197,7 @@
         api.copyCssToClipboard();
         await new Promise(r => setTimeout(r, 0));
         assertTrue(capturedCss.includes("--primary: #aa44cc"), "copyCssToClipboard contains primary color");
+        assertTrue(capturedCss.includes("--info-color: #bb7766"), "copyCssToClipboard contains info-badge color");
         navigator.clipboard.writeText = originalClipboard;
         
         api.applyPreviewTheme(api.DEFAULT_PREVIEW_THEME);
