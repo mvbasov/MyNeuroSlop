@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  wails-v3-env:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: wails_v3_dev
+    # Mount the 'workspace' folder in your current directory to /workspace in the container
+    volumes:
+      - ./workspace:/workspace
+    
+    # We removed the 'ports' section here!
+    
+    # Optional: If you want to run Linux desktop tests, we pass the X11 display socket
+    environment:
+      - DISPLAY=$DISPLAY
+    
+    # Because this is set to host, ports 34200 and 5173 will be exposed automatically
+    network_mode: host

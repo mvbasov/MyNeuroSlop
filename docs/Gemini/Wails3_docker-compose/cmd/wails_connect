@@ -1,0 +1,1 @@
+docker exec -it wails_v3_dev /bin/bash

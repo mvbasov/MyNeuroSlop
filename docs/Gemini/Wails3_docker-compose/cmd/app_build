@@ -1,0 +1,4 @@
+cd my-mobile-app
+<replsce template files>
+wails3 task android:build
+wails3 task android:packge

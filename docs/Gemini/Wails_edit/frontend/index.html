@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Editor Pro</title>
+    <style>
+        body { margin: 0; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; background: #121212; color: #fff; }
+        .toolbar { display: flex; gap: 8px; padding: 10px; background: #1e1e1e; }
+        .search-box { display: flex; gap: 5px; padding: 8px; background: #252526; }
+        input[type="text"] { flex: 1; padding: 8px; background: #333; border: 1px solid #555; color: #fff; border-radius: 4px; }
+        button { padding: 8px 12px; background: #007acc; border: none; color: white; border-radius: 4px; font-weight: bold; }
+        
+        /* The infinite container setup */
+        .scroll-container { flex: 1; overflow-y: auto; padding: 15px; position: relative; }
+        textarea { width: 100%; height: auto; min-height: 95%; border: none; background: transparent; color: #e0e0e0; font-family: monospace; font-size: 16px; resize: none; outline: none; }
+        
+        .search-results { max-height: 150px; overflow-y: auto; background: #1a1a1a; border-top: 1px solid #333; display: none; }
+        .result-item { padding: 8px 12px; border-bottom: 1px solid #2d2d2d; font-size: 13px; color: #00adb5; cursor: pointer; }
+        .status { padding: 4px 12px; font-size: 11px; color: #777; background: #111; }
+        #file-picker { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <button onclick="document.getElementById('file-picker').click()">Open File</button>
+        <span id="file-info" style="align-self:center; font-size:13px;"></span>
+    </div>
+
+    <div class="search-box">
+        <input type="text" id="search-input" placeholder="Type text or regex search target...">
+        <button onclick="executeSearch()">Find</button>
+    </div>
+
+    <!-- Global lookup jump panel -->
+    <div id="results-panel" class="search-results"></div>
+
+    <!-- Interactive Infinite Stream viewport viewport container window framework -->
+    <div class="scroll-container" id="scroll-frame" onscroll="handleViewportScroll()">
+        <textarea id="editor" placeholder="Load a file to stream content infinitely..."></textarea>
+    </div>
+
+    <div id="status" class="status">System Standby</div>
+    <input type="file" id="file-picker" onchange="initializeFileStream(event)">
+
+    <script src="main.js"></script>
+</body>
+</html>
+
