@@ -1,0 +1,108 @@
+--- svg_component_editor_v7_8_0.html	2026-06-04 16:49:51.570286968 +0300
++++ svg_component_editor_v7_9_0.html	2026-07-10 12:52:14.539828356 +0300
+@@ -8,18 +8,15 @@
+     <!-- PRESERVE_BINARY_END -->
+     <title>SVG Component Editor</title>
+     <style>
++        /* Embed-safe: do NOT force height, overflow, background or a theme
++           class onto the host page root. When this file is injected into
++           another page (e.g. an OMN-Go note) those global rules used to
++           repaint and clip the whole host. The app now sizes and paints
++           itself entirely through #svg-editor-app below, so it looks
++           identical standalone and when embedded. */
+         html, body {
+           margin: 0;
+           padding: 0;
+-          height: 100dvh;
+-          overflow: hidden;
+-          transition: background-color 0.3s ease, color 0.3s ease;
+-        }
+-        body:not(.theme-dark) {
+-          background-color: #f3f4f6;
+-        }
+-        body.theme-dark {
+-          background-color: #1e1e2e;
+         }
+         
+         /* Embed-Safe Scoped CSS */
+@@ -46,7 +43,12 @@
+             background-color: var(--bg-color);
+             color: var(--text-color);
+             width: 100%;
+-            height: 100%;
++            /* Fill the viewport when this file IS the page, but never exceed
++               the embedding container. max-height:100% resolves to "none"
++               when the parent has no definite height, so standalone still
++               gets full height while an embed is capped to its host box. */
++            height: 100dvh;
++            max-height: 100%;
+             overflow: hidden;
+             
+             /* CSS Container Query */
+@@ -216,9 +218,13 @@
+         }
+ 
+         /* --- Main Layout Panels --- */
+-        #svg-editor-app .panel {
++        /* Renamed from the generic ".panel" so a host page's own ".panel"
++           rule (OMN-Go uses .panel for absolutely-positioned modals) can no
++           longer hijack the two layout panels and collapse the grid. */
++        #svg-editor-app .svged-panel {
+             display: flex;
+             flex-direction: column;
++            position: relative;
+             height: 100%;
+             min-height: 0;
+         }
+@@ -438,7 +444,7 @@
+                 </div>
+             </header>
+ 
+-            <div class="panel preview-panel">
++            <div class="svged-panel preview-panel">
+                 <div id="preview-container">
+                     <svg id="main-svg" xmlns="http://www.w3.org/2000/svg">
+                         <defs>
+@@ -457,7 +463,7 @@
+                 </div>
+             </div>
+             
+-            <div class="panel editor-panel">
++            <div class="svged-panel editor-panel">
+                 <div class="editor-wrapper" id="editor-wrapper">
+                     <div class="backdrop" id="backdrop"></div>
+                     <textarea id="code" spellcheck="false"></textarea>
+@@ -477,7 +483,7 @@
+                     <label for="move-step">Step:</label>
+                     <input type="number" id="move-step" class="toolbar-select" min="1" max="500" value="1" style="font-size: 0.75rem; padding: 2px 4px; width: 50px; height: auto;">
+                 </div>
+-                <div class="footer-right">v7.8.0</div>
++                <div class="footer-right">v7.9.0</div>
+             </footer>
+         </div>
+     </div>
+@@ -503,11 +509,11 @@
+                     isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                 }
+                 
++                // Scope the theme class to the app root ONLY. Toggling it on
++                // document.body would repaint the host page when embedded.
+                 if (isDark) {
+-                    body.classList.add('theme-dark');
+                     if (app) app.classList.add('theme-dark');
+                 } else {
+-                    body.classList.remove('theme-dark');
+                     if (app) app.classList.remove('theme-dark');
+                 }
+ 
+@@ -2732,8 +2738,8 @@
+                 };
+                 
+                 const script = document.createElement('script');
+-                script.src = 'svg_component_editor_v7_8_0_tests.js';
+-                script.onerror = () => console.error("Test suite not found: svg_component_editor_v7_8_0_tests.js");
++                script.src = 'svg_component_editor_v7_9_0_tests.js';
++                script.onerror = () => console.error("Test suite not found: svg_component_editor_v7_9_0_tests.js");
+                 document.body.appendChild(script);
+             }
+         })();

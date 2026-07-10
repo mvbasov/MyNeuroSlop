@@ -1,5 +1,5 @@
 /**
- * SVG Component Editor - Micro Unit Test Suite (v7.8.0)
+ * SVG Component Editor - Micro Unit Test Suite (v7.9.0)
  * Triggered via ?test=run in the URL.
  */
 (async function() {
