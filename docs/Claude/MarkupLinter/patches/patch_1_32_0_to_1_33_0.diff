@@ -1,0 +1,20 @@
+--- MarkupLinter_v1_32_0.html	2026-07-11 04:18:08.978290136 +0300
++++ MarkupLinter_v1_33_0.html	2026-07-11 04:24:33.633604647 +0300
+@@ -304,7 +304,7 @@
+     </div>
+     <footer>
+         <span>✔ Strict XML: correct error line, full highlighting, no overlay artifacts</span>
+-        <span class="version">v1.32.0 · built-in unit tests</span>
++        <span class="version">v1.33.0 · built-in unit tests</span>
+     </footer>
+ </div>
+ 
+@@ -954,7 +954,7 @@
+ 
+             // Inject companion test file
+             const script = document.createElement('script');
+-            script.src = 'MarkupLinter_v1_32_0_tests.js';
++            script.src = 'MarkupLinter_v1_33_0_tests.js';
+             script.onload = () => {
+                 if (/[?&]test=run/.test(window.location.search)) {
+                     setTimeout(() => {

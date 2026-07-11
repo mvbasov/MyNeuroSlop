@@ -1,0 +1,15 @@
+--- MarkupLinter_v1_32_0_tests.js	2026-07-11 04:18:52.150662814 +0300
++++ MarkupLinter_v1_33_0_tests.js	2026-07-11 04:24:39.973659185 +0300
+@@ -64,6 +64,12 @@
+ 
+             // Test Case 4: Line Number Toggle Syncing
+             console.log("\n🔷 %cTest Case 4: Line numbers count validation%c", 'font-weight: bold; color: #8b5cf6;', '');
++            // Normalize UI state so the line-number gutter is actually visible before we
++            // measure it. On a display:none element, .innerText collapses the <br>-separated
++            // numbers into one line ("1.2.3."), which would make this assertion depend on the
++            // user's saved wrap / line-number preferences rather than the counting logic.
++            if (api.getLineWrapEnabled()) api.toggleWrap();        // wrap hides the gutter
++            if (!api.getShowLineNumbers()) api.toggleLineNumbers(); // must be off-wrap first (toggle no-ops under wrap)
+             api.getModeSelect().value = 'html';
+             api.initContent("one\ntwo\nthree");
+             const initialLineNumCount = api.getLineNumbersDiv().innerText.split('\n').filter(Boolean).length;
