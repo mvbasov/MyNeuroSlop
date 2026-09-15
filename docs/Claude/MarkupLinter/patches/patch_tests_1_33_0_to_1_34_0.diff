@@ -1,0 +1,94 @@
+--- MarkupLinter_v1_33_0_tests.js	2026-07-11 04:24:39.973659185 +0300
++++ MarkupLinter_v1_34_0_tests.js	2026-09-15 17:20:18.229121675 +0300
+@@ -130,6 +130,84 @@
+             const truncErrors = api.validateJson(`{\n  "unterminated": [1, 2, 3`);
+             assertTrue("JSON: Truncated input yields at least one error", truncErrors.length > 0);
+ 
++            // ---------------------------------------------------------------
++            // Test Cases 12-16 guard the strict-mode line number.
++            //
++            // A DOMParser parse error names TWO lines: where the parser stopped
++            // (end of file, for an unclosed tag) and where the offending tag
++            // was opened. Reading the wrong one is invisible to a test that
++            // only asks whether an error exists -- which is exactly how a
++            // version shipped reporting line 4 on desktop and line 8 on
++            // Android. These cases assert the line itself.
++            // ---------------------------------------------------------------
++
++            // The page's own demo document: the <img> on line 4 is never
++            // closed, and the file ends on line 8.
++            const DEMO_XML = '<div>\n  <h1>Title</h1>\n  <p>Text</p>\n  <img src="photo.jpg" alt="demo" >\n  <span class="test">Text\n    <b>Bold</b>\n  </span>\n</div>';
++
++            // Test Case 12: through the UI, the way a person hits it
++            console.log("\n🔷 %cTest Case 12: XML strict reports the opening line, not EOF%c", 'font-weight: bold; color: #8b5cf6;', '');
++            api.getModeSelect().value = 'xml';
++            api.initContent(DEMO_XML);
++            const demoErrors = api.getCurrentErrors();
++            assertTrue("XML: unclosed <img> produces an error", demoErrors.length > 0);
++            assert("XML: error sits on the line the tag was OPENED (4), not the end of file (8)",
++                   demoErrors.length ? demoErrors[0].line : -1, 4);
++
++            // Test Case 13: tag names the old \w+ pattern could not read
++            console.log("\n🔷 %cTest Case 13: namespaced and hyphenated tag names%c", 'font-weight: bold; color: #8b5cf6;', '');
++            const nsErrors = api.validateXmlSvg('<root xmlns:s="urn:x">\n  <s:box>\n</root>');
++            assert("XML: namespaced <s:box> reported at its opening line",
++                   nsErrors.length ? nsErrors[0].line : -1, 2);
++            const hyphenErrors = api.validateXmlSvg('<root>\n  <my-tag>\n</root>');
++            assert("XML: hyphenated <my-tag> reported at its opening line",
++                   hyphenErrors.length ? hyphenErrors[0].line : -1, 2);
++
++            // Test Case 14: THE regression test. Same document, same fault,
++            // different engine wording -- the line must not move. The wordings
++            // below are a real older-libxml2 phrasing, a localized message, and
++            // a namespaced tag, each of which defeated the old regex and sent
++            // the report to the last line of the file.
++            console.log("\n🔷 %cTest Case 14: line survives the engine's wording%c", 'font-weight: bold; color: #8b5cf6;', '');
++            const originalParseFromString = DOMParser.prototype.parseFromString;
++            const WORDINGS = [
++                ['older libxml2', 'This page contains the following errors:error on line 8 at column 7: Premature end of data in tag img line 4\nBelow is a rendering of the page up to the first error.'],
++                ['localized', 'Diese Seite enthält die folgenden Fehler:error on line 8 at column 7: Nicht übereinstimmende Tags: img line 4 and div\nUnten folgt eine Darstellung der Seite.'],
++                ['namespaced tag', 'This page contains the following errors:error on line 8 at column 7: Opening and ending tag mismatch: svg:image line 4 and div\nBelow is a rendering of the page up to the first error.']
++            ];
++            try {
++                for (const [label, text] of WORDINGS) {
++                    DOMParser.prototype.parseFromString = function(str, type) {
++                        const parsed = originalParseFromString.call(this, str, type);
++                        const pe = parsed.querySelector('parsererror');
++                        if (pe) pe.textContent = text;
++                        return parsed;
++                    };
++                    const worded = api.validateXmlSvg(DEMO_XML);
++                    assert("XML: still line 4 when the engine words it as " + label,
++                           worded.length ? worded[0].line : -1, 4);
++                }
++            } finally {
++                DOMParser.prototype.parseFromString = originalParseFromString;
++            }
++
++            // Test Case 15: the fix must not over-reach. A fault that is NOT
++            // about tag nesting has no "opening line" to find, and the parser's
++            // own stop position is the right answer for it.
++            console.log("\n🔷 %cTest Case 15: non-structural faults keep the parser's position%c", 'font-weight: bold; color: #8b5cf6;', '');
++            const attrErrors = api.validateXmlSvg('<a b=<c>\n</a>');
++            assertTrue("XML: a malformed attribute is still reported", attrErrors.length > 0);
++            assert("XML: malformed attribute keeps the parser's own line",
++                   attrErrors.length ? attrErrors[0].line : -1, 1);
++            const rootsErrors = api.validateXmlSvg('<a/>\n<b/>');
++            assert("XML: a second root element is reported where it starts",
++                   rootsErrors.length ? rootsErrors[0].line : -1, 2);
++
++            // Test Case 16: and a well-formed document stays silent
++            console.log("\n🔷 %cTest Case 16: well-formed XML reports nothing%c", 'font-weight: bold; color: #8b5cf6;', '');
++            assert("XML: well-formed document yields zero errors",
++                   api.validateXmlSvg('<a>\n  <b/>\n</a>').length, 0);
++
+         } catch (err) {
+             console.error("🔴 Error during test execution:", err);
+             results.failed++;
+@@ -179,4 +257,4 @@
+             api.showToast(toastMsg, 7000, true);
+         }
+     };
+-})();
+\ No newline at end of file
++})();

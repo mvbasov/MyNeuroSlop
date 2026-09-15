@@ -1,0 +1,196 @@
+--- MarkupLinter_v1_33_0.html	2026-07-11 04:24:33.633604647 +0300
++++ MarkupLinter_v1_34_0.html	2026-09-15 16:37:59.000000000 +0300
+@@ -304,7 +304,7 @@
+     </div>
+     <footer>
+         <span>✔ Strict XML: correct error line, full highlighting, no overlay artifacts</span>
+-        <span class="version">v1.33.0 · built-in unit tests</span>
++        <span class="version">v1.34.0 · built-in unit tests</span>
+     </footer>
+ </div>
+ 
+@@ -565,28 +565,158 @@
+         }
+         
+         // ----- Validators -----
++        // WHERE THE LINE NUMBER COMES FROM, AND WHY IT IS NO LONGER THE
++        // ENGINE'S TO DECIDE.
++        //
++        // A DOMParser parse error carries TWO line numbers, and they mean
++        // different things. Desktop Chrome, for this page's own demo document,
++        // produces exactly this:
++        //
++        //   error on line 8 at column 7: Opening and ending tag mismatch: img line 4 and div
++        //
++        // "line 8" is where the parser STOPPED -- the end of the file, because
++        // an unclosed tag cannot be detected any earlier. "line 4" is where the
++        // offending tag was OPENED, which is the line a person actually wants.
++        //
++        // Picking those apart by pattern-matching the wording was the bug. A
++        // regex for the mismatch phrase found line 4, but any message that
++        // regex did not recognise fell through to a generic match on the FIRST
++        // "line N" in the string -- the stop position, line 8. Three ordinary
++        // things make it fall through: an engine that words the fault
++        // differently ("Premature end of data in tag img line 4"), a tag name
++        // that is not \w+ (svg:image, my-tag), and a localized message. Hence
++        // the same document reporting line 4 on desktop and line 8 on Android:
++        // one document, one fault, two wordings.
++        //
++        // So the wording no longer decides the location. The parser still says
++        // WHETHER the document is well formed -- it is the authority there, and
++        // it catches far more than a tag scan ever could -- but WHERE the fault
++        // sits is counted below, which gives every engine the same answer.
++
++        // Split the document into tags. Returns null -- meaning "do not trust
++        // me, use the engine's message" -- for anything this scan cannot read
++        // with certainty, such as an unterminated tag or a bare '<' in text.
++        function xmlScanTags(text) {
++            const tags = [];
++            const NAME = /[A-Za-z0-9_.:\-]/;
++            let line = 1, i = 0;
++            const skipTo = (marker, from) => {
++                const end = text.indexOf(marker, from);
++                if (end === -1) return -1;
++                line += (text.slice(i, end).match(/\n/g) || []).length;
++                return end + marker.length;
++            };
++            while (i < text.length) {
++                const ch = text[i];
++                if (ch === '\n') { line++; i++; continue; }
++                if (ch !== '<') { i++; continue; }
++                if (text.startsWith('<!--', i)) { const n = skipTo('-->', i + 4); if (n < 0) return null; i = n; continue; }
++                if (text.startsWith('<![CDATA[', i)) { const n = skipTo(']]>', i + 9); if (n < 0) return null; i = n; continue; }
++                if (text.startsWith('<?', i)) { const n = skipTo('?>', i + 2); if (n < 0) return null; i = n; continue; }
++                if (text.startsWith('<!', i)) {
++                    // DOCTYPE, possibly with an internal subset in [ ... ]
++                    let j = i + 2, depth = 0;
++                    while (j < text.length) {
++                        const c = text[j];
++                        if (c === '[') depth++;
++                        else if (c === ']') depth--;
++                        else if (c === '\n') line++;
++                        else if (c === '>' && depth <= 0) break;
++                        j++;
++                    }
++                    if (j >= text.length) return null;
++                    i = j + 1;
++                    continue;
++                }
++                const startLine = line;
++                let j = i + 1;
++                const closing = text[j] === '/';
++                if (closing) j++;
++                let name = '';
++                while (j < text.length && NAME.test(text[j])) { name += text[j]; j++; }
++                if (!name) return null;           // a bare '<' in text: engine's call
++                let quote = null, closed = false, selfClosing = false;
++                while (j < text.length) {
++                    const c = text[j];
++                    if (c === '\n') line++;
++                    if (quote) { if (c === quote) quote = null; }
++                    else if (c === '"' || c === "'") quote = c;
++                    else if (c === '>') { closed = true; selfClosing = text[j - 1] === '/'; j++; break; }
++                    j++;
++                }
++                if (!closed) return null;         // unterminated tag: engine's call
++                tags.push({ name: name, line: startLine, closing: closing, selfClosing: selfClosing });
++                i = j;
++            }
++            return tags;
++        }
++
++        // The first structural fault, located by counting rather than by
++        // reading an error string. XML has no void elements, so <img> must be
++        // closed or self-closed -- which is the whole difference from the HTML
++        // validator's tag stack.
++        function xmlLocateFault(text) {
++            const tags = xmlScanTags(text);
++            if (!tags) return null;
++            const stack = [];
++            for (const t of tags) {
++                if (t.closing) {
++                    if (!stack.length) {
++                        return { line: t.line, message: `Unexpected closing tag </${t.name}> — no matching open tag.`, depth: 1 };
++                    }
++                    const open = stack.pop();
++                    if (open.name !== t.name) {
++                        return { line: open.line, message: `Mismatched tags: <${open.name}> opened at line ${open.line} but got </${t.name}> later.`, depth: 1 };
++                    }
++                } else if (!t.selfClosing) {
++                    stack.push(t);
++                }
++            }
++            if (stack.length) {
++                const open = stack[stack.length - 1];
++                return { line: open.line, message: `Unclosed tag <${open.name}> — missing closing tag.`, depth: 1 };
++            }
++            return null;
++        }
++
+         function validateXmlSvg(content) {
+             const errors = [];
+             const parser = new DOMParser();
+             const doc = parser.parseFromString(content, "text/xml");
+             const parseError = doc.querySelector('parsererror');
+-            if (parseError) {
+-                const rawErrorMsg = parseError.textContent || '';
+-                const mismatchMatch = rawErrorMsg.match(/Opening and ending tag mismatch:\s*(\w+)\s+line\s+(\d+)\s+and\s+(\w+)/i);
+-                if (mismatchMatch) {
+-                    let line = parseInt(mismatchMatch[2], 10);
+-                    let openingTag = mismatchMatch[1];
+-                    let closingTag = mismatchMatch[3];
+-                    errors.push({ line: line, message: `Mismatched tags: <${openingTag}> opened at line ${line} but got </${closingTag}> later.`, depth: 1 });
+-                    return errors;
+-                }
+-                let lineMatch = rawErrorMsg.match(/line\s+(\d+)/i);
+-                let line = lineMatch ? parseInt(lineMatch[1], 10) : 1;
+-                if (isNaN(line)) line = 1;
+-                let cleanedMsg = rawErrorMsg.replace(/\s+/g, ' ').trim();
+-                if (cleanedMsg.length > 160) cleanedMsg = cleanedMsg.slice(0, 150) + '…';
+-                errors.push({ line: line, message: `XML/SVG parse: ${cleanedMsg}`, depth: 1 });
+-            }
++            if (!parseError) return errors;
++
++            const rawErrorMsg = parseError.textContent || '';
++            const totalLines = content.split('\n').length;
++
++            // Structural faults: located here, identically on every engine.
++            const located = xmlLocateFault(content);
++            if (located) {
++                if (located.line > totalLines) located.line = totalLines;
++                if (located.line < 1) located.line = 1;
++                errors.push(located);
++                return errors;
++            }
++
++            // Everything else -- a bad attribute, an undeclared entity, two
++            // root elements. For those the parser's stop position IS the right
++            // place, so the message is read after all; but an explicitly named
++            // opening line still wins over the stop position when one is given.
++            let line = null;
++            const opened = rawErrorMsg.match(/(?:mismatch:\s*\S+|in tag\s+\S+)\s+line\s+(\d+)/i);
++            if (opened) line = parseInt(opened[1], 10);
++            if (line === null) {
++                const stopped = rawErrorMsg.match(/on line\s+(\d+)/i) || rawErrorMsg.match(/line\s+(\d+)/i);
++                if (stopped) line = parseInt(stopped[1], 10);
++            }
++            if (line === null || isNaN(line) || line < 1) line = 1;
++            if (line > totalLines) line = totalLines;
++
++            let cleanedMsg = rawErrorMsg.replace(/\s+/g, ' ').trim()
++                .replace(/^This page contains the following errors:\s*/i, '')
++                .replace(/\s*Below is a rendering of the page up to the first error\.?\s*$/i, '');
++            if (cleanedMsg.length > 160) cleanedMsg = cleanedMsg.slice(0, 150) + '…';
++            errors.push({ line: line, message: `XML/SVG parse: ${cleanedMsg}`, depth: 1 });
+             return errors;
+         }
+         
+@@ -954,7 +1084,7 @@
+ 
+             // Inject companion test file
+             const script = document.createElement('script');
+-            script.src = 'MarkupLinter_v1_33_0_tests.js';
++            script.src = 'MarkupLinter_v1_34_0_tests.js';
+             script.onload = () => {
+                 if (/[?&]test=run/.test(window.location.search)) {
+                     setTimeout(() => {
