@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Soroban Tutorial</title>
+<!--
+  EMBEDDING THIS WIDGET IN ANOTHER PAGE (e.g. an OMN-Go note)
+  This file is one self-contained fragment: a style block, a div, and a
+  script block. It does not depend on the surrounding document, head, or
+  body wrapper tags. To embed it, copy everything from the
+  EMBED-FRAGMENT-START comment below through the EMBED-FRAGMENT-END comment
+  near the end of this file, and paste that whole block into the host
+  page's own markup. Do not copy the doctype, the document tag, the head
+  section, the title, or the body wrapper tags around it.
+-->
+<!-- EMBED-FRAGMENT-START -->
+<style>
+  html, body {
+    margin: 0;
+    background: #fff;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  #soroban-tutorial-app {
+    /* ---- light theme (default) ---- */
+    --stt-bg: #f5f1e8;
+    --stt-panel: #ffffff;
+    --stt-panel-2: #faf8f3;
+    --stt-text: #22262f;
+    --stt-muted: #6b7280;
+    --stt-border: #ded6c4;
+    --stt-accent: #8a5a2c;
+    --stt-accent-contrast: #ffffff;
+    --stt-frame: #8a5a2c;
+    --stt-frame-dark: #5c3417;
+    --stt-rod: #c9a066;
+    --stt-bead: #3b2a1a;
+    --stt-bead-highlight: #a9744a;
+    --stt-success: #1f8a4c;
+    --stt-success-bg: #e6f4ea;
+    --stt-error: #b3261e;
+    --stt-error-bg: #fbeaea;
+    --stt-shadow: rgba(0, 0, 0, 0.16);
+    --stt-overlay: rgba(20, 16, 10, 0.55);
+
+    box-sizing: border-box;
+    position: relative;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 16px;
+    background: var(--stt-bg);
+    color: var(--stt-text);
+    border: 1px solid var(--stt-border);
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    #soroban-tutorial-app:not([data-theme="light"]) {
+      --stt-bg: #14161b;
+      --stt-panel: #1c1f26;
+      --stt-panel-2: #20232b;
+      --stt-text: #e9e6df;
+      --stt-muted: #9aa0aa;
+      --stt-border: #2c303a;
+      --stt-accent: #d9a25c;
+      --stt-accent-contrast: #16130c;
+      --stt-frame: #4a2f16;
+      --stt-frame-dark: #2b1a0c;
+      --stt-rod: #8a6a3d;
+      --stt-bead: #ede4d6;
+      --stt-bead-highlight: #fff3e0;
+      --stt-success: #4ade80;
+      --stt-success-bg: #14301f;
+      --stt-error: #f87171;
+      --stt-error-bg: #341616;
+      --stt-shadow: rgba(0, 0, 0, 0.5);
+      --stt-overlay: rgba(0, 0, 0, 0.65);
+    }
+  }
+  #soroban-tutorial-app[data-theme="dark"] {
+    --stt-bg: #14161b;
+    --stt-panel: #1c1f26;
+    --stt-panel-2: #20232b;
+    --stt-text: #e9e6df;
+    --stt-muted: #9aa0aa;
+    --stt-border: #2c303a;
+    --stt-accent: #d9a25c;
+    --stt-accent-contrast: #16130c;
+    --stt-frame: #4a2f16;
+    --stt-frame-dark: #2b1a0c;
+    --stt-rod: #8a6a3d;
+    --stt-bead: #ede4d6;
+    --stt-bead-highlight: #fff3e0;
+    --stt-success: #4ade80;
+    --stt-success-bg: #14301f;
+    --stt-error: #f87171;
+    --stt-error-bg: #341616;
+    --stt-shadow: rgba(0, 0, 0, 0.5);
+    --stt-overlay: rgba(0, 0, 0, 0.65);
+  }
+
+  #soroban-tutorial-app * { box-sizing: border-box; }
+  #soroban-tutorial-app [hidden] { display: none !important; }
+
+  /* Reset common elements explicitly so a host page's own h1/p/button/select
+     rules cannot leak in through element-type selectors. A rule declared
+     here, however plain, always wins over an inherited value, and our
+     #soroban-tutorial-app-scoped selector always outranks a bare host
+     element selector of the same kind. */
+  #soroban-tutorial-app h1,
+  #soroban-tutorial-app h2,
+  #soroban-tutorial-app h3,
+  #soroban-tutorial-app p,
+  #soroban-tutorial-app span,
+  #soroban-tutorial-app label,
+  #soroban-tutorial-app li,
+  #soroban-tutorial-app button,
+  #soroban-tutorial-app select,
+  #soroban-tutorial-app input {
+    color: inherit;
+    text-decoration: none;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.5;
+    background: none;
+    border: none;
+    list-style: none;
+    box-shadow: none;
+  }
+
+  #soroban-tutorial-app h1,
+  #soroban-tutorial-app h2,
+  #soroban-tutorial-app h3,
+  #soroban-tutorial-app p { margin: 0 0 8px 0; }
+
+  #soroban-tutorial-app .stt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  #soroban-tutorial-app .stt-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+  }
+  #soroban-tutorial-app .stt-header-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  #soroban-tutorial-app .stt-btn {
+    appearance: none;
+    border: 1px solid var(--stt-border);
+    background: var(--stt-panel);
+    color: var(--stt-text);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    line-height: 1.3;
+  }
+  #soroban-tutorial-app .stt-btn:hover { border-color: var(--stt-accent); }
+  #soroban-tutorial-app .stt-btn:focus-visible,
+  #soroban-tutorial-app .stt-bead:focus-visible,
+  #soroban-tutorial-app select.stt-select:focus-visible {
+    outline: 2px solid var(--stt-accent);
+    outline-offset: 2px;
+  }
+  #soroban-tutorial-app .stt-btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+  }
+  #soroban-tutorial-app .stt-btn-primary {
+    background: var(--stt-accent);
+    border-color: var(--stt-accent);
+    color: var(--stt-accent-contrast);
+    font-weight: 600;
+  }
+  #soroban-tutorial-app .stt-btn-primary:hover { filter: brightness(1.06); }
+  #soroban-tutorial-app .stt-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  #soroban-tutorial-app .stt-btn.stt-active {
+    background: var(--stt-accent);
+    color: var(--stt-accent-contrast);
+    border-color: var(--stt-accent);
+  }
+
+  #soroban-tutorial-app .stt-select {
+    border: 1px solid var(--stt-border);
+    background: var(--stt-panel);
+    color: var(--stt-text);
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+
+  /* ---- intro / help text ---- */
+  #soroban-tutorial-app .stt-intro-text p { margin: 0 0 10px 0; }
+  #soroban-tutorial-app .stt-intro-text p:last-child { margin-bottom: 0; }
+
+  /* ---- modal ---- */
+  #soroban-tutorial-app .stt-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--stt-overlay);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow: auto;
+    border-radius: 14px;
+    z-index: 50;
+  }
+  #soroban-tutorial-app .stt-modal {
+    background: var(--stt-panel);
+    border: 1px solid var(--stt-border);
+    border-radius: 12px;
+    padding: 18px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 8px 24px var(--stt-shadow);
+  }
+  #soroban-tutorial-app .stt-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  #soroban-tutorial-app .stt-modal-head h2 { margin: 0; font-size: 16px; }
+  #soroban-tutorial-app .stt-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--stt-border);
+  }
+  #soroban-tutorial-app .stt-field:first-of-type { border-top: none; }
+  #soroban-tutorial-app .stt-field-label { font-weight: 600; }
+  #soroban-tutorial-app .stt-field-hint {
+    display: block;
+    font-weight: 400;
+    color: var(--stt-muted);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  /* ---- main layout ---- */
+  #soroban-tutorial-app .stt-main { margin-top: 14px; }
+
+  #soroban-tutorial-app .stt-readout-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  #soroban-tutorial-app .stt-readout-label {
+    font-size: 12px;
+    color: var(--stt-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  #soroban-tutorial-app .stt-readout {
+    font-size: 30px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  #soroban-tutorial-app .stt-soroban-wrap {
+    overflow-x: auto;
+    padding: 4px 0 8px 0;
+  }
+  #soroban-tutorial-app .stt-soroban {
+    display: inline-flex;
+    background: linear-gradient(180deg, var(--stt-frame), var(--stt-frame-dark));
+    border-radius: 10px;
+    padding: 10px 10px 6px 10px;
+    box-shadow: 0 6px 16px var(--stt-shadow);
+  }
+  #soroban-tutorial-app .stt-rods-row {
+    position: relative;
+    display: flex;
+  }
+  #soroban-tutorial-app .stt-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 48px;
+    height: 6px;
+    background: var(--stt-frame-dark);
+    border-radius: 2px;
+    box-shadow: 0 1px 2px var(--stt-shadow);
+    z-index: 2;
+  }
+  #soroban-tutorial-app .stt-rod {
+    position: relative;
+    width: 32px;
+    flex: 0 0 auto;
+  }
+  #soroban-tutorial-app .stt-rod-stick {
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 20px;
+    width: 2px;
+    background: var(--stt-rod);
+    z-index: 1;
+  }
+  #soroban-tutorial-app .stt-heaven-zone {
+    position: relative;
+    height: 48px;
+  }
+  #soroban-tutorial-app .stt-earth-zone {
+    position: relative;
+    height: 120px;
+  }
+  #soroban-tutorial-app .stt-bead {
+    position: absolute;
+    left: 4px;
+    top: 2px;
+    width: 24px;
+    height: 20px;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    background: linear-gradient(155deg, var(--stt-bead-highlight), var(--stt-bead));
+    z-index: 3;
+    cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease;
+    transform: translateY(0px);
+  }
+  #soroban-tutorial-app .stt-bead:hover { filter: brightness(1.12); }
+  #soroban-tutorial-app .stt-bead.stt-bead-active {
+    filter: brightness(1.1);
+  }
+  /* clip-path clips a regular box-shadow (and even filter: drop-shadow, in
+     practice) to the diamond outline, so a bead itself cannot carry a glow
+     ring. Instead, highlighting a bead adds a separate, unclipped sibling
+     marker element positioned exactly on top of it (see .stt-step-marker);
+     box-shadow on that plain circular div renders normally. */
+  #soroban-tutorial-app .stt-step-marker {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    width: 24px;
+    height: 20px;
+    border-radius: 50%;
+    background: transparent;
+    z-index: 2;
+    pointer-events: none;
+    animation: stt-marker-pulse 0.9s ease-in-out infinite;
+  }
+  @keyframes stt-marker-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px var(--stt-success), 0 0 6px 2px var(--stt-success); opacity: 0.75; }
+    50% { box-shadow: 0 0 0 4px var(--stt-success), 0 0 14px 5px var(--stt-success); opacity: 1; }
+  }
+  #soroban-tutorial-app .stt-unit-dot {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--stt-accent);
+    z-index: 1;
+  }
+  #soroban-tutorial-app .stt-rod-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -18px;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.85);
+    font-variant-numeric: tabular-nums;
+  }
+  #soroban-tutorial-app .stt-soroban.stt-hide-labels .stt-rod-label { display: none; }
+
+  /* ---- tabs ---- */
+  #soroban-tutorial-app .stt-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 14px 0 10px 0;
+  }
+  #soroban-tutorial-app .stt-tab {
+    border: 1px solid var(--stt-border);
+    background: var(--stt-panel);
+    color: var(--stt-text);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  #soroban-tutorial-app .stt-tab.stt-active {
+    background: var(--stt-accent);
+    border-color: var(--stt-accent);
+    color: var(--stt-accent-contrast);
+    font-weight: 600;
+  }
+
+  /* ---- exercise panel ---- */
+  #soroban-tutorial-app .stt-panel {
+    background: var(--stt-panel);
+    border: 1px solid var(--stt-border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  #soroban-tutorial-app .stt-panel-title {
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  #soroban-tutorial-app .stt-panel-desc {
+    color: var(--stt-muted);
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  #soroban-tutorial-app .stt-level-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  #soroban-tutorial-app .stt-question {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  #soroban-tutorial-app .stt-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  #soroban-tutorial-app .stt-feedback {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+  }
+  #soroban-tutorial-app .stt-feedback.stt-show { display: block; }
+  #soroban-tutorial-app .stt-feedback.stt-ok {
+    background: var(--stt-success-bg);
+    color: var(--stt-success);
+  }
+  #soroban-tutorial-app .stt-feedback.stt-bad {
+    background: var(--stt-error-bg);
+    color: var(--stt-error);
+  }
+  #soroban-tutorial-app .stt-hint-box {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--stt-panel-2);
+    border: 1px dashed var(--stt-border);
+    font-size: 13px;
+    display: none;
+    white-space: pre-line;
+  }
+  #soroban-tutorial-app .stt-hint-box.stt-show { display: block; }
+  #soroban-tutorial-app .stt-step-panel {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--stt-panel-2);
+    border: 1px solid var(--stt-accent);
+    font-size: 13px;
+    display: none;
+  }
+  #soroban-tutorial-app .stt-step-panel.stt-show { display: block; }
+  #soroban-tutorial-app .stt-step-panel-title {
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--stt-accent);
+  }
+  #soroban-tutorial-app .stt-step-log {
+    list-style: none;
+    margin: 6px 0 0 0;
+    padding: 0;
+    max-height: 110px;
+    overflow-y: auto;
+  }
+  #soroban-tutorial-app .stt-step-log li {
+    padding: 3px 0;
+    border-top: 1px solid var(--stt-border);
+  }
+  #soroban-tutorial-app .stt-step-log li:first-child { border-top: none; }
+  #soroban-tutorial-app .stt-stats {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--stt-muted);
+  }
+
+  /* ---- log panel ---- */
+  #soroban-tutorial-app .stt-log-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  #soroban-tutorial-app .stt-log-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 160px;
+    overflow-y: auto;
+    border: 1px solid var(--stt-border);
+    border-radius: 8px;
+  }
+  #soroban-tutorial-app .stt-log-list li {
+    padding: 5px 8px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--stt-border);
+    font-variant-numeric: tabular-nums;
+  }
+  #soroban-tutorial-app .stt-log-list li:last-child { border-bottom: none; }
+  #soroban-tutorial-app .stt-log-empty {
+    padding: 10px;
+    color: var(--stt-muted);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  #soroban-tutorial-app .stt-footer {
+    margin-top: 14px;
+    text-align: right;
+    font-size: 11px;
+    color: var(--stt-muted);
+  }
+
+  #soroban-tutorial-app .stt-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 460px) {
+    #soroban-tutorial-app { padding: 12px; font-size: 13px; }
+    #soroban-tutorial-app .stt-readout { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div id="soroban-tutorial-app" data-theme="auto">
+
+  <div class="stt-header">
+    <h1 class="stt-title">Soroban Tutorial</h1>
+    <div class="stt-header-actions">
+      <button type="button" class="stt-btn stt-btn-icon" id="stt-theme-btn" title="Change color theme" aria-label="Change color theme">&#9788;</button>
+      <button type="button" class="stt-btn stt-btn-icon" id="stt-settings-btn" title="Settings" aria-label="Settings">&#9881;</button>
+      <button type="button" class="stt-btn stt-btn-icon" id="stt-help-btn" title="About the soroban" aria-label="About the soroban">?</button>
+    </div>
+  </div>
+
+  <!-- Intro modal -->
+  <div class="stt-modal-overlay" id="stt-intro-overlay" hidden>
+    <div class="stt-modal" role="dialog" aria-modal="true" aria-labelledby="stt-intro-title">
+      <div class="stt-modal-head">
+        <h2 id="stt-intro-title">About the Soroban</h2>
+        <button type="button" class="stt-btn stt-btn-icon" id="stt-intro-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="stt-intro-text">
+        <p>The soroban is a Japanese abacus. People use it to add, subtract, multiply, and divide numbers.</p>
+        <p>The soroban has a frame with many rods. Each rod holds five beads. The beads sit above and below a bar. This bar is the reckoning bar.</p>
+        <p>One bead sits above the bar. This bead is the heaven bead. It has a value of 5.</p>
+        <p>Four beads sit below the bar. These beads are the earth beads. Each earth bead has a value of 1.</p>
+        <p>To show a value on a rod, move beads toward the bar. A bead that touches the bar is active. Add the values of the active beads on a rod. This sum is the digit for that rod.</p>
+        <p>The rod on the right is the ones rod. Each rod to the left has a value ten times higher than the rod before it. A small dot marks every third rod, to help you read place value.</p>
+        <p>Click a bead to move it toward the bar. Click an active bead to move it away from the bar again.</p>
+      </div>
+      <div class="stt-row" style="margin-top:12px; justify-content:flex-end;">
+        <button type="button" class="stt-btn stt-btn-primary" id="stt-intro-start">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div class="stt-modal-overlay" id="stt-settings-overlay" hidden>
+    <div class="stt-modal" role="dialog" aria-modal="true" aria-labelledby="stt-settings-title">
+      <div class="stt-modal-head">
+        <h2 id="stt-settings-title">Settings</h2>
+        <button type="button" class="stt-btn stt-btn-icon" id="stt-settings-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="stt-field">
+        <span class="stt-field-label">Number of rods
+          <span class="stt-field-hint">More rods allow larger numbers.</span>
+        </span>
+        <select class="stt-select" id="stt-rod-count"></select>
+      </div>
+
+      <div class="stt-field">
+        <span class="stt-field-label">Show rod values
+          <span class="stt-field-hint">Show the digit each rod holds.</span>
+        </span>
+        <input type="checkbox" id="stt-show-labels">
+      </div>
+
+      <div class="stt-field">
+        <span class="stt-field-label">Color theme</span>
+        <select class="stt-select" id="stt-theme-select">
+          <option value="auto">Match system</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+
+      <div class="stt-field">
+        <span class="stt-field-label">Reset all progress
+          <span class="stt-field-hint">This clears saved levels, the log, and stats.</span>
+        </span>
+        <button type="button" class="stt-btn" id="stt-reset-all">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="stt-main">
+
+    <div class="stt-readout-row">
+      <div>
+        <span class="stt-readout-label">Soroban shows</span><br>
+        <span class="stt-readout" id="stt-readout">0</span>
+      </div>
+      <button type="button" class="stt-btn" id="stt-clear-beads">Reset Soroban</button>
+    </div>
+
+    <div class="stt-soroban-wrap">
+      <div class="stt-soroban" id="stt-soroban-el">
+        <div class="stt-rods-row" id="stt-rods-row">
+          <div class="stt-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="stt-tabs" id="stt-tabs" aria-label="Practice mode">
+      <button type="button" class="stt-tab" data-mode="free">Free Play</button>
+      <button type="button" class="stt-tab" data-mode="represent">Represent</button>
+      <button type="button" class="stt-tab" data-mode="add">Addition</button>
+      <button type="button" class="stt-tab" data-mode="sub">Subtraction</button>
+      <button type="button" class="stt-tab" data-mode="mul">Multiplication</button>
+      <button type="button" class="stt-tab" data-mode="div">Division</button>
+    </nav>
+
+    <section class="stt-panel" id="stt-exercise-panel">
+      <div class="stt-panel-title" id="stt-mode-title">Free Play</div>
+      <div class="stt-panel-desc" id="stt-mode-desc">Move beads to explore the soroban. There is no problem to solve.</div>
+
+      <div class="stt-level-row" id="stt-level-row" hidden>
+        <label for="stt-level-select"><strong>Level</strong></label>
+        <select class="stt-select" id="stt-level-select">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
+
+      <div class="stt-question" id="stt-question" hidden></div>
+
+      <div class="stt-row" id="stt-exercise-actions" hidden>
+        <button type="button" class="stt-btn stt-btn-primary" id="stt-check-btn">Check Answer</button>
+        <button type="button" class="stt-btn" id="stt-new-btn">New Problem</button>
+        <button type="button" class="stt-btn" id="stt-hint-btn">Show Hint</button>
+        <button type="button" class="stt-btn" id="stt-next-step-btn" hidden>Next Step</button>
+        <button type="button" class="stt-btn" id="stt-target-btn">Show Target</button>
+      </div>
+
+      <div class="stt-hint-box" id="stt-hint-box"></div>
+      <div class="stt-step-panel" id="stt-step-panel">
+        <div class="stt-step-panel-title" id="stt-step-title"></div>
+        <div id="stt-step-text"></div>
+        <ul class="stt-step-log" id="stt-step-log"></ul>
+      </div>
+      <div class="stt-feedback" id="stt-feedback" role="status" aria-live="polite"></div>
+      <div class="stt-stats" id="stt-stats" hidden>Correct: <span id="stt-stat-correct">0</span> / <span id="stt-stat-total">0</span></div>
+    </section>
+
+    <section class="stt-panel">
+      <div class="stt-log-head">
+        <div class="stt-panel-title" style="margin-bottom:0;">Log</div>
+        <div class="stt-row">
+          <button type="button" class="stt-btn" id="stt-replay-btn">Replay</button>
+          <button type="button" class="stt-btn" id="stt-clear-log-btn">Clear Log</button>
+        </div>
+      </div>
+      <ul class="stt-log-list" id="stt-log-list">
+        <li class="stt-log-empty">No moves yet. Click a bead to begin.</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="stt-footer">Soroban Tutorial v1.0.0</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================
+     Constants
+  ========================================================= */
+  var STORAGE_PREFIX = 'sorobanTutorial.';
+  var BEAD_SLOT = 24;          // px, vertical distance a bead travels per step
+  var HEAVEN_ZONE_H = 48;      // px, 2 slots tall
+  var ROD_COUNT_OPTIONS = [7, 9, 11, 13, 15, 17, 19, 21];
+  var DEFAULT_ROD_COUNT = 13;
+  var PLACE_NAMES = ['ones', 'tens', 'hundreds', 'thousands'];
+  var MUL_DIGIT_TABLE = [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]];
+  var DIV_DIGIT_TABLE = [[1, 1], [1, 2], [2, 2], [2, 3], [3, 3]];
+  var MAX_LOG_ENTRIES = 300;
+  var REPLAY_DELAY_MS = 450;
+
+  var MODE_INFO = {
+    free: {
+      title: 'Free Play',
+      desc: 'Move beads to explore the soroban. There is no problem to solve.'
+    },
+    represent: {
+      title: 'Representation',
+      desc: 'Practice showing whole numbers on the soroban.',
+      hint: 'Read the target number one digit at a time. Start with the leftmost digit. Set each digit on its own rod. The rightmost rod is the ones place.'
+    },
+    add: {
+      title: 'Addition',
+      desc: 'Practice sums on the soroban.',
+      hint: 'Add each digit from the left rod to the right rod.\n\n' +
+        'If a rod has enough free earth beads, add the digit directly.\n\n' +
+        'If a rod does not have enough free earth beads, use the five complement. The five complement pairs a digit with the amount that completes five: 1 and 4, 2 and 3. To add a digit this way, turn on the heaven bead for 5, then turn off the matching number of earth beads. The net change still equals the digit.\n\n' +
+        'If adding the digit would push the rod past 9, use the ten complement instead. The ten complement pairs a digit with the amount that completes ten: 1 and 9, 2 and 8, 3 and 7, 4 and 6, 5 and 5. To add a digit this way, subtract the complement from the rod, then add 1 to the rod on the left. This is a carry.\n\n' +
+        'Use Next Step to see which bead to move next.'
+    },
+    sub: {
+      title: 'Subtraction',
+      desc: 'Practice differences on the soroban.',
+      hint: 'Subtract each digit from the left rod to the right rod.\n\n' +
+        'If a rod has enough active earth beads, subtract the digit directly.\n\n' +
+        'If a rod does not have enough active earth beads but the heaven bead is on, use the five complement. To subtract a digit this way, turn off the heaven bead, then turn on the matching number of earth beads so the net change still equals the digit.\n\n' +
+        'If the rod does not hold enough value for a direct or five-complement subtraction, use the ten complement. To subtract a digit this way, add the complement to the rod, then subtract 1 from the rod on the left. This is a borrow.\n\n' +
+        'Use Next Step to see which bead to move next.'
+    },
+    mul: {
+      title: 'Multiplication',
+      desc: 'Practice products on the soroban.',
+      hint: 'Multiply each digit of the first number by the second number. Add the partial products together. Set the final sum on the soroban.'
+    },
+    div: {
+      title: 'Division',
+      desc: 'Practice quotients on the soroban.',
+      hint: 'Find how many times the divisor fits into the dividend. This count is the quotient. Set the quotient on the soroban.'
+    }
+  };
+
+  /* =========================================================
+     State
+  ========================================================= */
+  var State = {
+    rodCount: DEFAULT_ROD_COUNT,
+    rods: [],              // [{heaven:bool, earth:0..4}, ...] left to right
+    showLabels: true,
+    theme: 'auto',
+    mode: 'represent',
+    levels: { represent: 1, add: 1, sub: 1, mul: 1, div: 1 },
+    exercise: null,        // {type, a, b, target, prompt, solved}
+    exerciseId: 0,
+    log: [],                // [{id, exerciseId, rodIndex, place, part, heavenAfter, earthAfter, valueAfter, totalAfter, text}]
+    logSeq: 0,
+    stats: { correct: 0, total: 0 },
+    introSeen: false,
+    hintVisible: false,
+    playing: false,
+    playTimer: null,
+    targetGhostTimer: null
+  };
+
+  /* =========================================================
+     Storage helpers
+  ========================================================= */
+  function storageGet(key, fallback) {
+    try {
+      var raw = window.localStorage.getItem(STORAGE_PREFIX + key);
+      if (raw === null) return fallback;
+      return JSON.parse(raw);
+    } catch (err) {
+      return fallback;
+    }
+  }
+  function storageSet(key, value) {
+    try {
+      window.localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
+    } catch (err) {
+      /* storage unavailable: continue without persistence */
+    }
+  }
+
+  function loadPersisted() {
+    State.rodCount = storageGet('rodCount', DEFAULT_ROD_COUNT);
+    if (ROD_COUNT_OPTIONS.indexOf(State.rodCount) === -1) State.rodCount = DEFAULT_ROD_COUNT;
+    State.showLabels = storageGet('showLabels', true);
+    State.theme = storageGet('theme', 'auto');
+    State.mode = storageGet('mode', 'represent');
+    if (!MODE_INFO[State.mode]) State.mode = 'represent';
+    State.levels = storageGet('levels', { represent: 1, add: 1, sub: 1, mul: 1, div: 1 });
+    State.log = storageGet('log', []);
+    State.logSeq = storageGet('logSeq', 0);
+    State.stats = storageGet('stats', { correct: 0, total: 0 });
+    State.introSeen = storageGet('introSeen', false);
+  }
+
+  function persistAll() {
+    storageSet('rodCount', State.rodCount);
+    storageSet('showLabels', State.showLabels);
+    storageSet('theme', State.theme);
+    storageSet('mode', State.mode);
+    storageSet('levels', State.levels);
+    storageSet('log', State.log.slice(-MAX_LOG_ENTRIES));
+    storageSet('logSeq', State.logSeq);
+    storageSet('stats', State.stats);
+    storageSet('introSeen', State.introSeen);
+  }
+
+  /* =========================================================
+     DOM refs
+  ========================================================= */
+  var root = document.getElementById('soroban-tutorial-app');
+  var el = {
+    rodsRow: document.getElementById('stt-rods-row'),
+    sorobanEl: document.getElementById('stt-soroban-el'),
+    readout: document.getElementById('stt-readout'),
+    clearBeads: document.getElementById('stt-clear-beads'),
+    tabs: document.getElementById('stt-tabs'),
+    modeTitle: document.getElementById('stt-mode-title'),
+    modeDesc: document.getElementById('stt-mode-desc'),
+    levelRow: document.getElementById('stt-level-row'),
+    levelSelect: document.getElementById('stt-level-select'),
+    question: document.getElementById('stt-question'),
+    exerciseActions: document.getElementById('stt-exercise-actions'),
+    checkBtn: document.getElementById('stt-check-btn'),
+    newBtn: document.getElementById('stt-new-btn'),
+    hintBtn: document.getElementById('stt-hint-btn'),
+    nextStepBtn: document.getElementById('stt-next-step-btn'),
+    targetBtn: document.getElementById('stt-target-btn'),
+    hintBox: document.getElementById('stt-hint-box'),
+    stepPanel: document.getElementById('stt-step-panel'),
+    stepTitle: document.getElementById('stt-step-title'),
+    stepText: document.getElementById('stt-step-text'),
+    stepLog: document.getElementById('stt-step-log'),
+    feedback: document.getElementById('stt-feedback'),
+    stats: document.getElementById('stt-stats'),
+    statCorrect: document.getElementById('stt-stat-correct'),
+    statTotal: document.getElementById('stt-stat-total'),
+    logList: document.getElementById('stt-log-list'),
+    replayBtn: document.getElementById('stt-replay-btn'),
+    clearLogBtn: document.getElementById('stt-clear-log-btn'),
+    themeBtn: document.getElementById('stt-theme-btn'),
+    helpBtn: document.getElementById('stt-help-btn'),
+    settingsBtn: document.getElementById('stt-settings-btn'),
+    introOverlay: document.getElementById('stt-intro-overlay'),
+    introClose: document.getElementById('stt-intro-close'),
+    introStart: document.getElementById('stt-intro-start'),
+    settingsOverlay: document.getElementById('stt-settings-overlay'),
+    settingsClose: document.getElementById('stt-settings-close'),
+    rodCountSelect: document.getElementById('stt-rod-count'),
+    showLabelsCheckbox: document.getElementById('stt-show-labels'),
+    themeSelect: document.getElementById('stt-theme-select'),
+    resetAllBtn: document.getElementById('stt-reset-all')
+  };
+
+  /* =========================================================
+     Soroban model
+  ========================================================= */
+  function makeRods(count) {
+    var rods = [];
+    for (var i = 0; i < count; i++) rods.push({ heaven: false, earth: 0 });
+    return rods;
+  }
+
+  function rodPlace(index) {
+    return State.rodCount - 1 - index;
+  }
+
+  function placeLabel(power) {
+    if (power < PLACE_NAMES.length) return PLACE_NAMES[power];
+    return '10^' + power;
+  }
+
+  function rodValue(rod) {
+    return (rod.heaven ? 5 : 0) + rod.earth;
+  }
+
+  function getValue() {
+    var total = 0;
+    for (var i = 0; i < State.rods.length; i++) {
+      total += rodValue(State.rods[i]) * Math.pow(10, rodPlace(i));
+    }
+    return total;
+  }
+
+  function digitsForRod(rod) {
+    return rodValue(rod);
+  }
+
+  function setRodToDigit(rod, digit) {
+    digit = Math.max(0, Math.min(9, digit));
+    rod.heaven = digit >= 5;
+    rod.earth = digit >= 5 ? digit - 5 : digit;
+  }
+
+  function setValueOnRods(rods, value) {
+    var str = String(Math.max(0, Math.floor(value)));
+    while (str.length < rods.length) str = '0' + str;
+    str = str.slice(str.length - rods.length);
+    for (var i = 0; i < rods.length; i++) {
+      setRodToDigit(rods[i], parseInt(str.charAt(i), 10));
+    }
+  }
+
+  /* =========================================================
+     Rendering
+  ========================================================= */
+  function buildRodsDom() {
+    // remove existing rod elements, keep the bar
+    var bar = el.rodsRow.querySelector('.stt-bar');
+    el.rodsRow.innerHTML = '';
+    el.rodsRow.appendChild(bar);
+
+    for (var i = 0; i < State.rodCount; i++) {
+      var rod = document.createElement('div');
+      rod.className = 'stt-rod';
+      rod.setAttribute('data-rod-index', String(i));
+
+      var stick = document.createElement('div');
+      stick.className = 'stt-rod-stick';
+      rod.appendChild(stick);
+
+      var heavenZone = document.createElement('div');
+      heavenZone.className = 'stt-heaven-zone';
+      var heavenBead = document.createElement('div');
+      heavenBead.className = 'stt-bead stt-bead-heaven';
+      heavenBead.setAttribute('data-rod-index', String(i));
+      heavenBead.setAttribute('data-part', 'heaven');
+      heavenBead.setAttribute('role', 'button');
+      heavenBead.setAttribute('tabindex', '0');
+      heavenZone.appendChild(heavenBead);
+      rod.appendChild(heavenZone);
+
+      var earthZone = document.createElement('div');
+      earthZone.className = 'stt-earth-zone';
+      for (var b = 0; b < 4; b++) {
+        var earthBead = document.createElement('div');
+        earthBead.className = 'stt-bead stt-bead-earth';
+        earthBead.setAttribute('data-rod-index', String(i));
+        earthBead.setAttribute('data-part', 'earth');
+        earthBead.setAttribute('data-bead-index', String(b));
+        earthBead.setAttribute('role', 'button');
+        earthBead.setAttribute('tabindex', '0');
+        earthZone.appendChild(earthBead);
+      }
+      rod.appendChild(earthZone);
+
+      var place = rodPlace(i);
+      if (place % 3 === 0) {
+        var dot = document.createElement('div');
+        dot.className = 'stt-unit-dot';
+        rod.appendChild(dot);
+      }
+
+      var label = document.createElement('div');
+      label.className = 'stt-rod-label';
+      label.setAttribute('data-rod-label', String(i));
+      label.textContent = '0';
+      rod.appendChild(label);
+
+      el.rodsRow.appendChild(rod);
+    }
+
+    el.sorobanEl.classList.toggle('stt-hide-labels', !State.showLabels);
+  }
+
+  function renderRod(i) {
+    var rod = State.rods[i];
+    var rodEl = el.rodsRow.querySelector('.stt-rod[data-rod-index="' + i + '"]');
+    if (!rodEl) return;
+
+    var heavenBead = rodEl.querySelector('.stt-bead-heaven');
+    var heavenSlot = rod.heaven ? 1 : 0;
+    heavenBead.style.transform = 'translateY(' + (heavenSlot * BEAD_SLOT) + 'px)';
+    heavenBead.classList.toggle('stt-bead-active', rod.heaven);
+    heavenBead.setAttribute('aria-pressed', rod.heaven ? 'true' : 'false');
+
+    var earthBeads = rodEl.querySelectorAll('.stt-bead-earth');
+    for (var b = 0; b < earthBeads.length; b++) {
+      var active = b < rod.earth;
+      var slot = active ? b : b + 1;
+      earthBeads[b].style.transform = 'translateY(' + (slot * BEAD_SLOT) + 'px)';
+      earthBeads[b].classList.toggle('stt-bead-active', active);
+      earthBeads[b].setAttribute('aria-pressed', active ? 'true' : 'false');
+    }
+
+    var label = rodEl.querySelector('[data-rod-label]');
+    if (label) label.textContent = String(rodValue(rod));
+  }
+
+  function renderAllRods() {
+    for (var i = 0; i < State.rods.length; i++) renderRod(i);
+    updateReadout();
+  }
+
+  function updateReadout() {
+    el.readout.textContent = getValue().toLocaleString('en-US');
+  }
+
+  /* =========================================================
+     Bead interaction
+  ========================================================= */
+  function applyClick(rodIndex, part, beadIndex, skipLog) {
+    var rod = State.rods[rodIndex];
+    if (!rod) return;
+
+    if (part === 'heaven') {
+      rod.heaven = !rod.heaven;
+    } else {
+      var active = beadIndex < rod.earth;
+      rod.earth = active ? beadIndex : beadIndex + 1;
+    }
+
+    renderRod(rodIndex);
+    updateReadout();
+
+    if (!skipLog) {
+      pushLogEntry(rodIndex, part);
+      clearFeedback();
+      checkStepAutoAdvance(rodIndex);
+    }
+  }
+
+  function handleBeadActivate(target) {
+    var rodIndex = parseInt(target.getAttribute('data-rod-index'), 10);
+    var part = target.getAttribute('data-part');
+    var beadIndex = part === 'earth' ? parseInt(target.getAttribute('data-bead-index'), 10) : 0;
+    applyClick(rodIndex, part, beadIndex, false);
+  }
+
+  el.rodsRow.addEventListener('click', function (e) {
+    if (State.playing) return;
+    var target = e.target.closest ? e.target.closest('.stt-bead') : null;
+    if (!target) return;
+    handleBeadActivate(target);
+  });
+
+  el.rodsRow.addEventListener('keydown', function (e) {
+    if (State.playing) return;
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    var target = e.target.closest ? e.target.closest('.stt-bead') : null;
+    if (!target) return;
+    e.preventDefault();
+    handleBeadActivate(target);
+  });
+
+  function resetSorobanSilent() {
+    State.rods = makeRods(State.rodCount);
+    renderAllRods();
+  }
+
+  function deepCloneRods(rods) {
+    var out = [];
+    for (var i = 0; i < rods.length; i++) out.push({ heaven: rods[i].heaven, earth: rods[i].earth });
+    return out;
+  }
+
+  function resetSoroban() {
+    var ex = State.exercise;
+    var backToStart = ex && ex.startRods && (State.mode === 'add' || State.mode === 'sub');
+    if (backToStart) {
+      State.rods = deepCloneRods(ex.startRods);
+      pushPlainLogLine('Soroban reset to ' + ex.a.toLocaleString('en-US') + '.');
+    } else {
+      State.rods = makeRods(State.rodCount);
+      pushPlainLogLine('Soroban reset to 0.');
+    }
+    renderAllRods();
+    clearFeedback();
+    if (ex) {
+      ex.stepIndex = 0;
+      ex.stepShown = false;
+      if (State.hintVisible && ex.steps) {
+        el.stepLog.innerHTML = '';
+        ex.stepShown = true;
+        showCurrentStepHighlight();
+      }
+    }
+  }
+
+  el.clearBeads.addEventListener('click', resetSoroban);
+
+  /* =========================================================
+     Random number helpers
+  ========================================================= */
+  function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function randDigits(n) {
+    if (n <= 0) return 0;
+    if (n === 1) return randInt(0, 9);
+    var min = Math.pow(10, n - 1);
+    var max = Math.pow(10, n) - 1;
+    return randInt(min, max);
+  }
+
+  function digitCount(n) {
+    return String(Math.max(0, Math.floor(n))).length;
+  }
+
+  function randDigitsNonzero(n) {
+    var value = randDigits(n);
+    var tries = 0;
+    while (value === 0 && tries < 10) {
+      value = randDigits(n);
+      tries++;
+    }
+    return value === 0 ? 1 : value;
+  }
+
+  function maxDigitsFor(mode) {
+    if (mode === 'represent' || mode === 'sub') return State.rodCount;
+    return Math.max(1, State.rodCount - 1);
+  }
+
+  /* =========================================================
+     Five-complement / ten-complement step planner
+     (used by Addition and Subtraction to build a genuine,
+     rod-by-rod technique walkthrough, not just a final answer)
+  ========================================================= */
+  function applyRodStep(rods, rodIndex, heavenNew, earthNew, method, opType, digit, steps, contextNote) {
+    var rod = rods[rodIndex];
+    var heavenBefore = rod.heaven;
+    var earthBefore = rod.earth;
+    rod.heaven = heavenNew;
+    rod.earth = earthNew;
+
+    var place = rodPlace(rodIndex);
+    var rodName = 'Rod ' + (place + 1) + ' (' + placeLabel(place) + ')';
+    var verb = opType === 'add' ? 'add' : 'subtract';
+    var parts = [];
+    if (contextNote) parts.push(contextNote);
+
+    if (method === 'direct') {
+      parts.push(rodName + ': ' + verb + ' ' + digit + ' directly.');
+    } else {
+      var comp = 5 - digit;
+      var beadWord = comp + ' earth bead' + (comp === 1 ? '' : 's');
+      if (opType === 'add') {
+        parts.push(rodName + ': not enough free earth beads for ' + digit + '. Use the five complement (' + digit + ' equals 5 minus ' + comp + '). Turn on the heaven bead and turn off ' + beadWord + '.');
+      } else {
+        parts.push(rodName + ': not enough active earth beads for ' + digit + '. Use the five complement (' + digit + ' equals 5 minus ' + comp + '). Turn off the heaven bead and turn on ' + beadWord + '.');
+      }
+    }
+
+    steps.push({
+      rodIndex: rodIndex,
+      heavenBefore: heavenBefore,
+      earthBefore: earthBefore,
+      heavenAfter: heavenNew,
+      earthAfter: earthNew,
+      explanation: parts.join(' ')
+    });
+  }
+
+  function planAddDigit(rods, rodIndex, d, steps, contextNote) {
+    if (d === 0 || rodIndex < 0) return;
+    var rod = rods[rodIndex];
+    var v = rodValue(rod);
+
+    if (v + d > 9) {
+      var comp = 10 - d;
+      var tenNote = 'Adding ' + d + ' would pass 9 on this rod. Use the ten complement (' + d + ' equals 10 minus ' + comp + ').';
+      planSubDigit(rods, rodIndex, comp, steps, tenNote);
+      planAddDigit(rods, rodIndex - 1, 1, steps, 'Carry 1 to the rod on the left.');
+      return;
+    }
+
+    if (d < 5) {
+      if (rod.earth + d <= 4) {
+        applyRodStep(rods, rodIndex, rod.heaven, rod.earth + d, 'direct', 'add', d, steps, contextNote);
+      } else {
+        applyRodStep(rods, rodIndex, true, rod.earth - (5 - d), 'five', 'add', d, steps, contextNote);
+      }
+    } else {
+      applyRodStep(rods, rodIndex, true, rod.earth + (d - 5), 'direct', 'add', d, steps, contextNote);
+    }
+  }
+
+  function planSubDigit(rods, rodIndex, d, steps, contextNote) {
+    if (d === 0 || rodIndex < 0) return;
+    var rod = rods[rodIndex];
+    var v = rodValue(rod);
+
+    if (v - d < 0) {
+      var comp = 10 - d;
+      var tenNote = 'This rod does not hold enough for ' + d + '. Use the ten complement (' + d + ' equals 10 minus ' + comp + ').';
+      planAddDigit(rods, rodIndex, comp, steps, tenNote);
+      planSubDigit(rods, rodIndex - 1, 1, steps, 'Borrow 1 from the rod on the left.');
+      return;
+    }
+
+    if (d < 5) {
+      if (rod.earth - d >= 0) {
+        applyRodStep(rods, rodIndex, rod.heaven, rod.earth - d, 'direct', 'sub', d, steps, contextNote);
+      } else {
+        applyRodStep(rods, rodIndex, false, rod.earth + (5 - d), 'five', 'sub', d, steps, contextNote);
+      }
+    } else {
+      applyRodStep(rods, rodIndex, false, rod.earth - (d - 5), 'direct', 'sub', d, steps, contextNote);
+    }
+  }
+
+  function buildOperationSteps(startRods, amount, isAdd) {
+    var rods = deepCloneRods(startRods);
+    var steps = [];
+    var str = String(amount);
+    for (var k = 0; k < str.length; k++) {
+      var digit = parseInt(str.charAt(k), 10);
+      var placeOfDigit = str.length - 1 - k;
+      var rodIndex = State.rodCount - 1 - placeOfDigit;
+      if (isAdd) planAddDigit(rods, rodIndex, digit, steps, null);
+      else planSubDigit(rods, rodIndex, digit, steps, null);
+    }
+    return steps;
+  }
+
+  /* =========================================================
+     Exercise generation
+  ========================================================= */
+  function generateExercise(mode, level) {
+    var maxDigits = maxDigitsFor(mode);
+    var ex = { type: mode, solved: false };
+
+    if (mode === 'represent') {
+      var digits = Math.max(1, Math.min(level, maxDigits));
+      ex.target = randDigits(digits);
+      ex.prompt = 'Set the soroban to show ' + ex.target.toLocaleString('en-US') + '.';
+
+    } else if (mode === 'add') {
+      var d = Math.max(1, Math.min(level, maxDigits - 1 > 0 ? maxDigits - 1 : 1));
+      ex.a = randDigitsNonzero(d);
+      ex.b = randDigitsNonzero(d);
+      ex.target = ex.a + ex.b;
+      ex.prompt = 'The soroban shows ' + ex.a.toLocaleString('en-US') + '. Add ' + ex.b.toLocaleString('en-US') + '.';
+      ex.startRods = makeRods(State.rodCount);
+      setValueOnRods(ex.startRods, ex.a);
+      ex.steps = buildOperationSteps(ex.startRods, ex.b, true);
+      ex.stepIndex = 0;
+      ex.stepShown = false;
+
+    } else if (mode === 'sub') {
+      var d2 = Math.max(1, Math.min(level, maxDigits));
+      ex.a = randDigitsNonzero(d2);
+      ex.b = randInt(0, ex.a);
+      ex.target = ex.a - ex.b;
+      ex.prompt = 'The soroban shows ' + ex.a.toLocaleString('en-US') + '. Subtract ' + ex.b.toLocaleString('en-US') + '.';
+      ex.startRods = makeRods(State.rodCount);
+      setValueOnRods(ex.startRods, ex.a);
+      ex.steps = buildOperationSteps(ex.startRods, ex.b, false);
+      ex.stepIndex = 0;
+      ex.stepShown = false;
+
+    } else if (mode === 'mul') {
+      var pair = MUL_DIGIT_TABLE[Math.max(1, Math.min(level, 5)) - 1];
+      var tries = 0;
+      var da = pair[0], db = pair[1], a, b, product;
+      do {
+        a = randDigitsNonzero(Math.max(1, Math.min(da, maxDigits)));
+        b = randDigitsNonzero(Math.max(1, Math.min(db, maxDigits)));
+        product = a * b;
+        tries++;
+        if (tries > 25) { da = 1; db = 1; }
+      } while (digitCount(product) > maxDigits && tries <= 30);
+      ex.a = a; ex.b = b; ex.target = product;
+      ex.prompt = 'Multiply ' + ex.a.toLocaleString('en-US') + ' by ' + ex.b.toLocaleString('en-US') + '. Set the soroban to show the product.';
+
+    } else if (mode === 'div') {
+      var pair2 = DIV_DIGIT_TABLE[Math.max(1, Math.min(level, 5)) - 1];
+      var tries2 = 0;
+      var dd = pair2[0], dq = pair2[1], divisor, quotient, dividend;
+      do {
+        divisor = randDigitsNonzero(Math.max(1, Math.min(dd, maxDigits)));
+        quotient = randDigitsNonzero(Math.max(1, Math.min(dq, maxDigits)));
+        dividend = divisor * quotient;
+        tries2++;
+        if (tries2 > 25) { dd = 1; dq = 1; }
+      } while (digitCount(dividend) > maxDigits && tries2 <= 30);
+      ex.divisor = divisor; ex.quotient = quotient; ex.dividend = dividend;
+      ex.target = quotient;
+      ex.prompt = 'Divide ' + ex.dividend.toLocaleString('en-US') + ' by ' + ex.divisor.toLocaleString('en-US') + '. Set the soroban to show the quotient.';
+    }
+
+    if (!ex.startRods) ex.startRods = makeRods(State.rodCount);
+    if (!ex.steps) ex.steps = null;
+
+    return ex;
+  }
+
+  function newExercise(mode) {
+    State.mode = mode;
+    State.exerciseId++;
+    if (mode !== 'free') {
+      var level = State.levels[mode] || 1;
+      State.exercise = generateExercise(mode, level);
+      State.rods = deepCloneRods(State.exercise.startRods);
+      renderAllRods();
+      if (mode === 'add' || mode === 'sub') {
+        pushPlainLogLine('Starting number set to ' + State.exercise.a.toLocaleString('en-US') + '.');
+      }
+    } else {
+      State.exercise = null;
+      resetSorobanSilent();
+    }
+    renderModePanel();
+    persistAll();
+  }
+
+  /* =========================================================
+     Mode panel rendering
+  ========================================================= */
+  function renderTabs() {
+    var tabs = el.tabs.querySelectorAll('.stt-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('stt-active', tabs[i].getAttribute('data-mode') === State.mode);
+    }
+  }
+
+  function renderModePanel() {
+    renderTabs();
+    var info = MODE_INFO[State.mode];
+    el.modeTitle.textContent = info.title;
+    el.modeDesc.textContent = info.desc;
+    hideHint();
+    hideFeedback();
+
+    if (State.mode === 'free') {
+      el.levelRow.hidden = true;
+      el.question.hidden = true;
+      el.exerciseActions.hidden = true;
+      el.stats.hidden = true;
+      el.nextStepBtn.hidden = true;
+      return;
+    }
+
+    el.levelRow.hidden = false;
+    el.levelSelect.value = String(State.levels[State.mode] || 1);
+    el.question.hidden = false;
+    el.question.textContent = State.exercise ? State.exercise.prompt : '';
+    el.exerciseActions.hidden = false;
+    el.stats.hidden = false;
+    el.statCorrect.textContent = String(State.stats.correct);
+    el.statTotal.textContent = String(State.stats.total);
+    el.nextStepBtn.hidden = !(State.mode === 'add' || State.mode === 'sub');
+  }
+
+  el.tabs.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.stt-tab') : null;
+    if (!btn) return;
+    newExercise(btn.getAttribute('data-mode'));
+  });
+
+  el.levelSelect.addEventListener('change', function () {
+    State.levels[State.mode] = parseInt(el.levelSelect.value, 10);
+    newExercise(State.mode);
+  });
+
+  /* =========================================================
+     Checking answers
+  ========================================================= */
+  function showFeedback(kind, text) {
+    el.feedback.textContent = text;
+    el.feedback.className = 'stt-feedback stt-show ' + (kind === 'ok' ? 'stt-ok' : 'stt-bad');
+  }
+  function hideFeedback() {
+    el.feedback.className = 'stt-feedback';
+    el.feedback.textContent = '';
+  }
+  function clearFeedback() {
+    if (State.exercise && !State.exercise.solved) hideFeedback();
+  }
+
+  function checkAnswer() {
+    if (!State.exercise || State.mode === 'free') return;
+    var current = getValue();
+    if (current === State.exercise.target) {
+      if (!State.exercise.solved) {
+        State.exercise.solved = true;
+        State.stats.correct++;
+        State.stats.total++;
+        el.statCorrect.textContent = String(State.stats.correct);
+        el.statTotal.textContent = String(State.stats.total);
+        persistAll();
+      }
+      showFeedback('ok', 'Correct. The soroban shows ' + State.exercise.target.toLocaleString('en-US') + '.');
+      pushPlainLogLine('Checked answer: correct (' + State.exercise.target.toLocaleString('en-US') + ').');
+    } else {
+      if (!State.exercise.solved) {
+        State.stats.total++;
+        el.statTotal.textContent = String(State.stats.total);
+        persistAll();
+      }
+      showFeedback('bad', 'Not yet correct. The soroban shows ' + current.toLocaleString('en-US') + '. Try again.');
+      pushPlainLogLine('Checked answer: not correct (soroban shows ' + current.toLocaleString('en-US') + ').');
+    }
+  }
+
+  el.checkBtn.addEventListener('click', checkAnswer);
+  el.newBtn.addEventListener('click', function () { newExercise(State.mode); });
+
+  /* =========================================================
+     Hints
+  ========================================================= */
+  function clearAllMarkers() {
+    var marks = el.rodsRow.querySelectorAll('.stt-step-marker');
+    for (var i = 0; i < marks.length; i++) marks[i].parentNode.removeChild(marks[i]);
+  }
+  function addMarkerOnBead(beadEl) {
+    if (!beadEl) return;
+    var marker = document.createElement('div');
+    marker.className = 'stt-step-marker';
+    marker.style.transform = beadEl.style.transform || 'translateY(0px)';
+    beadEl.parentNode.insertBefore(marker, beadEl);
+  }
+  function addMarkerAtSlot(beadEl, slot) {
+    if (!beadEl) return;
+    var marker = document.createElement('div');
+    marker.className = 'stt-step-marker';
+    marker.style.transform = 'translateY(' + (slot * BEAD_SLOT) + 'px)';
+    beadEl.parentNode.insertBefore(marker, beadEl);
+  }
+  function clearStepHighlights() {
+    clearAllMarkers();
+  }
+
+  function hideHint() {
+    el.hintBox.className = 'stt-hint-box';
+    el.stepPanel.className = 'stt-step-panel';
+    el.stepLog.innerHTML = '';
+    State.hintVisible = false;
+    clearStepHighlights();
+  }
+  function toggleHint() {
+    if (!State.exercise) return;
+    State.hintVisible = !State.hintVisible;
+    if (State.hintVisible) {
+      el.hintBox.textContent = MODE_INFO[State.mode].hint;
+      el.hintBox.className = 'stt-hint-box stt-show';
+      if (State.exercise.steps && State.exercise.steps.length) {
+        State.exercise.stepIndex = 0;
+        State.exercise.stepShown = true;
+        el.stepLog.innerHTML = '';
+        showCurrentStepHighlight();
+      }
+    } else {
+      hideHint();
+    }
+  }
+  el.hintBtn.addEventListener('click', toggleHint);
+
+  function showCurrentStepHighlight() {
+    var ex = State.exercise;
+    if (!ex || !ex.steps) { el.stepPanel.className = 'stt-step-panel'; return; }
+    clearStepHighlights();
+
+    if (ex.stepIndex >= ex.steps.length) {
+      el.stepTitle.textContent = 'All steps shown';
+      el.stepText.textContent = 'You have seen every step. Check your answer to confirm the soroban is correct.';
+      el.stepPanel.className = 'stt-step-panel stt-show';
+      return;
+    }
+
+    var step = ex.steps[ex.stepIndex];
+    el.stepTitle.textContent = 'Step ' + (ex.stepIndex + 1) + ' of ' + ex.steps.length;
+    el.stepText.textContent = step.explanation;
+    el.stepPanel.className = 'stt-step-panel stt-show';
+
+    var rodEl = el.rodsRow.querySelector('.stt-rod[data-rod-index="' + step.rodIndex + '"]');
+    if (rodEl) {
+      if (step.heavenBefore !== step.heavenAfter) {
+        var hb = rodEl.querySelector('.stt-bead-heaven');
+        addMarkerOnBead(hb);
+      }
+      if (step.earthBefore !== step.earthAfter) {
+        var idx = step.earthAfter > step.earthBefore ? step.earthAfter - 1 : step.earthAfter;
+        var ebEl = rodEl.querySelector('.stt-bead-earth[data-bead-index="' + idx + '"]');
+        addMarkerOnBead(ebEl);
+      }
+    }
+  }
+
+  function appendStepLogLine(text) {
+    var li = document.createElement('li');
+    li.textContent = text;
+    el.stepLog.appendChild(li);
+    el.stepLog.scrollTop = el.stepLog.scrollHeight;
+  }
+
+  // Reveals the current step the first time it is called for that step, and
+  // completes-and-advances on the call after that. This lets one click of
+  // Next Step (or one correct bead move) both finish what is on screen and
+  // bring up what comes next, while the very first click only reveals step 1
+  // instead of silently skipping past it.
+  function revealOrAdvanceStep() {
+    var ex = State.exercise;
+    if (!ex || !ex.steps) return;
+
+    if (!State.hintVisible) {
+      State.hintVisible = true;
+      el.hintBox.textContent = MODE_INFO[State.mode].hint;
+      el.hintBox.className = 'stt-hint-box stt-show';
+    }
+
+    if (!ex.stepShown) {
+      ex.stepShown = true;
+      showCurrentStepHighlight();
+      return;
+    }
+
+    if (ex.stepIndex < ex.steps.length) {
+      appendStepLogLine((ex.stepIndex + 1) + '. ' + ex.steps[ex.stepIndex].explanation);
+      ex.stepIndex++;
+    }
+    showCurrentStepHighlight();
+  }
+  el.nextStepBtn.addEventListener('click', revealOrAdvanceStep);
+
+  function checkStepAutoAdvance(rodIndex) {
+    var ex = State.exercise;
+    if (!ex || !ex.steps || !State.hintVisible || !ex.stepShown) return;
+    if (ex.stepIndex >= ex.steps.length) return;
+    var step = ex.steps[ex.stepIndex];
+    if (step.rodIndex !== rodIndex) return;
+    var rod = State.rods[rodIndex];
+    if (rod.heaven === step.heavenAfter && rod.earth === step.earthAfter) {
+      revealOrAdvanceStep();
+    }
+  }
+
+  function showTargetGhost() {
+    if (!State.exercise) return;
+    var rods = makeRods(State.rodCount);
+    setValueOnRods(rods, State.exercise.target);
+
+    if (State.targetGhostTimer) clearTimeout(State.targetGhostTimer);
+    clearAllMarkers();
+
+    for (var i = 0; i < rods.length; i++) {
+      var rodEl = el.rodsRow.querySelector('.stt-rod[data-rod-index="' + i + '"]');
+      if (!rodEl) continue;
+      var heavenBead = rodEl.querySelector('.stt-bead-heaven');
+      if (rods[i].heaven) addMarkerAtSlot(heavenBead, 1);
+      var earthBeads = rodEl.querySelectorAll('.stt-bead-earth');
+      for (var b = 0; b < earthBeads.length; b++) {
+        if (b < rods[i].earth) addMarkerAtSlot(earthBeads[b], b);
+      }
+    }
+    pushPlainLogLine('Showed target beads for ' + State.exercise.target.toLocaleString('en-US') + '.');
+    State.targetGhostTimer = setTimeout(function () {
+      clearAllMarkers();
+      var ex2 = State.exercise;
+      if (State.hintVisible && ex2 && ex2.steps && ex2.stepShown) showCurrentStepHighlight();
+    }, 4000);
+  }
+  el.targetBtn.addEventListener('click', showTargetGhost);
+
+  /* =========================================================
+     Log
+  ========================================================= */
+  function pushLogEntry(rodIndex, part) {
+    var rod = State.rods[rodIndex];
+    var place = rodPlace(rodIndex);
+    var value = rodValue(rod);
+    var partText = part === 'heaven'
+      ? (rod.heaven ? 'heaven bead on' : 'heaven bead off')
+      : 'earth beads set to ' + rod.earth;
+    var text = 'Rod ' + (place + 1) + ' (' + placeLabel(place) + '): ' + partText + '. Rod value is ' + value + '.';
+
+    State.log.push({
+      id: ++State.logSeq,
+      exerciseId: State.exerciseId,
+      rodIndex: rodIndex,
+      heavenAfter: rod.heaven,
+      earthAfter: rod.earth,
+      totalAfter: getValue(),
+      text: text
+    });
+    if (State.log.length > MAX_LOG_ENTRIES) State.log = State.log.slice(-MAX_LOG_ENTRIES);
+    renderLog();
+    persistAll();
+  }
+
+  function pushPlainLogLine(text) {
+    State.log.push({
+      id: ++State.logSeq,
+      exerciseId: State.exerciseId,
+      rodIndex: -1,
+      text: text
+    });
+    if (State.log.length > MAX_LOG_ENTRIES) State.log = State.log.slice(-MAX_LOG_ENTRIES);
+    renderLog();
+    persistAll();
+  }
+
+  function renderLog() {
+    el.logList.innerHTML = '';
+    if (!State.log.length) {
+      var empty = document.createElement('li');
+      empty.className = 'stt-log-empty';
+      empty.textContent = 'No moves yet. Click a bead to begin.';
+      el.logList.appendChild(empty);
+      return;
+    }
+    var entries = State.log.slice(-60).slice().reverse();
+    for (var i = 0; i < entries.length; i++) {
+      var li = document.createElement('li');
+      li.textContent = entries[i].text;
+      el.logList.appendChild(li);
+    }
+  }
+
+  el.clearLogBtn.addEventListener('click', function () {
+    State.log = [];
+    renderLog();
+    persistAll();
+  });
+
+  /* =========================================================
+     Replay
+  ========================================================= */
+  function setInteractionEnabled(enabled) {
+    State.playing = !enabled;
+    el.checkBtn.disabled = !enabled;
+    el.newBtn.disabled = !enabled;
+    el.clearBeads.disabled = !enabled;
+    el.replayBtn.disabled = !enabled;
+    el.replayBtn.textContent = enabled ? 'Replay' : 'Stop';
+  }
+
+  function stopReplay() {
+    if (State.playTimer) {
+      clearInterval(State.playTimer);
+      State.playTimer = null;
+    }
+    setInteractionEnabled(true);
+  }
+
+  function replayCurrentExercise() {
+    if (State.playing) { stopReplay(); return; }
+
+    var entries = [];
+    for (var i = 0; i < State.log.length; i++) {
+      var e = State.log[i];
+      if (e.exerciseId === State.exerciseId && e.rodIndex >= 0) entries.push(e);
+    }
+    if (!entries.length) return;
+
+    setInteractionEnabled(false);
+    State.rods = (State.exercise && State.exercise.startRods)
+      ? deepCloneRods(State.exercise.startRods)
+      : makeRods(State.rodCount);
+    renderAllRods();
+
+    var idx = 0;
+    State.playTimer = setInterval(function () {
+      if (idx >= entries.length) {
+        stopReplay();
+        return;
+      }
+      var entry = entries[idx];
+      if (State.rods[entry.rodIndex]) {
+        State.rods[entry.rodIndex].heaven = entry.heavenAfter;
+        State.rods[entry.rodIndex].earth = entry.earthAfter;
+        renderRod(entry.rodIndex);
+        updateReadout();
+      }
+      idx++;
+    }, REPLAY_DELAY_MS);
+  }
+  el.replayBtn.addEventListener('click', replayCurrentExercise);
+
+  /* =========================================================
+     Theme
+  ========================================================= */
+  var THEME_CYCLE = ['auto', 'light', 'dark'];
+  var THEME_ICON = { auto: '◑', light: '☀', dark: '☽' };
+
+  function applyTheme() {
+    root.setAttribute('data-theme', State.theme);
+    el.themeSelect.value = State.theme;
+    el.themeBtn.innerHTML = THEME_ICON[State.theme] || '◑';
+    el.themeBtn.title = 'Color theme: ' + State.theme;
+  }
+  function cycleTheme() {
+    var idx = THEME_CYCLE.indexOf(State.theme);
+    State.theme = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
+    applyTheme();
+    persistAll();
+  }
+  el.themeBtn.addEventListener('click', cycleTheme);
+  el.themeSelect.addEventListener('change', function () {
+    State.theme = el.themeSelect.value;
+    applyTheme();
+    persistAll();
+  });
+
+  /* =========================================================
+     Settings modal
+  ========================================================= */
+  function openModal(overlay) { overlay.hidden = false; }
+  function closeModal(overlay) { overlay.hidden = true; }
+
+  el.helpBtn.addEventListener('click', function () { openModal(el.introOverlay); });
+  el.introClose.addEventListener('click', function () { closeModal(el.introOverlay); });
+  el.introStart.addEventListener('click', function () {
+    closeModal(el.introOverlay);
+    State.introSeen = true;
+    persistAll();
+  });
+  el.introOverlay.addEventListener('click', function (e) {
+    if (e.target === el.introOverlay) closeModal(el.introOverlay);
+  });
+
+  el.settingsBtn.addEventListener('click', function () { openModal(el.settingsOverlay); });
+  el.settingsClose.addEventListener('click', function () { closeModal(el.settingsOverlay); });
+  el.settingsOverlay.addEventListener('click', function (e) {
+    if (e.target === el.settingsOverlay) closeModal(el.settingsOverlay);
+  });
+
+  function populateRodCountSelect() {
+    el.rodCountSelect.innerHTML = '';
+    for (var i = 0; i < ROD_COUNT_OPTIONS.length; i++) {
+      var opt = document.createElement('option');
+      opt.value = String(ROD_COUNT_OPTIONS[i]);
+      opt.textContent = String(ROD_COUNT_OPTIONS[i]) + ' rods';
+      el.rodCountSelect.appendChild(opt);
+    }
+    el.rodCountSelect.value = String(State.rodCount);
+  }
+
+  el.rodCountSelect.addEventListener('change', function () {
+    State.rodCount = parseInt(el.rodCountSelect.value, 10);
+    buildRodsDom();
+    newExercise(State.mode);
+    pushPlainLogLine('Rod count changed to ' + State.rodCount + '.');
+  });
+
+  el.showLabelsCheckbox.addEventListener('change', function () {
+    State.showLabels = el.showLabelsCheckbox.checked;
+    el.sorobanEl.classList.toggle('stt-hide-labels', !State.showLabels);
+    persistAll();
+  });
+
+  el.resetAllBtn.addEventListener('click', function () {
+    State.levels = { represent: 1, add: 1, sub: 1, mul: 1, div: 1 };
+    State.log = [];
+    State.logSeq = 0;
+    State.stats = { correct: 0, total: 0 };
+    persistAll();
+    renderLog();
+    newExercise(State.mode);
+  });
+
+  /* =========================================================
+     Init
+  ========================================================= */
+  function init() {
+    loadPersisted();
+
+    buildRodsDom();
+    State.rods = makeRods(State.rodCount);
+
+    applyTheme();
+    el.showLabelsCheckbox.checked = State.showLabels;
+    el.sorobanEl.classList.toggle('stt-hide-labels', !State.showLabels);
+    populateRodCountSelect();
+
+    renderLog();
+
+    State.exerciseId = 1;
+    if (State.mode !== 'free') {
+      State.exercise = generateExercise(State.mode, State.levels[State.mode] || 1);
+      State.rods = deepCloneRods(State.exercise.startRods);
+    }
+    renderAllRods();
+    renderModePanel();
+
+    if (!State.introSeen) {
+      openModal(el.introOverlay);
+    }
+  }
+
+  init();
+})();
+</script>
+<!-- EMBED-FRAGMENT-END -->
+</body>
+</html>
