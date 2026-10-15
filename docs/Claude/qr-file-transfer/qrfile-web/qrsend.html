@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QR File sender</title>
+  <meta name="theme-color" content="#1f6feb">
+  <meta name="description" content="Sends a file to the QR File Android application as a sequence of QR codes.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%231f6feb'/%3E%3Cpath fill='%23fff' fill-rule='evenodd' d='M7 7h14v14H7zM10 10v8h8v-8zM12.5 12.5h3v3h-3zM27 7h14v14H27zM30 10v8h8v-8zM32.5 12.5h3v3h-3zM7 27h14v14H7zM10 30v8h8v-8zM12.5 32.5h3v3h-3z'/%3E%3Cpath fill='%23fff' d='M31.5 24h5v10h5l-7.5 8-7.5-8h5z'/%3E%3C/svg%3E">
+  <style>
+    html, body {
+      margin: 0;
+      background: #f4f5f7;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      html, body { background: #15181c; }
+    }
+
+    #qrft-app {
+      --bg: #f4f5f7;
+      --panel: #ffffff;
+      --text: #1d2125;
+      --muted: #69717b;
+      --line: #d9dde2;
+      --accent: #1f6feb;
+      --accent-text: #ffffff;
+      --warn: #b35900;
+      --ok: #1a7f37;
+      color: var(--text);
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 16px;
+      padding: 16px;
+      box-sizing: border-box;
+      min-height: 100vh;
+      font-size: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      #qrft-app {
+        --bg: #15181c;
+        --panel: #1e2227;
+        --text: #e3e6ea;
+        --muted: #9aa3ad;
+        --line: #343a42;
+        --accent: #4c8dff;
+        --warn: #ffab5c;
+        --ok: #5fcf7a;
+      }
+    }
+    @media (max-width: 760px) {
+      #qrft-app { grid-template-columns: 1fr; }
+    }
+    #qrft-app *, #qrft-app *::before, #qrft-app *::after { box-sizing: border-box; }
+    /* [hidden] must win over class rules that set display. */
+    #qrft-app [hidden] { display: none !important; }
+
+    #qrft-app .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-self: start;
+    }
+    #qrft-app h1 {
+      font-size: 17px;
+      margin: 0;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    #qrft-app .ver { font-size: 12px; font-weight: normal; color: var(--muted); }
+
+    #qrft-app .drop {
+      border: 2px dashed var(--line);
+      border-radius: 8px;
+      padding: 16px 10px;
+      text-align: center;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    #qrft-app .drop.over { border-color: var(--accent); color: var(--accent); }
+    #qrft-app .drop input { display: none; }
+    #qrft-app .file-name { font-weight: 600; color: var(--text); word-break: break-all; }
+
+    #qrft-app fieldset {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 0;
+      padding: 8px 10px 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 10px;
+      align-items: center;
+    }
+    #qrft-app legend { color: var(--muted); padding: 0 4px; }
+    #qrft-app select, #qrft-app input[type=number] {
+      font: inherit;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 3px 6px;
+      width: 96px;
+    }
+    #qrft-app .calc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    #qrft-app .calc b { color: var(--text); font-weight: 600; }
+
+    #qrft-app .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    #qrft-app button {
+      font: inherit;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 7px;
+      padding: 8px 6px;
+      cursor: pointer;
+    }
+    #qrft-app button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+    #qrft-app button:disabled { opacity: .45; cursor: default; }
+
+    #qrft-app .msg { font-size: 13px; min-height: 1.4em; }
+    #qrft-app .msg.warn { color: var(--warn); }
+    #qrft-app .msg.ok { color: var(--ok); }
+    #qrft-app .help { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0; }
+
+    #qrft-app .pwa {
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    #qrft-app .pwa-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    #qrft-app .pwa button { padding: 4px 10px; font-size: 12px; white-space: nowrap; }
+    #qrft-app .pwa-worker { font-variant-numeric: tabular-nums; }
+    #qrft-app .pwa-worker.ok { color: var(--ok); }
+    #qrft-app .pwa-worker.bad { color: var(--warn); }
+
+    #qrft-app .stage {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      /* The height of the window, not of the settings column: the QR code
+         is sized to this box and must stay on the screen. Sticky: it stays
+         in view while the settings column scrolls. */
+      height: calc(100vh - 32px);
+      height: calc(100dvh - 32px);
+      min-height: 300px;
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      overflow: hidden;
+    }
+    #qrft-app .stage:fullscreen { background: #ffffff; border: 0; border-radius: 0; height: 100vh; }
+    @media (max-width: 760px) {
+      /* One column: the stage is below the settings. */
+      #qrft-app .stage { position: relative; top: 0; height: min(calc(100vh - 32px), calc(100vw + 40px)); }
+    }
+    #qrft-app .qrbox {
+      flex: 1 1 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      overflow: hidden;
+    }
+    #qrft-app canvas { display: block; image-rendering: pixelated; background: #ffffff; }
+    #qrft-app .placeholder { color: var(--muted); text-align: center; padding: 20px; }
+    #qrft-app .bar {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      border-top: 1px solid var(--line);
+    }
+    #qrft-app .stage:fullscreen .bar { color: #69717b; border-top-color: #e5e7ea; }
+
+    /* Control bar: only in full screen, where the side panel is hidden. A
+       row of its own below the code, thus it never covers the code. */
+    #qrft-app .fsbar { display: none; }
+    #qrft-app .stage:fullscreen .fsbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      border-top: 1px solid #e5e7ea;
+      background: #f4f5f7;
+      color: #1d2125;
+    }
+    #qrft-app .fsbar button {
+      background: #ffffff;
+      border-color: #d0d4da;
+      color: #1d2125;
+      padding: 6px 14px;
+    }
+    #qrft-app .fsbar button.primary { background: #1f6feb; border-color: #1f6feb; color: #ffffff; }
+    #qrft-app .fsbar kbd {
+      font: 11px ui-monospace, monospace;
+      color: #69717b;
+      margin-left: 4px;
+    }
+    #qrft-app .fsbar button.primary kbd { color: rgba(255, 255, 255, 0.75); }
+    #qrft-app .fsbar button:disabled kbd { color: inherit; }
+    #qrft-app .fsbar .fs-msg { flex-basis: 100%; text-align: center; font-size: 13px; color: #69717b; min-height: 1.3em; }
+    #qrft-app .fsbar .fs-msg.warn { color: #b35900; }
+    #qrft-app .fsbar .fs-msg.ok { color: #1a7f37; }
+    #qrft-app .progress { width: 100%; height: 4px; background: var(--line); }
+    #qrft-app .progress > div { height: 100%; width: 0; background: var(--accent); }
+  </style>
+</head>
+<body>
+<div id="qrft-app">
+  <section class="panel">
+    <h1>QR File sender <span class="ver" data-ref="ver"></span></h1>
+
+    <label class="drop" data-ref="drop">
+      <input type="file" data-ref="file">
+      <div data-ref="dropText">Drop a file here, or click to select one</div>
+    </label>
+
+    <fieldset>
+      <legend>QR code</legend>
+      <label for="qrft-version">Version (size)</label>
+      <select id="qrft-version" data-ref="version"></select>
+      <label for="qrft-ecc">Error correction</label>
+      <select id="qrft-ecc" data-ref="ecc">
+        <option value="LOW" selected>L (7 %)</option>
+        <option value="MEDIUM">M (15 %)</option>
+        <option value="QUARTILE">Q (25 %)</option>
+        <option value="HIGH">H (30 %)</option>
+      </select>
+    </fieldset>
+
+    <fieldset>
+      <legend>Transfer</legend>
+      <label for="qrft-fps">Frames per second</label>
+      <input id="qrft-fps" type="number" min="1" max="30" step="1" value="6" data-ref="fps">
+      <label for="qrft-repair">Repair frames, %</label>
+      <input id="qrft-repair" type="number" min="0" max="500" step="5" value="30" data-ref="repair">
+      <label for="qrft-zip">Compress (zlib)</label>
+      <input id="qrft-zip" type="checkbox" checked data-ref="zip">
+    </fieldset>
+
+    <div class="calc" data-ref="calc">Select a file.</div>
+
+    <div class="buttons">
+      <button class="primary" data-ref="start" disabled title="Send the full cycle from the start">Start</button>
+      <button data-ref="more" disabled title="Send one more batch of new repair frames">More</button>
+      <button data-ref="pause" disabled title="Space">Pause</button>
+      <button data-ref="stop" disabled>Stop</button>
+      <button data-ref="clean" disabled title="C: remove the QR code from the screen, so the phone stops reading it">Clean</button>
+      <button data-ref="full" title="F">Full screen</button>
+    </div>
+
+    <div class="msg" data-ref="msg"></div>
+
+    <p class="help">
+      One cycle sends each block once, then the repair frames, and stops.
+      If the phone does not finish, press <b>More</b>: it sends new repair
+      frames, and any of them help. <b>Start</b> sends the whole cycle again.
+      <b>Clean</b> removes the code from the screen: do it before the phone
+      scans the next file. Full screen has its own buttons. Keys: S = start,
+      M = more, Space = pause, C = clean, F = full screen.
+    </p>
+
+    <div class="pwa" data-ref="pwa">
+      <div class="pwa-row">
+        <span data-ref="pwaText">Checking whether the page can work offline…</span>
+        <button data-ref="pwaInstall" hidden>Install</button>
+      </div>
+      <div class="pwa-worker" data-ref="pwaWorker" hidden></div>
+    </div>
+  </section>
+
+  <section class="stage" data-ref="stage">
+    <div class="qrbox" data-ref="qrbox">
+      <div class="placeholder" data-ref="placeholder">The QR codes appear here.</div>
+      <canvas data-ref="canvas" hidden></canvas>
+    </div>
+    <div class="progress"><div data-ref="progress"></div></div>
+    <div class="bar" data-ref="bar"><span>Idle</span></div>
+    <div class="fsbar">
+      <button class="primary" data-proxy="start">Start<kbd>S</kbd></button>
+      <button data-proxy="more">More<kbd>M</kbd></button>
+      <button data-proxy="pause">Pause<kbd>Space</kbd></button>
+      <button data-proxy="stop">Stop</button>
+      <button data-proxy="clean">Clean<kbd>C</kbd></button>
+      <button data-proxy="full">Exit full screen<kbd>F/Esc</kbd></button>
+      <div class="fs-msg" data-ref="fsMsg"></div>
+    </div>
+  </section>
+</div>
+
+<script src="qrcodegen.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var APP_VERSION = "26.10.6";
+
+  /* QRFT-PROTO-BEGIN
+   * The transfer protocol (doc/protocol.md). Pure functions, no DOM.
+   * tests/js/gen-vectors.js extracts this block and runs it in Node, thus
+   * keep it self-contained and keep the markers. */
+  var QRFT = (function () {
+    var PROTO_VERSION = 1;
+    var MAGIC = 0x51;
+    var T_META = 0;
+    var T_DATA = 1;
+    var DATA_OVERHEAD = 18;   // 10 header + 4 ESI + 4 CRC
+    var META_FIXED = 59;      // without the name and the MIME bytes
+    var B45 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+
+    // ---- Base45 (RFC 9285) ----
+    function b45len(nBytes) {
+      return 3 * Math.floor(nBytes / 2) + 2 * (nBytes % 2);
+    }
+    // The largest byte count whose Base45 form has at most nChars characters.
+    function b45maxBytes(nChars) {
+      var b = 2 * Math.floor(nChars / 3);
+      if (nChars % 3 === 2) b += 1;
+      return b;
+    }
+    function b45enc(u8) {
+      var out = new Array(b45len(u8.length));
+      var o = 0, i, n;
+      for (i = 0; i + 1 < u8.length; i += 2) {
+        n = u8[i] * 256 + u8[i + 1];
+        out[o++] = B45[n % 45];
+        out[o++] = B45[Math.floor(n / 45) % 45];
+        out[o++] = B45[Math.floor(n / 2025)];
+      }
+      if (u8.length % 2) {
+        n = u8[u8.length - 1];
+        out[o++] = B45[n % 45];
+        out[o++] = B45[Math.floor(n / 45)];
+      }
+      return out.join('');
+    }
+    function b45dec(s) {
+      if (s.length % 3 === 1) throw new Error('base45: bad length');
+      var out = new Uint8Array(b45maxBytes(s.length));
+      var o = 0, i, a, b, c, n;
+      function val(ch) {
+        var v = B45.indexOf(ch);
+        if (v < 0) throw new Error('base45: bad character');
+        return v;
+      }
+      for (i = 0; i + 2 < s.length; i += 3) {
+        a = val(s[i]); b = val(s[i + 1]); c = val(s[i + 2]);
+        n = a + b * 45 + c * 2025;
+        if (n > 0xFFFF) throw new Error('base45: value too large');
+        out[o++] = n >> 8;
+        out[o++] = n & 0xFF;
+      }
+      if (s.length % 3 === 2) {
+        n = val(s[s.length - 2]) + val(s[s.length - 1]) * 45;
+        if (n > 0xFF) throw new Error('base45: value too large');
+        out[o++] = n;
+      }
+      return out;
+    }
+
+    // ---- CRC32 (IEEE) ----
+    var CRC_TABLE = (function () {
+      var t = new Int32Array(256), c, k, n;
+      for (n = 0; n < 256; n++) {
+        c = n;
+        for (k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        t[n] = c;
+      }
+      return t;
+    })();
+    function crc32(u8, start, end) {
+      var c = -1, i;
+      for (i = start; i < end; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+      return (c ^ -1) >>> 0;
+    }
+
+    // ---- SHA-256 (synchronous; crypto.subtle needs a secure context) ----
+    var SHA_K = new Int32Array([
+      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ]);
+    function sha256(data) {
+      var len = data.length;
+      var padLen = ((len + 9 + 63) >> 6) << 6;
+      var m = new Uint8Array(padLen);
+      m.set(data);
+      m[len] = 0x80;
+      var bitsHi = Math.floor(len / 0x20000000), bitsLo = (len << 3) >>> 0;
+      var dv = new DataView(m.buffer);
+      dv.setUint32(padLen - 8, bitsHi);
+      dv.setUint32(padLen - 4, bitsLo);
+      var h = new Int32Array([0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+                              0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19]);
+      var w = new Int32Array(64), off, i, a, b, c, d, e, f, g, hh, s0, s1, t1, t2;
+      for (off = 0; off < padLen; off += 64) {
+        for (i = 0; i < 16; i++) w[i] = dv.getInt32(off + i * 4);
+        for (i = 16; i < 64; i++) {
+          s0 = ((w[i - 15] >>> 7) | (w[i - 15] << 25)) ^ ((w[i - 15] >>> 18) | (w[i - 15] << 14)) ^ (w[i - 15] >>> 3);
+          s1 = ((w[i - 2] >>> 17) | (w[i - 2] << 15)) ^ ((w[i - 2] >>> 19) | (w[i - 2] << 13)) ^ (w[i - 2] >>> 10);
+          w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+        }
+        a = h[0]; b = h[1]; c = h[2]; d = h[3]; e = h[4]; f = h[5]; g = h[6]; hh = h[7];
+        for (i = 0; i < 64; i++) {
+          s1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+          t1 = (hh + s1 + ((e & f) ^ (~e & g)) + SHA_K[i] + w[i]) | 0;
+          s0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+          t2 = (s0 + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+          hh = g; g = f; f = e; e = (d + t1) | 0;
+          d = c; c = b; b = a; a = (t1 + t2) | 0;
+        }
+        h[0] = (h[0] + a) | 0; h[1] = (h[1] + b) | 0; h[2] = (h[2] + c) | 0; h[3] = (h[3] + d) | 0;
+        h[4] = (h[4] + e) | 0; h[5] = (h[5] + f) | 0; h[6] = (h[6] + g) | 0; h[7] = (h[7] + hh) | 0;
+      }
+      var out = new Uint8Array(32), odv = new DataView(out.buffer);
+      for (i = 0; i < 8; i++) odv.setInt32(i * 4, h[i]);
+      return out;
+    }
+
+    // ---- PRNG (mulberry32) and the repair set ----
+    function Prng(seed) { this.s = seed | 0; }
+    Prng.prototype.next = function () {
+      var a = this.s = (this.s + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), a | 1);
+      t = (t + Math.imul(t ^ (t >>> 7), t | 61)) ^ t;
+      return (t ^ (t >>> 14)) >>> 0;
+    };
+    function seedFor(sessionId, esi) {
+      return (sessionId ^ Math.imul(esi, 0x9E3779B9 | 0)) | 0;
+    }
+    function repairSet(sessionId, K, esi) {
+      if (K === 1) return [0];
+      // Each block with probability 1/2: dense rows decode with the
+      // smallest overhead (about 2 extra symbols).
+      var r = new Prng(seedFor(sessionId, esi)), s = [], i;
+      for (i = 0; i < K; i++) if (r.next() < 2147483648) s.push(i);
+      if (s.length === 0) s.push(r.next() % K);
+      return s;
+    }
+
+    // ---- Frames ----
+    function writeHeader(u8, type, sessionId, K) {
+      var dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+      u8[0] = MAGIC;
+      u8[1] = (PROTO_VERSION << 4) | type;
+      dv.setUint32(2, sessionId >>> 0);
+      dv.setUint32(6, K >>> 0);
+      return dv;
+    }
+    function writeCrc(u8) {
+      var dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+      dv.setUint32(u8.length - 4, crc32(u8, 0, u8.length - 4));
+    }
+    function utf8(s) { return new TextEncoder().encode(s); }
+    function utf8Truncate(bytes, max) {
+      if (bytes.length <= max) return bytes;
+      var cut = max;
+      while (cut > 0 && (bytes[cut] & 0xC0) === 0x80) cut--;
+      return bytes.subarray(0, cut);
+    }
+
+    /* o: { sessionId, L, stream (Uint8Array), fileSize, flags, sha256 (32 bytes),
+     *      name (string), mime (string), metaMax (largest META frame in bytes) } */
+    function makeSession(o) {
+      var L = o.L, T = o.stream.length;
+      var K = Math.max(1, Math.ceil(T / L));
+      var blocks = new Uint8Array(K * L);
+      blocks.set(o.stream);
+      var words = (L % 4 === 0) ? new Uint32Array(blocks.buffer) : null;
+      var lw = L >> 2;
+
+      var room = Math.max(0, (o.metaMax || 1e9) - META_FIXED);
+      var mime = utf8Truncate(utf8(o.mime || ''), Math.min(255, Math.floor(room / 3)));
+      var name = utf8Truncate(utf8(o.name || 'file'), Math.min(255, room - mime.length));
+
+      function symbol(esi) {
+        if (esi < K) return blocks.subarray(esi * L, (esi + 1) * L);
+        var set = repairSet(o.sessionId, K, esi), out = new Uint8Array(L), j, k, b, base;
+        if (words) {
+          var ow = new Uint32Array(out.buffer);
+          for (j = 0; j < set.length; j++) {
+            base = set[j] * lw;
+            for (k = 0; k < lw; k++) ow[k] ^= words[base + k];
+          }
+        } else {
+          for (j = 0; j < set.length; j++) {
+            b = set[j] * L;
+            for (k = 0; k < L; k++) out[k] ^= blocks[b + k];
+          }
+        }
+        return out;
+      }
+      function dataFrame(esi) {
+        var f = new Uint8Array(DATA_OVERHEAD + L);
+        var dv = writeHeader(f, T_DATA, o.sessionId, K);
+        dv.setUint32(10, esi >>> 0);
+        f.set(symbol(esi), 14);
+        writeCrc(f);
+        return f;
+      }
+      function metaFrame() {
+        var f = new Uint8Array(META_FIXED + name.length + mime.length);
+        var dv = writeHeader(f, T_META, o.sessionId, K);
+        dv.setUint16(10, L);
+        dv.setUint32(12, T);
+        dv.setUint32(16, o.fileSize >>> 0);
+        f[20] = o.flags & 0xFF;
+        f.set(o.sha256, 21);
+        f[53] = name.length;
+        f.set(name, 54);
+        f[54 + name.length] = mime.length;
+        f.set(mime, 55 + name.length);
+        writeCrc(f);
+        return f;
+      }
+      return { K: K, L: L, T: T, symbol: symbol, dataFrame: dataFrame, metaFrame: metaFrame };
+    }
+
+    // Parse a frame (the receiver side; the tests use it). Returns null when
+    // the frame is not valid.
+    function parseFrame(f) {
+      if (f.length < DATA_OVERHEAD || f[0] !== MAGIC || (f[1] >> 4) !== PROTO_VERSION) return null;
+      var dv = new DataView(f.buffer, f.byteOffset, f.byteLength);
+      if (dv.getUint32(f.length - 4) !== crc32(f, 0, f.length - 4)) return null;
+      var type = f[1] & 0x0F, r = { type: type, sessionId: dv.getUint32(2), K: dv.getUint32(6) };
+      if (type === T_DATA) {
+        r.esi = dv.getUint32(10);
+        r.symbol = f.slice(14, f.length - 4);
+        return r;
+      }
+      if (type === T_META) {
+        if (f.length < META_FIXED) return null;
+        var n = f[53], m;
+        if (55 + n > f.length) return null;
+        m = f[54 + n];
+        if (META_FIXED + n + m !== f.length) return null;
+        r.L = dv.getUint16(10);
+        r.T = dv.getUint32(12);
+        r.fileSize = dv.getUint32(16);
+        r.flags = f[20];
+        r.sha256 = f.slice(21, 53);
+        r.name = new TextDecoder().decode(f.subarray(54, 54 + n));
+        r.mime = new TextDecoder().decode(f.subarray(55 + n, 55 + n + m));
+        return r;
+      }
+      return null;
+    }
+
+    // The frame order of one batch: a META frame first, after each 10
+    // symbols, and last. Returns an array of ESIs, with -1 for META.
+    function schedule(esis) {
+      var out = [], i;
+      for (i = 0; i < esis.length; i++) {
+        if (i % 10 === 0) out.push(-1);
+        out.push(esis[i]);
+      }
+      out.push(-1);
+      return out;
+    }
+
+    return {
+      PROTO_VERSION: PROTO_VERSION, DATA_OVERHEAD: DATA_OVERHEAD, META_FIXED: META_FIXED,
+      b45len: b45len, b45maxBytes: b45maxBytes, b45enc: b45enc, b45dec: b45dec,
+      crc32: crc32, sha256: sha256, Prng: Prng, seedFor: seedFor,
+      repairSet: repairSet,
+      makeSession: makeSession, parseFrame: parseFrame, schedule: schedule
+    };
+  })();
+  /* QRFT-PROTO-END */
+
+  // =====================================================================
+  // User interface
+  // =====================================================================
+  var root = document.getElementById('qrft-app');
+  if (!root) return;
+  var $ = {};
+  Array.prototype.forEach.call(root.querySelectorAll('[data-ref]'), function (el) {
+    $[el.getAttribute('data-ref')] = el;
+  });
+  $.ver.textContent = 'v' + APP_VERSION;
+
+  if (typeof qrcodegen === 'undefined') {
+    $.msg.className = 'msg warn';
+    $.msg.textContent = 'qrcodegen.js is missing. Keep it in the same folder as this page.';
+    return;
+  }
+  var QrCode = qrcodegen.QrCode, QrSegment = qrcodegen.QrSegment;
+
+  var MIN_VERSION = 8;
+  (function fillVersions() {
+    for (var v = MIN_VERSION; v <= 40; v++) {
+      var o = document.createElement('option');
+      o.value = v;
+      o.textContent = v + '  (' + (17 + 4 * v) + '×' + (17 + 4 * v) + ')';
+      if (v === 20) o.selected = true;
+      $.version.appendChild(o);
+    }
+  })();
+
+  // ---- State ----
+  var file = null;          // { name, mime, bytes }
+  var prepared = null;      // { stream, flags, sha256, key }
+  var session = null;       // QRFT session
+  var sessionKey = '';      // the parameters that the session ID belongs to
+  var sessionId = 0;
+  var nextRepair = 0;       // next unused repair ESI
+  var queue = [];           // ESIs of the current batch (-1 = META)
+  var pos = 0;
+  var running = false, paused = false;
+  var lastShow = 0, rafId = 0, nextQr = null;
+  var batchStart = 0, shownInBatch = 0;
+  var wakeLock = null;
+  var capCache = {};
+
+  function ecc() { return QrCode.Ecc[$.ecc.value]; }
+  function version() { return parseInt($.version.value, 10); }
+  function fps() { return Math.min(30, Math.max(1, parseInt($.fps.value, 10) || 6)); }
+  function repairPct() { return Math.min(500, Math.max(0, parseFloat($.repair.value) || 0)); }
+
+  // Largest number of alphanumeric characters in one QR code of this
+  // version and ECC level. Mask 0 makes the probe fast.
+  function maxChars(v, eccName) {
+    var key = v + eccName;
+    if (capCache[key]) return capCache[key];
+    var lo = 1, hi = 4296, mid, e = QrCode.Ecc[eccName];
+    while (lo < hi) {
+      mid = (lo + hi + 1) >> 1;
+      try {
+        QrCode.encodeSegments([QrSegment.makeAlphanumeric(new Array(mid + 1).join('0'))], e, v, v, 0, false);
+        lo = mid;
+      } catch (ex) {
+        hi = mid - 1;
+      }
+    }
+    capCache[key] = lo;
+    return lo;
+  }
+  function frameBytes() { return QRFT.b45maxBytes(maxChars(version(), $.ecc.value)); }
+  function blockSize() {
+    var L = frameBytes() - QRFT.DATA_OVERHEAD;
+    return L - (L % 4);   // a multiple of 4 makes the XOR faster
+  }
+
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KiB';
+    return (n / 1048576).toFixed(2) + ' MiB';
+  }
+  function fmtTime(s) {
+    s = Math.round(s);
+    if (s < 60) return s + ' s';
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + ' min ' + (s % 60) + ' s';
+    return Math.floor(m / 60) + ' h ' + (m % 60) + ' min';
+  }
+  function setMsg(text, cls) {
+    $.msg.textContent = text || '';
+    $.msg.className = 'msg' + (cls ? ' ' + cls : '');
+    $.fsMsg.textContent = text || '';
+    $.fsMsg.className = 'fs-msg' + (cls ? ' ' + cls : '');
+  }
+  function hex(u8) {
+    return Array.prototype.map.call(u8, function (b) { return (b < 16 ? '0' : '') + b.toString(16); }).join('');
+  }
+
+  // ---- File loading ----
+  function loadFile(f) {
+    if (!f) return;
+    clean();
+    setMsg('');
+    setMsg('Reading ' + f.name + ' …');
+    var reader = new FileReader();
+    reader.onerror = function () { setMsg('Cannot read the file.', 'warn'); };
+    reader.onload = function () {
+      file = { name: f.name, mime: f.type || '', bytes: new Uint8Array(reader.result) };
+      prepared = null;
+      $.dropText.innerHTML = '';
+      var n = document.createElement('div');
+      n.className = 'file-name';
+      n.textContent = file.name;
+      var s = document.createElement('div');
+      s.textContent = fmtBytes(file.bytes.length) + ' — click or drop to change';
+      $.dropText.appendChild(n);
+      $.dropText.appendChild(s);
+      prepare().then(function () {
+        if ($.msg.className.indexOf('warn') < 0) setMsg('Ready.');
+      });
+    };
+    reader.readAsArrayBuffer(f);
+  }
+
+  function compress(bytes) {
+    if (typeof CompressionStream === 'undefined') return Promise.resolve(null);
+    var cs = new CompressionStream('deflate');
+    var out = new Response(new Blob([bytes]).stream().pipeThrough(cs)).arrayBuffer();
+    return out.then(function (b) { return new Uint8Array(b); }, function () { return null; });
+  }
+
+  // Makes the stream (compressed or not) and its hash. Returns a promise.
+  function prepare() {
+    if (!file) return Promise.resolve();
+    var want = $.zip.checked;
+    var key = file.name + '|' + file.bytes.length + '|' + want;
+    if (prepared && prepared.key === key) return Promise.resolve();
+    var sha = QRFT.sha256(file.bytes);
+    var p = want ? compress(file.bytes) : Promise.resolve(null);
+    return p.then(function (z) {
+      var useZ = z && z.length < file.bytes.length;
+      prepared = {
+        key: key,
+        stream: useZ ? z : file.bytes,
+        flags: useZ ? 1 : 0,
+        sha256: sha
+      };
+      if (want && !z && typeof CompressionStream === 'undefined') {
+        setMsg('This browser has no CompressionStream. Sending without compression.', 'warn');
+      }
+      sessionKey = '';   // force a new session for the new stream
+      updateCalc();
+    });
+  }
+
+  function currentKey() {
+    return prepared ? prepared.key + '|' + blockSize() + '|' + prepared.flags : '';
+  }
+
+  // A new session when the stream or the block size changes.
+  function ensureSession() {
+    var L = blockSize();
+    var key = currentKey();
+    if (session && key === sessionKey) return false;
+    var r = new Uint32Array(1);
+    (window.crypto || window.msCrypto).getRandomValues(r);
+    sessionId = r[0];
+    session = QRFT.makeSession({
+      sessionId: sessionId, L: L, stream: prepared.stream, fileSize: file.bytes.length,
+      flags: prepared.flags, sha256: prepared.sha256, name: file.name, mime: file.mime,
+      metaMax: frameBytes()
+    });
+    sessionKey = key;
+    nextRepair = session.K;
+    return true;
+  }
+
+  function repairCount(K) { return Math.max(8, Math.ceil(K * repairPct() / 100)); }
+
+  function updateCalc() {
+    var L = blockSize();
+    if (!file || !prepared) {
+      $.calc.innerHTML = 'Block: <b>' + L + ' B</b> of data in each QR code.<br>Select a file.';
+      setButtons();
+      return;
+    }
+    var T = prepared.stream.length, K = Math.max(1, Math.ceil(T / L)), R = repairCount(K);
+    var frames = QRFT.schedule(new Array(K + R)).length;
+    var z = prepared.flags ? ' (zlib, ' + Math.round(100 * T / Math.max(1, file.bytes.length)) + ' %)' : '';
+    $.calc.innerHTML =
+      'Stream: <b>' + fmtBytes(T) + '</b>' + z + '<br>' +
+      'Block: <b>' + L + ' B</b>, blocks: <b>' + K + '</b>, repair: <b>' + R + '</b><br>' +
+      'One cycle: <b>' + frames + '</b> frames, <b>' + fmtTime(frames / fps()) + '</b>' +
+      ' (' + fmtBytes(Math.round(file.bytes.length * fps() / frames)) + '/s)<br>' +
+      'SHA-256: <span title="' + hex(prepared.sha256) + '">' + hex(prepared.sha256).slice(0, 16) + '…</span>';
+    setButtons();
+  }
+
+  function setButtons() {
+    var ready = !!(file && prepared);
+    $.start.disabled = !ready;
+    // More continues the current session only; new parameters need Start.
+    $.more.disabled = !ready || !session || sessionKey !== currentKey();
+    $.pause.disabled = !running;
+    $.stop.disabled = !running;
+    $.clean.disabled = $.canvas.hidden;
+    $.pause.textContent = paused ? 'Resume' : 'Pause';
+    syncProxies();
+    [$.version, $.ecc, $.zip].forEach(function (el) { el.disabled = running; });
+  }
+
+  // ---- Sending ----
+  function startBatch(esis) {
+    queue = QRFT.schedule(esis);
+    pos = 0;
+    shownInBatch = 0;
+    batchStart = performance.now();
+    running = true;
+    paused = false;
+    nextQr = null;
+    $.placeholder.hidden = true;
+    $.canvas.hidden = false;
+    requestWakeLock();
+    setButtons();
+    cancelAnimationFrame(rafId);
+    lastShow = 0;
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function startCycle() {
+    if (!file) return;
+    prepare().then(function () {
+      var fresh = ensureSession();
+      var K = session.K, R = repairCount(K), esis = [], i;
+      for (i = 0; i < K; i++) esis.push(i);
+      // A repeated cycle sends new repair symbols: old ones add nothing
+      // for a receiver that has them already.
+      for (i = 0; i < R; i++) esis.push(nextRepair + i);
+      nextRepair += R;
+      setMsg(fresh ? 'New session ' + sessionId.toString(16).toUpperCase() + '.' : 'Same session, full cycle again.');
+      startBatch(esis);
+    });
+  }
+
+  function moreRepair() {
+    if (!session) return;
+    var R = repairCount(session.K), esis = [], i;
+    for (i = 0; i < R; i++) esis.push(nextRepair + i);
+    nextRepair += R;
+    setMsg('Sending ' + R + ' new repair frames.');
+    startBatch(esis);
+  }
+
+  function stop() {
+    running = false;
+    paused = false;
+    cancelAnimationFrame(rafId);
+    releaseWakeLock();
+    setButtons();
+  }
+
+  // Removes the QR code from the screen. The last code of a cycle stays
+  // there, and the phone reads it again and again. The session stays:
+  // More still sends new repair frames of the same file.
+  function clean() {
+    stop();
+    lastQr = null;
+    nextQr = null;
+    $.canvas.hidden = true;
+    $.placeholder.hidden = false;
+    $.progress.style.width = '0';
+    $.bar.innerHTML = '<span>Idle</span>';
+    setButtons();
+  }
+
+  function togglePause() {
+    if (!running) return;
+    paused = !paused;
+    if (!paused) lastShow = 0;
+    setButtons();
+  }
+
+  function encodeFrame(esi) {
+    var bytes = esi < 0 ? session.metaFrame() : session.dataFrame(esi);
+    var text = QRFT.b45enc(bytes);
+    var seg = QrSegment.makeAlphanumeric(text);
+    var v = version();
+    // The same version for each frame, thus the code does not change size.
+    return QrCode.encodeSegments([seg], ecc(), v, v, -1, false);
+  }
+
+  // The QR code fills SIZE_FRACTION of the free square in the stage, in
+  // whole device pixels per module (sharp edges for the camera).
+  var SIZE_FRACTION = 0.92;
+  var lastQr = null;
+
+  function draw(qr) {
+    lastQr = qr;
+    var quiet = 4, n = qr.size + 2 * quiet;
+    var box = $.qrbox.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
+    var avail = Math.max(64, Math.min(box.width, box.height) * SIZE_FRACTION) * dpr;
+    var scale = Math.max(1, Math.floor(avail / n));
+    var px = n * scale, c = $.canvas;
+    if (c.width !== px) {
+      c.width = px;
+      c.height = px;
+    }
+    c.style.width = (px / dpr) + 'px';
+    c.style.height = (px / dpr) + 'px';
+    var g = c.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, px, px);
+    g.fillStyle = '#000000';
+    for (var y = 0; y < qr.size; y++) {
+      var run = -1;
+      for (var x = 0; x <= qr.size; x++) {
+        var dark = x < qr.size && qr.getModule(x, y);
+        if (dark && run < 0) run = x;
+        if (!dark && run >= 0) {
+          g.fillRect((run + quiet) * scale, (y + quiet) * scale, (x - run) * scale, scale);
+          run = -1;
+        }
+      }
+    }
+  }
+
+  function tick(now) {
+    if (!running) return;
+    rafId = requestAnimationFrame(tick);
+    if (paused) return;
+    if (!nextQr && pos < queue.length) nextQr = encodeFrame(queue[pos]);
+    var interval = 1000 / fps();
+    if (lastShow && now - lastShow < interval - 2) return;
+    if (pos >= queue.length) {
+      // Keep the last code on screen for one interval, then stop.
+      stop();
+      showBar(true);
+      setMsg('Cycle done. If the phone did not finish, press More.', 'ok');
+      return;
+    }
+    draw(nextQr);
+    lastShow = now;
+    shownInBatch++;
+    pos++;
+    showBar(false);
+    nextQr = pos < queue.length ? encodeFrame(queue[pos]) : null;
+  }
+
+  function showBar(done) {
+    var esi = queue[pos - 1];
+    var left = (queue.length - pos) / fps();
+    var parts = [
+      'Frame ' + pos + ' / ' + queue.length,
+      esi < 0 ? 'META' : (esi < session.K ? 'block ' + esi : 'repair ' + (esi - session.K)),
+      'K = ' + session.K,
+      done ? 'done' : 'left ' + fmtTime(left),
+      'session ' + sessionId.toString(16).toUpperCase()
+    ];
+    $.bar.innerHTML = '';
+    parts.forEach(function (p) {
+      var s = document.createElement('span');
+      s.textContent = p;
+      $.bar.appendChild(s);
+    });
+    $.progress.style.width = (100 * pos / queue.length).toFixed(1) + '%';
+  }
+
+  // ---- Screen wake lock (keep the PC screen on) ----
+  function requestWakeLock() {
+    if (wakeLock || !navigator.wakeLock) return;
+    navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }, function () {});
+  }
+  function releaseWakeLock() {
+    if (wakeLock) { wakeLock.release().catch(function () {}); wakeLock = null; }
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if ($.stage.requestFullscreen) $.stage.requestFullscreen();
+  }
+
+  // The buttons of the full screen bar press the buttons of the side panel:
+  // one place for the logic, the same enabled state and label.
+  var proxies = Array.prototype.slice.call(root.querySelectorAll('[data-proxy]'));
+  function syncProxies() {
+    if (!proxies) return;   // setButtons can run before this line
+    proxies.forEach(function (b) {
+      var real = $[b.getAttribute('data-proxy')];
+      b.disabled = real.disabled;
+      if (real === $.pause) b.firstChild.nodeValue = real.textContent;
+    });
+  }
+  proxies.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var real = $[b.getAttribute('data-proxy')];
+      if (!real.disabled) real.click();
+    });
+  });
+
+  // ---- Events ----
+  $.file.addEventListener('change', function () { loadFile($.file.files[0]); });
+  ['dragenter', 'dragover'].forEach(function (t) {
+    $.drop.addEventListener(t, function (e) { e.preventDefault(); $.drop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (t) {
+    $.drop.addEventListener(t, function (e) { e.preventDefault(); $.drop.classList.remove('over'); });
+  });
+  $.drop.addEventListener('drop', function (e) {
+    if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+  });
+  $.start.addEventListener('click', startCycle);
+  $.more.addEventListener('click', moreRepair);
+  $.pause.addEventListener('click', togglePause);
+  $.stop.addEventListener('click', function () { stop(); setMsg('Stopped.'); });
+  $.full.addEventListener('click', toggleFullscreen);
+  $.clean.addEventListener('click', function () { clean(); setMsg('Screen clean.'); });
+  [$.version, $.ecc, $.fps, $.repair].forEach(function (el) {
+    el.addEventListener('change', updateCalc);
+  });
+  $.zip.addEventListener('change', function () { prepare(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key === ' ') { e.preventDefault(); togglePause(); }
+    else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+    else if (e.ctrlKey || e.metaKey || e.altKey) return;
+    else if ((e.key === 'c' || e.key === 'C') && !$.clean.disabled) $.clean.click();
+    else if ((e.key === 's' || e.key === 'S') && !$.start.disabled) $.start.click();
+    else if ((e.key === 'm' || e.key === 'M') && !$.more.disabled) $.more.click();
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && running) requestWakeLock();
+  });
+  // A new window size (or full screen): draw the current code again at the
+  // new size, also while paused or after the cycle.
+  function redraw() { if (lastQr && !$.canvas.hidden) draw(lastQr); }
+  window.addEventListener('resize', redraw);
+  document.addEventListener('fullscreenchange', function () { setTimeout(redraw, 50); });
+
+  updateCalc();
+})();
+</script>
+
+<script>
+/* Progressive web application: the manifest, the service worker
+ * (sw.js, it keeps the page for offline use) and the install strip.
+ * Opened from a file (file://), none of this can work: the strip says so
+ * and the page works as before. */
+(function () {
+  'use strict';
+  var root = document.getElementById('qrft-app');
+  if (!root) return;
+  function ref(n) { return root.querySelector('[data-ref="' + n + '"]'); }
+  var box = ref('pwa'), text = ref('pwaText'), btn = ref('pwaInstall'), worker = ref('pwaWorker');
+
+  // Standalone: three signals, no single one works everywhere.
+  var modes = ['standalone', 'fullscreen', 'minimal-ui'].map(function (m) {
+    return window.matchMedia('(display-mode: ' + m + ')');
+  });
+  var launchedAsApp = /(^|[?&])app=1(&|$)/.test(window.location.search.slice(1));
+  function standalone() {
+    var on = modes.some(function (mq) { return mq.matches; }) || window.navigator.standalone === true || launchedAsApp;
+    document.documentElement.classList.toggle('qrft-standalone', on);
+    return on;
+  }
+  standalone();
+  modes.forEach(function (mq) { if (mq.addEventListener) mq.addEventListener('change', standalone); });
+
+  var web = location.protocol === 'http:' || location.protocol === 'https:';
+  if (!web) {
+    text.textContent = 'Opened from a file. To install the page as an application and use it ' +
+      'offline, open it from a web server (https:// or http://localhost).';
+    return;
+  }
+  // The manifest link goes in here, not in the markup: from file:// the
+  // browser would only log an error for it.
+  var link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = 'manifest.json';
+  document.head.appendChild(link);
+
+  if (!window.isSecureContext || !('serviceWorker' in navigator)) {
+    text.textContent = 'Install and offline use need HTTPS (or localhost).';
+    return;
+  }
+
+  var deferred = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferred = e;
+    btn.hidden = false;
+    box.hidden = false;
+    text.textContent = 'This page can be installed as an application.';
+  });
+  btn.addEventListener('click', function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function () {}, function () {}).then(function () {
+      deferred = null;
+      btn.hidden = true;
+    });
+  });
+  window.addEventListener('appinstalled', function () {
+    btn.hidden = true;
+    text.textContent = 'Installed. Start it from the launcher or the application menu.';
+  });
+
+  // Ask the worker which version runs and how full its cache is. Use
+  // registration.active: on the first visit the page has no controller.
+  function askWorker() {
+    var sw = navigator.serviceWorker;
+    var timeout = function (ms) { return new Promise(function (r) { setTimeout(function () { r(null); }, ms); }); };
+    return Promise.race([sw.ready, timeout(5000)]).then(function (reg) {
+      var target = sw.controller || (reg && reg.active);
+      if (!target) return null;
+      return new Promise(function (resolve) {
+        var ch = new MessageChannel();
+        var t = setTimeout(function () { resolve(null); }, 3000);
+        ch.port1.onmessage = function (e) { clearTimeout(t); resolve(e.data || null); };
+        target.postMessage({ type: 'status' }, [ch.port2]);
+      });
+    }, function () { return null; });
+  }
+
+  function showWorker() {
+    return askWorker().then(function (st) {
+      var ready = !!st && st.files >= st.total;
+      worker.hidden = false;
+      worker.className = 'pwa-worker ' + (ready ? 'ok' : 'bad');
+      worker.textContent = !st
+        ? 'No offline copy yet. Reload the page once.'
+        : (ready ? 'Works offline: ' : 'Offline copy incomplete: ') +
+          st.files + ' of ' + st.total + ' files, v' + st.version + '.';
+      if (st && st.version !== pageVersion()) {
+        worker.textContent += ' This page is v' + pageVersion() + ': reload it once to use the same version.';
+      }
+      // Installed and ready: nothing left to say.
+      if (standalone() && ready) box.hidden = true;
+      return ready;
+    });
+  }
+  function pageVersion() {
+    var v = root.querySelector('[data-ref="ver"]');
+    return v ? v.textContent.replace(/^v/, '') : '';
+  }
+
+  if (!deferred) {
+    text.textContent = standalone()
+      ? 'Running as an installed application.'
+      : 'To install: the Install button appears here, or use "Install app" in the browser menu.';
+  }
+
+  navigator.serviceWorker.register('sw.js').then(function (reg) {
+    // A new worker (a new release) fills its cache, then takes over.
+    reg.addEventListener('updatefound', function () {
+      var w = reg.installing;
+      if (w) w.addEventListener('statechange', function () { if (w.state === 'activated') showWorker(); });
+    });
+    return showWorker();
+  }).catch(function (err) {
+    worker.hidden = false;
+    worker.className = 'pwa-worker bad';
+    worker.textContent = 'Service worker not registered: ' + (err && err.message ? err.message : err);
+  });
+
+  // Best effort: ask the browser to keep the offline copy.
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persisted().then(function (p) { if (!p) navigator.storage.persist(); }).catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
