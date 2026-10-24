@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPX Anonymizer</title>
+<style>
+  html, body { margin: 0; background: #f4f6f9; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  @media (prefers-color-scheme: dark) { html, body { background: #15171a; } }
+  #gpx-anon-app { --bg: #fff; --fg: #1d2127; --muted: #5f6b7a; --line: #dfe3e8; --soft: #f1f4f8; --accent: #2f6fde; --accent-fg: #fff; --track: #2f6fde; --start: #1f9d55; --end: #d64545; --wpt: #c77d00;
+    box-sizing: border-box; max-width: 960px; margin: 0 auto; padding: 16px; color: var(--fg); font-size: 15px; line-height: 1.45; }
+  @media (prefers-color-scheme: dark) {
+    #gpx-anon-app { --bg: #1e2126; --fg: #e6e9ee; --muted: #9aa4b2; --line: #343a42; --soft: #262a30; --accent: #5b8ff0; --track: #6aa0ff; --start: #3cc47a; --end: #ff6b6b; --wpt: #f0a830; }
+  }
+  #gpx-anon-app *, #gpx-anon-app *::before, #gpx-anon-app *::after { box-sizing: border-box; }
+  #gpx-anon-app .ga-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  #gpx-anon-app h1 { font-size: 1.45rem; margin: 0; line-height: 1.2; }
+  #gpx-anon-app h2 { font-size: 1.02rem; margin: 0 0 10px; }
+  #gpx-anon-app h2 small { font-weight: 400; color: var(--muted); }
+  #gpx-anon-app .ga-sub { color: var(--muted); margin: 4px 0 0; font-size: .93em; }
+  #gpx-anon-app .ga-ver { font-size: .78em; color: var(--muted); white-space: nowrap; padding-top: 4px; font-variant-numeric: tabular-nums; }
+  #gpx-anon-app .ga-card { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  #gpx-anon-app .ga-drop { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 22px 12px; border: 2px dashed var(--line); border-radius: 10px; background: var(--soft); cursor: pointer; transition: border-color .15s; }
+  #gpx-anon-app .ga-drop.is-over, #gpx-anon-app .ga-drop:focus-within { border-color: var(--accent); }
+  #gpx-anon-app .ga-file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+  #gpx-anon-app .ga-hint { color: var(--muted); font-size: .9em; }
+  #gpx-anon-app .ga-btn { appearance: none; -webkit-appearance: none; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 8px; padding: 8px 14px; min-height: 40px; font: inherit; cursor: pointer; text-decoration: none; }
+  #gpx-anon-app .ga-btn:hover { border-color: var(--accent); }
+  #gpx-anon-app .ga-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); font-weight: 600; }
+  #gpx-anon-app .ga-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  #gpx-anon-app .ga-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 16px; margin-top: 14px; }
+  #gpx-anon-app .ga-opt { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  #gpx-anon-app select { font: inherit; padding: 6px 8px; min-height: 38px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+  #gpx-anon-app input[type=checkbox] { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--accent); }
+  #gpx-anon-app .ga-status { margin: 12px 0 0; font-size: .92em; color: var(--muted); min-height: 1.3em; }
+  #gpx-anon-app .ga-status.is-error { color: var(--end); font-weight: 600; }
+  #gpx-anon-app .ga-hidden { display: none; }
+  #gpx-anon-app .ga-map { display: block; width: 100%; height: auto; max-height: 70vh; background: var(--soft); border-radius: 8px; cursor: crosshair; }
+  #gpx-anon-app .ga-trk { fill: none; stroke: var(--track); stroke-width: 3px; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  #gpx-anon-app .ga-rte { fill: none; stroke: var(--wpt); stroke-width: 2px; stroke-dasharray: 6 5; vector-effect: non-scaling-stroke; }
+  #gpx-anon-app .ga-dot { stroke: var(--bg); stroke-width: 2px; vector-effect: non-scaling-stroke; }
+  #gpx-anon-app .ga-wpt { fill: var(--wpt); }
+  #gpx-anon-app .ga-start { fill: var(--start); }
+  #gpx-anon-app .ga-end { fill: var(--end); }
+  #gpx-anon-app .ga-cur { fill: none; stroke: var(--fg); stroke-width: 2.5px; vector-effect: non-scaling-stroke; }
+  #gpx-anon-app .ga-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .85em; color: var(--muted); margin-top: 8px; }
+  #gpx-anon-app .ga-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  #gpx-anon-app input[type=range] { width: 100%; margin: 12px 0 4px; accent-color: var(--accent); }
+  #gpx-anon-app .ga-readout { font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; display: flex; flex-wrap: wrap; gap: 2px 14px; word-break: break-all; }
+  #gpx-anon-app .ga-readout b { color: var(--muted); font-weight: 400; }
+  #gpx-anon-app .ga-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 14px; }
+  #gpx-anon-app .ga-stat { background: var(--soft); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+  #gpx-anon-app .ga-stat b { display: block; font-size: .76em; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  #gpx-anon-app .ga-stat span { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  #gpx-anon-app .ga-paste { margin-top: 12px; }
+  #gpx-anon-app .ga-paste summary { cursor: pointer; color: var(--accent); padding: 4px 0; width: max-content; max-width: 100%; }
+  #gpx-anon-app .ga-paste textarea { margin-top: 8px; min-height: 140px; background: var(--bg); }
+  #gpx-anon-app .ga-note { margin: 8px 2px 0; font-size: .82em; color: var(--muted); }
+  #gpx-anon-app .ga-note:empty { display: none; }
+  #gpx-anon-app textarea { display: block; width: 100%; min-height: 200px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); color: var(--fg); font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; overflow: auto; resize: vertical; }
+  #gpx-anon-app .ga-foot { color: var(--muted); font-size: .84em; margin: 4px 2px 0; }
+  @media (max-width: 520px) {
+    #gpx-anon-app { padding: 10px; font-size: 14.5px; }
+    #gpx-anon-app .ga-card { padding: 12px; }
+    #gpx-anon-app .ga-row .ga-btn { flex: 1 1 auto; }
+    #gpx-anon-app textarea { min-height: 160px; }
+  }
+</style>
+</head>
+<body>
+<div id="gpx-anon-app">
+  <header class="ga-head">
+    <div>
+      <h1>GPX Anonymizer</h1>
+      <p class="ga-sub">Moves the lowest coordinate to 0,0 and the earliest time to 2020-01-01T00:00:00Z. The differences between coordinates and between times stay exactly the same.</p>
+    </div>
+    <span class="ga-ver">v1.4.0</span>
+  </header>
+  <section class="ga-card">
+    <label class="ga-drop" data-r="drop">
+      <input class="ga-file" type="file" data-r="file">
+      <span class="ga-btn ga-primary">Choose GPX file</span>
+      <span class="ga-hint">or drop it here, or paste it (Ctrl+V / ⌘V). The file is processed on this device and is never uploaded.</span>
+    </label>
+    <div class="ga-row">
+      <button type="button" class="ga-btn" data-r="clip">Paste from clipboard</button>
+      <button type="button" class="ga-btn" data-r="sample">Try a sample track</button>
+    </div>
+    <details class="ga-paste" data-r="pasteBox">
+      <summary>Paste GPX text manually</summary>
+      <textarea spellcheck="false" data-r="paste" placeholder="Paste GPX text here (Ctrl+V / ⌘V, or long-press → Paste)" aria-label="GPX text to anonymize"></textarea>
+      <div class="ga-row">
+        <button type="button" class="ga-btn ga-primary" data-r="pasteGo">Anonymize pasted text</button>
+        <button type="button" class="ga-btn" data-r="pasteClear">Clear</button>
+      </div>
+    </details>
+    <div class="ga-opts">
+      <label class="ga-opt">Elevation
+        <select data-r="ele">
+          <option value="keep">keep as is</option>
+          <option value="shift">shift lowest to 0 m</option>
+          <option value="drop">remove</option>
+        </select>
+      </label>
+      <label class="ga-opt"><input type="checkbox" data-r="ext"> Keep point extensions (heart rate, cadence…)</label>
+      <label class="ga-opt"><input type="checkbox" data-r="aspect" checked> Draw with real-world proportions</label>
+    </div>
+    <p class="ga-status" data-r="status" role="status" aria-live="polite"></p>
+  </section>
+  <section class="ga-card ga-hidden" data-r="viz">
+    <h2>Track shape</h2>
+    <svg class="ga-map" data-r="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" role="img" aria-label="Track shape"></svg>
+    <div class="ga-legend"><span><i style="background:var(--start)"></i>start</span><span><i style="background:var(--end)"></i>end</span><span><i style="background:var(--wpt)"></i>waypoint / route</span><span>Tap the shape or drag the slider to inspect points</span></div>
+    <input type="range" data-r="scrub" min="0" max="0" value="0" step="1" aria-label="Point index">
+    <div class="ga-readout" data-r="readout"></div>
+    <div class="ga-stats" data-r="stats"></div>
+    <p class="ga-note" data-r="note"></p>
+  </section>
+  <section class="ga-card ga-hidden" data-r="coords">
+    <h2>All coordinates <small data-r="count"></small></h2>
+    <textarea readonly spellcheck="false" data-r="csv" aria-label="Anonymized coordinates as CSV"></textarea>
+    <div class="ga-row">
+      <button type="button" class="ga-btn" data-r="copyCsv">Copy CSV</button>
+      <button type="button" class="ga-btn" data-r="dlCsv">Download CSV</button>
+    </div>
+  </section>
+  <section class="ga-card ga-hidden" data-r="out">
+    <h2>Anonymized GPX</h2>
+    <textarea readonly spellcheck="false" data-r="gpx" aria-label="Anonymized GPX"></textarea>
+    <div class="ga-row">
+      <button type="button" class="ga-btn ga-primary" data-r="dlGpx">Download GPX</button>
+      <button type="button" class="ga-btn" data-r="copyGpx">Copy GPX</button>
+    </div>
+  </section>
+  <p class="ga-foot">Removed from the output: metadata, creator, names, descriptions, comments, links and symbols. Kept: point order, track/segment structure, exact coordinate differences and time differences. Works offline.</p>
+</div>
+<script>
+(function () {
+  'use strict';
+  var cs = document.currentScript;
+  var root = cs && cs.previousElementSibling && cs.previousElementSibling.id === 'gpx-anon-app' ? cs.previousElementSibling : document.getElementById('gpx-anon-app');
+  if (!root) return;
+  function $(r) { return root.querySelector('[data-r="' + r + '"]'); }
+  var ui = {
+    drop: $('drop'), file: $('file'), sample: $('sample'), clip: $('clip'), pasteBox: $('pasteBox'), paste: $('paste'), pasteGo: $('pasteGo'), pasteClear: $('pasteClear'), ele: $('ele'), ext: $('ext'), aspect: $('aspect'),
+    status: $('status'), viz: $('viz'), svg: $('svg'), scrub: $('scrub'), readout: $('readout'), stats: $('stats'), note: $('note'),
+    coords: $('coords'), csv: $('csv'), count: $('count'), out: $('out'), gpx: $('gpx'),
+    copyCsv: $('copyCsv'), dlCsv: $('dlCsv'), copyGpx: $('copyGpx'), dlGpx: $('dlGpx')
+  };
+  var GPX_NS = 'http://www.topografix.com/GPX/1/1';
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var XMLNS_NS = 'http://www.w3.org/2000/xmlns/';
+  var BASE_MS = Date.UTC(2020, 0, 1, 0, 0, 0);
+  var ZERO = BigInt(0);
+  var model = null, info = null, view = null;
+  /* ---------- exact decimal arithmetic (BigInt, no float rounding) ---------- */
+  function pow10(n) { return BigInt('1' + new Array(n + 1).join('0')); }
+  function parseDec(str) {
+    var m = /^\s*([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?\s*$/.exec(str || '');
+    if (!m || (m[2] === '' && !m[3])) return null;
+    var frac = m[3] || '';
+    var scale = frac.length - (m[4] ? parseInt(m[4], 10) : 0);
+    var v = BigInt((m[2] + frac) || '0');
+    if (scale < 0) { v = v * pow10(-scale); scale = 0; }
+    if (m[1] === '-') v = -v;
+    return { v: v, s: scale };
+  }
+  function rescale(d, s) { return d.s === s ? d.v : d.v * pow10(s - d.s); }
+  function fmtDec(v, s) {
+    var neg = v < ZERO;
+    var str = (neg ? -v : v).toString();
+    if (s > 0) {
+      while (str.length <= s) str = '0' + str;
+      var ip = str.slice(0, str.length - s), fp = str.slice(str.length - s).replace(/0+$/, '');
+      str = fp ? ip + '.' + fp : ip;
+    }
+    return (neg && str !== '0' ? '-' : '') + str;
+  }
+  /* shift a list of decimal strings so the minimum becomes 0; returns {out, span} */
+  function shiftToZero(strs) {
+    var parsed = [], scale = 0, i, d;
+    for (i = 0; i < strs.length; i++) {
+      d = strs[i] == null ? null : parseDec(strs[i]);
+      parsed.push(d);
+      if (d && d.s > scale) scale = d.s;
+    }
+    var min = null, max = null, vals = [];
+    for (i = 0; i < parsed.length; i++) {
+      if (!parsed[i]) { vals.push(null); continue; }
+      var v = rescale(parsed[i], scale);
+      vals.push(v);
+      if (min === null || v < min) min = v;
+      if (max === null || v > max) max = v;
+    }
+    var out = vals.map(function (v) { return v === null ? null : fmtDec(v - min, scale); });
+    return { out: out, span: min === null ? null : fmtDec(max - min, scale) };
+  }
+  /* ---------- time ---------- */
+  var TIME_RE = /^\s*(\d{4})-(\d{2})-(\d{2})[Tt ](\d{2}):(\d{2})(?::(\d{2})(\.\d+)?)?\s*(Z|z|[+-]\d{2}(?::?\d{2})?)?\s*$/;
+  function parseTime(s) {
+    var m = TIME_RE.exec(s);
+    if (!m) { var d = Date.parse(s); return isNaN(d) ? null : { ms: d, frac: false }; }
+    var ms = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+    var frac = m[7] ? m[7].slice(1) : '';
+    if (frac) ms += Math.round(parseFloat('0.' + frac) * 1000);
+    var tz = m[8];
+    if (tz && tz.toUpperCase() !== 'Z') {
+      var sign = tz.charAt(0) === '-' ? -1 : 1, t = tz.slice(1).replace(':', '');
+      ms -= sign * (parseInt(t.slice(0, 2), 10) * 60 + (t.length > 2 ? parseInt(t.slice(2), 10) : 0)) * 60000;
+    }
+    return isNaN(ms) ? null : { ms: ms, frac: !!frac };
+  }
+  function fmtTime(ms, frac) {
+    var s = new Date(ms).toISOString();
+    return frac ? s : s.replace(/\.\d{3}Z$/, 'Z');
+  }
+  function fmtDuration(ms) {
+    var s = Math.round(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+    var p = [];
+    if (d) p.push(d + ' d');
+    if (d || h) p.push(h + ' h');
+    if (d || h || m) p.push(m + ' min');
+    if (!d) p.push(sec + ' s');
+    return p.join(' ');
+  }
+  /* ---------- GPX parsing ---------- */
+  function kids(el, name) {
+    var out = [];
+    for (var n = el.firstChild; n; n = n.nextSibling) if (n.nodeType === 1 && (!name || n.localName === name)) out.push(n);
+    return out;
+  }
+  function kidText(el, name) {
+    var c = kids(el, name)[0];
+    if (!c) return null;
+    var t = c.textContent.trim();
+    return t === '' ? null : t;
+  }
+  function readPoint(el, kind) {
+    var latS = (el.getAttribute('lat') || '').trim(), lonS = (el.getAttribute('lon') || '').trim();
+    return { kind: kind, latS: latS, lonS: lonS, lat: parseFloat(latS), lon: parseFloat(lonS), eleS: kidText(el, 'ele'), timeS: kidText(el, 'time'), ext: kids(el, 'extensions')[0] || null };
+  }
+  function parseGpx(text) {
+    var doc = new DOMParser().parseFromString(text, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) throw new Error('This file is not valid XML, so it cannot be read as GPX.');
+    var g = doc.documentElement;
+    if (!g || g.localName !== 'gpx') throw new Error('This is not a GPX file: the root element is not "gpx".');
+    var m = { wpts: [], rtes: [], trks: [], all: [], nsAttrs: [] };
+    for (var i = 0; i < g.attributes.length; i++) {
+      var a = g.attributes[i];
+      if (a.name.indexOf('xmlns:') === 0 && a.name !== 'xmlns:xsi') m.nsAttrs.push([a.name, a.value]);
+    }
+    kids(g).forEach(function (c) {
+      if (c.localName === 'wpt') {
+        var p = readPoint(c, 'wpt'); m.wpts.push(p); m.all.push(p);
+      } else if (c.localName === 'rte') {
+        m.rtes.push(kids(c, 'rtept').map(function (e) { var p = readPoint(e, 'rtept'); m.all.push(p); return p; }));
+      } else if (c.localName === 'trk') {
+        m.trks.push(kids(c, 'trkseg').map(function (s) {
+          return kids(s, 'trkpt').map(function (e) { var p = readPoint(e, 'trkpt'); m.all.push(p); return p; });
+        }));
+      }
+    });
+    if (!m.all.length) throw new Error('No waypoints, route points or track points were found in this file.');
+    m.all.forEach(function (p, i) {
+      if (!parseDec(p.latS) || !parseDec(p.lonS) || !isFinite(p.lat) || !isFinite(p.lon)) throw new Error('Point ' + (i + 1) + ' has an invalid lat/lon value.');
+    });
+    var trkPts = [];
+    m.trks.forEach(function (t) { t.forEach(function (s) { trkPts = trkPts.concat(s); }); });
+    var rtePts = [];
+    m.rtes.forEach(function (r) { rtePts = rtePts.concat(r); });
+    m.path = trkPts.length ? trkPts : (rtePts.length ? rtePts : m.all);
+    return m;
+  }
+  /* ---------- anonymization ---------- */
+  function anonymize(m, eleMode) {
+    var pts = m.all;
+    var la = shiftToZero(pts.map(function (p) { return p.latS; }));
+    var lo = shiftToZero(pts.map(function (p) { return p.lonS; }));
+    var el = eleMode === 'shift' ? shiftToZero(pts.map(function (p) { return p.eleS; })) : null;
+    var minT = Infinity, maxT = -Infinity, frac = false, timed = 0, badTime = 0, eMin = Infinity, eMax = -Infinity;
+    var times = pts.map(function (p) {
+      if (!p.timeS) return null;
+      var t = parseTime(p.timeS);
+      if (!t) { badTime++; return null; }
+      timed++;
+      if (t.frac) frac = true;
+      if (t.ms < minT) minT = t.ms;
+      if (t.ms > maxT) maxT = t.ms;
+      return t.ms;
+    });
+    pts.forEach(function (p, i) {
+      p.aLat = la.out[i];
+      p.aLon = lo.out[i];
+      p.aEle = eleMode === 'drop' ? null : (eleMode === 'shift' ? el.out[i] : (parseDec(p.eleS) ? p.eleS : null));
+      p._ms = times[i];
+      p.aTime = times[i] === null ? null : fmtTime(BASE_MS + (times[i] - minT), frac);
+      if (p.aEle !== null) { var e = parseFloat(p.aEle); if (e < eMin) eMin = e; if (e > eMax) eMax = e; }
+    });
+    var length = 0;
+    var lines = m.trks.length ? [] : m.rtes;
+    m.trks.forEach(function (t) { lines = lines.concat(t); });
+    var sp = { dist: 0, time: 0, max: -Infinity, min: Infinity };
+    lines.forEach(function (seg) {
+      var cum = [0];
+      for (var i = 1; i < seg.length; i++) cum.push(cum[i - 1] + haversine(seg[i - 1], seg[i]));
+      length += cum[seg.length - 1] || 0;
+      speedStats(seg, cum, sp);
+    });
+    return { n: pts.length, spanLat: la.span, spanLon: lo.span, timed: timed, badTime: badTime, minT: minT, maxT: maxT, frac: frac, length: length, eMin: eMin, eMax: eMax,
+      vAvg: sp.time > 0 ? sp.dist / sp.time * 3600 : null, vMax: isFinite(sp.max) ? sp.max : null, vMin: isFinite(sp.min) ? sp.min : null };
+  }
+  /* speeds in km/h from real (original) distances; min/max use windows of >= SPEED_WIN ms to smooth GPS jitter */
+  var SPEED_WIN = 10000;
+  function speedStats(seg, cum, sp) {
+    var idx = [], k, a, b = 0, found = false;
+    for (k = 0; k < seg.length; k++) if (seg[k]._ms !== null) idx.push(k);
+    for (k = 1; k < idx.length; k++) {
+      var dt = seg[idx[k]]._ms - seg[idx[k - 1]]._ms;
+      if (dt > 0) { sp.dist += cum[idx[k]] - cum[idx[k - 1]]; sp.time += dt; }
+    }
+    function take(i, j) {
+      var dt = seg[j]._ms - seg[i]._ms;
+      if (dt <= 0) return;
+      var v = (cum[j] - cum[i]) / dt * 3600;
+      if (v > sp.max) sp.max = v;
+      if (v < sp.min) sp.min = v;
+      found = true;
+    }
+    for (a = 0; a < idx.length; a++) {
+      if (b <= a) b = a + 1;
+      while (b < idx.length && seg[idx[b]]._ms - seg[idx[a]]._ms < SPEED_WIN) b++;
+      if (b >= idx.length) break;
+      take(idx[a], idx[b]);
+    }
+    if (!found && idx.length > 1) take(idx[0], idx[idx.length - 1]);
+  }
+  function haversine(a, b) {
+    var r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r;
+    var h = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.pow(Math.sin(dLon / 2), 2);
+    return 2 * 6371008.8 * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  /* ---------- output builders ---------- */
+  function buildGpx(m, keepExt) {
+    var doc = document.implementation.createDocument(GPX_NS, 'gpx', null);
+    var g = doc.documentElement;
+    g.setAttribute('version', '1.1');
+    g.setAttribute('creator', 'GPX Anonymizer');
+    if (keepExt) m.nsAttrs.forEach(function (a) { g.setAttributeNS(XMLNS_NS, a[0], a[1]); });
+    function ind(d) { return '\n' + new Array(d + 1).join('  '); }
+    function add(parent, name, d) {
+      parent.appendChild(doc.createTextNode(ind(d)));
+      var e = doc.createElementNS(GPX_NS, name);
+      parent.appendChild(e);
+      return e;
+    }
+    function close(e, d) { e.appendChild(doc.createTextNode(ind(d))); }
+    function inline(parent, name) {
+      var e = doc.createElementNS(GPX_NS, name);
+      parent.appendChild(e);
+      return e;
+    }
+    function stripWs(node) {
+      for (var n = node.firstChild, next; n; n = next) {
+        next = n.nextSibling;
+        if (n.nodeType === 3 && !/\S/.test(n.nodeValue)) node.removeChild(n);
+        else if (n.nodeType === 1) stripWs(n);
+        else if (n.nodeType !== 3) node.removeChild(n);
+      }
+      return node;
+    }
+    /* every point is written on a single line */
+    function point(parent, name, p, d) {
+      var e = add(parent, name, d);
+      e.setAttribute('lat', p.aLat);
+      e.setAttribute('lon', p.aLon);
+      if (p.aEle !== null) inline(e, 'ele').textContent = p.aEle;
+      if (p.aTime !== null) inline(e, 'time').textContent = p.aTime;
+      if (keepExt && p.ext) {
+        var x = inline(e, 'extensions');
+        for (var n = p.ext.firstChild; n; n = n.nextSibling) if (n.nodeType === 1) x.appendChild(stripWs(doc.importNode(n, true)));
+      }
+    }
+    m.wpts.forEach(function (p) { point(g, 'wpt', p, 1); });
+    m.rtes.forEach(function (r) {
+      if (!r.length) return;
+      var e = add(g, 'rte', 1);
+      r.forEach(function (p) { point(e, 'rtept', p, 2); });
+      close(e, 1);
+    });
+    m.trks.forEach(function (t) {
+      var segs = t.filter(function (s) { return s.length; });
+      if (!segs.length) return;
+      var e = add(g, 'trk', 1);
+      segs.forEach(function (s) {
+        var se = add(e, 'trkseg', 2);
+        s.forEach(function (p) { point(se, 'trkpt', p, 3); });
+        close(se, 2);
+      });
+      close(e, 1);
+    });
+    close(g, 0);
+    var s = new XMLSerializer().serializeToString(doc);
+    if (s.indexOf('<?xml') !== 0) s = '<?xml version="1.0" encoding="UTF-8"?>\n' + s;
+    return s + '\n';
+  }
+  function buildCsv(m) {
+    var rows = ['n,type,lat,lon,ele,time'];
+    m.all.forEach(function (p, i) { rows.push([i + 1, p.kind, p.aLat, p.aLon, p.aEle === null ? '' : p.aEle, p.aTime || ''].join(',')); });
+    return rows.join('\n') + '\n';
+  }
+  /* ---------- SVG rendering ---------- */
+  function svgEl(name, attrs, parent) {
+    var e = document.createElementNS(SVG_NS, name);
+    for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) e.setAttribute(k, attrs[k]);
+    parent.appendChild(e);
+    return e;
+  }
+  function renderMap() {
+    if (!model) return;
+    var svg = ui.svg, pts = model.all;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+    pts.forEach(function (p) {
+      if (p.lat < minLat) minLat = p.lat; if (p.lat > maxLat) maxLat = p.lat;
+      if (p.lon < minLon) minLon = p.lon; if (p.lon > maxLon) maxLon = p.lon;
+    });
+    var k = ui.aspect.checked ? Math.max(0.02, Math.cos((minLat + maxLat) / 2 * Math.PI / 180)) : 1;
+    var W = 1000, PAD = 28, MAXH = 1500;
+    var spanX = (maxLon - minLon) * k, spanY = maxLat - minLat;
+    var sx = spanX > 0 ? (W - 2 * PAD) / spanX : Infinity, sy = spanY > 0 ? (MAXH - 2 * PAD) / spanY : Infinity;
+    var s = Math.min(sx, sy);
+    if (!isFinite(s)) s = 1;
+    var H = Math.max(260, spanY * s + 2 * PAD);
+    var ox = (W - spanX * s) / 2, oy = (H - spanY * s) / 2;
+    function X(p) { return ox + (p.lon - minLon) * k * s; }
+    function Y(p) { return oy + (maxLat - p.lat) * s; }
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H.toFixed(1));
+    svg.style.aspectRatio = W + ' / ' + H.toFixed(1);
+    var rect = svg.getBoundingClientRect();
+    var u = rect.width > 0 && rect.height > 0 ? Math.max(W / rect.width, H / rect.height) : 1;
+    function line(seg, cls) {
+      if (seg.length === 1) { svgEl('circle', { cx: X(seg[0]).toFixed(1), cy: Y(seg[0]).toFixed(1), r: (2.5 * u).toFixed(2), 'class': cls === 'ga-trk' ? 'ga-start' : 'ga-wpt' }, svg); return; }
+      var a = new Array(seg.length);
+      for (var i = 0; i < seg.length; i++) a[i] = X(seg[i]).toFixed(1) + ',' + Y(seg[i]).toFixed(1);
+      svgEl('polyline', { points: a.join(' '), 'class': cls }, svg);
+    }
+    model.rtes.forEach(function (r) { if (r.length) line(r, 'ga-rte'); });
+    model.trks.forEach(function (t) { t.forEach(function (seg) { if (seg.length) line(seg, 'ga-trk'); }); });
+    model.wpts.forEach(function (p) { svgEl('circle', { cx: X(p).toFixed(1), cy: Y(p).toFixed(1), r: (5 * u).toFixed(2), 'class': 'ga-dot ga-wpt' }, svg); });
+    var path = model.path;
+    if (path.length > 1) {
+      svgEl('circle', { cx: X(path[path.length - 1]).toFixed(1), cy: Y(path[path.length - 1]).toFixed(1), r: (6.5 * u).toFixed(2), 'class': 'ga-dot ga-end' }, svg);
+    }
+    svgEl('circle', { cx: X(path[0]).toFixed(1), cy: Y(path[0]).toFixed(1), r: (6.5 * u).toFixed(2), 'class': 'ga-dot ga-start' }, svg);
+    var cur = svgEl('circle', { r: (9 * u).toFixed(2), 'class': 'ga-cur' }, svg);
+    view = { cur: cur, xy: path.map(function (p) { return [X(p), Y(p)]; }) };
+    updateCursor();
+  }
+  function updateCursor() {
+    if (!view || !model) return;
+    var path = model.path, i = Math.min(path.length - 1, Math.max(0, parseInt(ui.scrub.value, 10) || 0)), p = path[i];
+    view.cur.setAttribute('cx', view.xy[i][0].toFixed(1));
+    view.cur.setAttribute('cy', view.xy[i][1].toFixed(1));
+    var parts = [['#', (i + 1) + ' / ' + path.length + ' (' + p.kind + ')'], ['lat', p.aLat], ['lon', p.aLon]];
+    if (p.aEle !== null) parts.push(['ele', p.aEle]);
+    if (p.aTime !== null) parts.push(['time', p.aTime]);
+    ui.readout.textContent = '';
+    parts.forEach(function (x) {
+      var span = document.createElement('span'), b = document.createElement('b');
+      b.textContent = x[0] + ' ';
+      span.appendChild(b);
+      span.appendChild(document.createTextNode(x[1]));
+      ui.readout.appendChild(span);
+    });
+  }
+  function onMapClick(e) {
+    if (!view) return;
+    var ctm = ui.svg.getScreenCTM();
+    if (!ctm) return;
+    var pt = ui.svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    var q = pt.matrixTransform(ctm.inverse()), best = 0, bd = Infinity;
+    for (var i = 0; i < view.xy.length; i++) {
+      var dx = view.xy[i][0] - q.x, dy = view.xy[i][1] - q.y, d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = i; }
+    }
+    ui.scrub.value = best;
+    updateCursor();
+  }
+  /* ---------- stats & UI ---------- */
+  function num(n) { return n.toLocaleString('en-US'); }
+  function renderStats() {
+    var m = model, wpt = m.wpts.length, rte = m.all.filter(function (p) { return p.kind === 'rtept'; }).length, segs = 0;
+    m.trks.forEach(function (t) { segs += t.filter(function (s) { return s.length; }).length; });
+    var trk = m.all.length - wpt - rte;
+    var rows = [
+      ['Points', num(info.n)],
+      ['Track points', num(trk) + (segs ? ' in ' + segs + ' seg.' : '')],
+      ['Waypoints / route pts', num(wpt) + ' / ' + num(rte)],
+      ['Latitude range', '0 … ' + info.spanLat + '°'],
+      ['Longitude range', '0 … ' + info.spanLon + '°']
+    ];
+    if (info.timed) {
+      rows.push(['Start time', fmtTime(BASE_MS, info.frac)]);
+      rows.push(['End time', fmtTime(BASE_MS + info.maxT - info.minT, info.frac)]);
+      rows.push(['Duration', fmtDuration(info.maxT - info.minT)]);
+    } else {
+      rows.push(['Time', 'no timestamps']);
+    }
+    if (info.length > 0) rows.push(['Length (real)', info.length >= 100000 ? (info.length / 1000).toFixed(1) + ' km' : info.length >= 1000 ? (info.length / 1000).toFixed(2) + ' km' : Math.round(info.length) + ' m']);
+    function kmh(v) { return v === null ? '—' : v.toFixed(1) + ' km/h'; }
+    if (info.vAvg !== null || info.vMax !== null) {
+      rows.push(['Avg speed', kmh(info.vAvg)]);
+      rows.push(['Max speed', kmh(info.vMax)]);
+      rows.push(['Min speed', kmh(info.vMin)]);
+    }
+    if (isFinite(info.eMin)) rows.push(['Elevation', info.eMin + ' … ' + info.eMax + ' m']);
+    ui.note.textContent = info.vAvg !== null || info.vMax !== null ? 'Speeds use real-world distances along the track. Avg = distance ÷ time within segments (pauses between segments excluded). Max/min are measured over stretches of at least ' + (SPEED_WIN / 1000) + ' s to smooth out GPS jitter.' : '';
+    ui.stats.textContent = '';
+    rows.forEach(function (r) {
+      var d = document.createElement('div'), b = document.createElement('b'), s = document.createElement('span');
+      d.className = 'ga-stat';
+      b.textContent = r[0];
+      s.textContent = r[1];
+      d.appendChild(b); d.appendChild(s);
+      ui.stats.appendChild(d);
+    });
+  }
+  function setStatus(msg, err) {
+    ui.status.textContent = msg;
+    ui.status.classList.toggle('is-error', !!err);
+  }
+  function showResults(on) {
+    [ui.viz, ui.coords, ui.out].forEach(function (s) { s.classList.toggle('ga-hidden', !on); });
+  }
+  function process() {
+    if (!model) return;
+    try {
+      info = anonymize(model, ui.ele.value);
+      ui.gpx.value = buildGpx(model, ui.ext.checked);
+      ui.csv.value = buildCsv(model);
+    } catch (e) {
+      showResults(false);
+      setStatus(e.message || String(e), true);
+      return;
+    }
+    ui.count.textContent = '(' + num(info.n) + ' points, CSV)';
+    ui.scrub.max = String(model.path.length - 1);
+    if (+ui.scrub.value > model.path.length - 1) ui.scrub.value = '0';
+    showResults(true);
+    renderMap();
+    renderStats();
+    var msg = 'Done: ' + num(info.n) + ' points anonymized.';
+    if (!info.timed) msg += ' The file has no timestamps.';
+    if (info.badTime) msg += ' ' + info.badTime + ' unreadable timestamp(s) were removed.';
+    setStatus(msg, false);
+  }
+  function loadText(text) {
+    try {
+      model = parseGpx(text);
+    } catch (e) {
+      model = null; info = null; view = null;
+      showResults(false);
+      setStatus(e.message || String(e), true);
+      return;
+    }
+    ui.scrub.value = '0';
+    process();
+  }
+  function readFile(f) {
+    if (!f) return;
+    setStatus('Reading ' + f.name + '…', false);
+    var r = new FileReader();
+    r.onload = function () { loadText(String(r.result)); };
+    r.onerror = function () { setStatus('Could not read this file.', true); };
+    r.readAsText(f);
+  }
+  function flash(btn, text) {
+    if (!btn.getAttribute('data-label')) btn.setAttribute('data-label', btn.textContent);
+    btn.textContent = text;
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () { btn.textContent = btn.getAttribute('data-label'); }, 1400);
+  }
+  function copyText(text, btn) {
+    function fallback() {
+      var ta = document.createElement('textarea'), ok = false;
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      flash(btn, ok ? 'Copied ✓' : 'Copy failed');
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () { flash(btn, 'Copied ✓'); }, fallback);
+    } else fallback();
+  }
+  function download(text, name, mime) {
+    var url = URL.createObjectURL(new Blob([text], { type: mime }));
+    var a = document.createElement('a');
+    a.href = url; a.download = name; a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.parentNode && a.parentNode.removeChild(a); }, 1500);
+  }
+  function sampleGpx() {
+    var lat0 = 46.5521, lon0 = 7.9312, t0 = Date.UTC(2024, 5, 15, 7, 12, 3), N = 420, out = [];
+    out.push('<?xml version="1.0" encoding="UTF-8"?>');
+    out.push('<gpx version="1.1" creator="Sample Device" xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">');
+    out.push('<metadata><name>Morning hike near home</name><time>2024-06-15T07:12:03Z</time></metadata>');
+    out.push('<wpt lat="46.5521000" lon="7.9312000"><ele>1210</ele><name>Home</name></wpt>');
+    out.push('<wpt lat="46.5617400" lon="7.9561200"><ele>1395</ele><name>Viewpoint</name></wpt>');
+    out.push('<trk><name>Morning hike</name><trkseg>');
+    var t = t0;
+    for (var i = 0; i <= N; i++) {
+      var a = i / N * Math.PI * 2, r = 0.011 * (1 + 0.32 * Math.sin(3 * a) + 0.08 * Math.sin(11 * a));
+      var lat = lat0 + r * Math.sin(a), lon = lon0 + r * (1 - Math.cos(a)) * 1.6;
+      var ele = 1210 + 190 * Math.sin(a / 2) + 12 * Math.sin(9 * a);
+      t += 1000 * (6 + Math.round(4 * Math.abs(Math.sin(5 * a))));
+      if (i === 230) { out.push('</trkseg><trkseg>'); t += 1200000; }
+      out.push('<trkpt lat="' + lat.toFixed(7) + '" lon="' + lon.toFixed(7) + '"><ele>' + ele.toFixed(1) + '</ele><time>' + new Date(t).toISOString().replace('.000', '') + '</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:hr>' + Math.round(105 + 30 * Math.sin(a / 2)) + '</gpxtpx:hr></gpxtpx:TrackPointExtension></extensions></trkpt>');
+    }
+    out.push('</trkseg></trk></gpx>');
+    return out.join('\n');
+  }
+  /* ---------- events ---------- */
+  ui.file.addEventListener('change', function () { var f = ui.file.files && ui.file.files[0]; ui.file.value = ''; readFile(f); });
+  ['dragenter', 'dragover'].forEach(function (t) { ui.drop.addEventListener(t, function (e) { e.preventDefault(); ui.drop.classList.add('is-over'); }); });
+  ['dragleave', 'dragend'].forEach(function (t) { ui.drop.addEventListener(t, function () { ui.drop.classList.remove('is-over'); }); });
+  ui.drop.addEventListener('drop', function (e) {
+    e.preventDefault();
+    ui.drop.classList.remove('is-over');
+    readFile(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
+  });
+  ui.sample.addEventListener('click', function () { loadText(sampleGpx()); });
+  /* ---------- paste ---------- */
+  function openPasteBox(msg) {
+    ui.pasteBox.open = true;
+    setStatus(msg, true);
+    try { ui.paste.focus({ preventScroll: false }); } catch (e) { ui.paste.focus(); }
+  }
+  function loadPasted(text, source) {
+    if (!text || !/\S/.test(text)) { setStatus(source + ' is empty.', true); return; }
+    loadText(text);
+  }
+  ui.clip.addEventListener('click', function () {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      openPasteBox('This browser does not allow reading the clipboard here. Paste into the box below instead.');
+      return;
+    }
+    setStatus('Reading clipboard…', false);
+    navigator.clipboard.readText().then(function (t) { loadPasted(t, 'The clipboard'); }, function () {
+      openPasteBox('Clipboard access was blocked. Paste into the box below instead (Ctrl+V / ⌘V, or long-press → Paste).');
+    });
+  });
+  ui.pasteGo.addEventListener('click', function () { loadPasted(ui.paste.value, 'The paste box'); });
+  ui.pasteClear.addEventListener('click', function () { ui.paste.value = ''; ui.paste.focus(); });
+  /* handles pastes into the paste box, and Ctrl+V when no text field is focused (file or GPX text) */
+  document.addEventListener('paste', function (e) {
+    var t = e.target, cd = e.clipboardData;
+    var box = t === ui.paste;
+    if (!box) {
+      var editable = t && t.nodeType === 1 && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+      var free = !t || t === document.body || t === document.documentElement || root.contains(t);
+      if (editable || !free) return;
+    }
+    if (cd && cd.files && cd.files.length) {
+      e.preventDefault();
+      readFile(cd.files[0]);
+      return;
+    }
+    var text = cd ? (cd.getData('text/plain') || cd.getData('text')) : '';
+    if (box) {
+      if (text) loadPasted(text, 'The pasted text');
+      else setTimeout(function () { loadPasted(ui.paste.value, 'The paste box'); }, 0);
+      return;
+    }
+    if (!text || !/<gpx[\s>]/i.test(text)) return;
+    e.preventDefault();
+    loadText(text);
+  });
+  ui.ele.addEventListener('change', process);
+  ui.ext.addEventListener('change', process);
+  ui.aspect.addEventListener('change', renderMap);
+  ui.scrub.addEventListener('input', updateCursor);
+  ui.svg.addEventListener('click', onMapClick);
+  ui.copyCsv.addEventListener('click', function () { copyText(ui.csv.value, ui.copyCsv); });
+  ui.copyGpx.addEventListener('click', function () { copyText(ui.gpx.value, ui.copyGpx); });
+  ui.dlCsv.addEventListener('click', function () { download(ui.csv.value, 'anonymized-coordinates.csv', 'text/csv'); });
+  ui.dlGpx.addEventListener('click', function () { download(ui.gpx.value, 'anonymized.gpx', 'application/gpx+xml'); });
+  var rt = null;
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(renderMap, 150); });
+  /* =========================================================================
+     >>> BEGIN OF TESTING ARCHITECTURE <<<
+     [SAFE TO DELETE]: this block only serves the micro unit test suite
+     (gpx-anonymizer_tests.js). Removing it does not change the app.
+     Open the page with ?test=run to run the tests automatically.
+     ========================================================================= */
+  if (window.location.search.indexOf('test=') !== -1) {
+    window.__TEST_API__ = {
+      parseDec: parseDec, fmtDec: fmtDec, shiftToZero: shiftToZero, parseTime: parseTime, fmtTime: fmtTime, fmtDuration: fmtDuration,
+      haversine: haversine, parseGpx: parseGpx, anonymize: anonymize, buildGpx: buildGpx, buildCsv: buildCsv, sampleGpx: sampleGpx,
+      loadText: loadText, BASE_MS: BASE_MS, SPEED_WIN: SPEED_WIN, root: root,
+      getState: function () { return { model: model, info: info }; },
+      reset: function () {
+        model = null; info = null; view = null;
+        ui.ele.value = 'keep'; ui.ext.checked = false; ui.aspect.checked = true;
+        ui.paste.value = ''; ui.pasteBox.open = false;
+        ui.scrub.max = '0'; ui.scrub.value = '0';
+        ui.csv.value = ''; ui.gpx.value = ''; ui.count.textContent = ''; ui.stats.textContent = ''; ui.note.textContent = ''; ui.readout.textContent = '';
+        while (ui.svg.firstChild) ui.svg.removeChild(ui.svg.firstChild);
+        showResults(false);
+        setStatus('', false);
+      }
+    };
+    console.log('Unit testing API exposed at window.__TEST_API__');
+    /* test file name = this page's file name + "_tests.js" (e.g. gpx_anonymizer_v1_4_0.html -> gpx_anonymizer_v1_4_0_tests.js) */
+    var pageName = (window.location.pathname.split('/').pop() || '').replace(/\.html?$/i, '');
+    var testFile = (pageName || 'gpx_anonymizer') + '_tests.js';
+    var testScript = document.createElement('script');
+    testScript.src = testFile;
+    testScript.onload = function () {
+      if (/[?&]test=run(&|$)/.test(window.location.search) && window.__runTests) setTimeout(window.__runTests, 500);
+    };
+    testScript.onerror = function () {
+      console.error('Failed to load ' + testFile + '. Put it in the same folder as this page.');
+      setStatus('Test mode: ' + testFile + ' was not found next to this page.', true);
+    };
+    document.body.appendChild(testScript);
+  }
+  /* >>> END OF TESTING ARCHITECTURE <<< */
+})();
+</script>
+</body>
+</html>
